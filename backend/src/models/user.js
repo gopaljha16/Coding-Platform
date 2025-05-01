@@ -39,3 +39,6 @@ const userScehma = Schema({
         type:[String], // all id problems
     }
 })
+
+const User = mongoose.model("user" , userScehma);
+module.exports = User;
