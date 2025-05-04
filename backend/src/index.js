@@ -4,12 +4,17 @@ const app = express();
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
 const redisClient = require("./config/redis");
+const authRouter = require("./routes/userAuth");
+
 
 
 const PORT_NO = process.env.PORT_NO
 
 app.use(express.json());
 app.use(cookieParser());
+
+// routing.
+app.use("/user" , authRouter);
 
 
 const initialConnection = async () =>{

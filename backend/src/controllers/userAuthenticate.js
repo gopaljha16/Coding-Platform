@@ -1,25 +1,26 @@
-import redisClient from "../config/redis";
-import validate from "../utils/validator";
+const redisClient = require("../config/redis");
+const validate = require("../utils/validator");
 const bcrypt = require('bcrypt');
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 
 
-export const register = async (req, res) => {
+
+ const  register = async (req, res) => {
     try {
 
         validate(req.body);
-        const { firstName, email, password } = req.body;
+        const { firstName, emailId, password } = req.body;
 
-        if(!firstName || !email)
+        if(!firstName || !emailId)
             throw new Error("Credential Missing");
 
         req.body.password = await bcrypt.hash(password, 10);
 
         const user = await User.create(req.body);
-
+        req.body.role = "user";
         // created account login directy by using that token 
-        const token = jwt.sign({ _id: user._id, emailId: user.emailId }, process.env.JWT_SECRET, { expiresIn: 60 * 60 });
+        const token = jwt.sign({ _id: user._id, emailId: user.emailId , role:"user" }, process.env.JWT_SECRET, { expiresIn: 60 * 60 });
 
         res.cookie("token", token, { maxAge: 60 * 60 * 1000 });
 
@@ -31,7 +32,7 @@ export const register = async (req, res) => {
     }
 }
 
-export const login = async(req , res) =>{
+ const login = async(req , res) =>{
     try{
         const {emailId , password} = req.body;
 
@@ -46,7 +47,7 @@ export const login = async(req , res) =>{
             throw new Error(" Invalid Credentials");
 
         // token create 
-        const token = jwt.verify({_id:user_id, emailid:user.emailId} ,process.env.JWT_SECRET , {expiresIn:60*60} );
+        const token = jwt.sign({_id:user._id, emailid:user.emailId , role:user.role} ,process.env.JWT_SECRET , {expiresIn:60*60} );
 
         res.cookie("token" , token, {maxAge:60*60*1000});
 
@@ -57,7 +58,7 @@ export const login = async(req , res) =>{
     }
 }
 
-export const logout = async (req , res) =>{
+ const logout = async (req , res) =>{
     try{
 
          const {token } = req.cookies;
@@ -77,11 +78,16 @@ export const logout = async (req , res) =>{
     }
 }
 
-export const getProfile = async (req , res) =>{
+ const getProfile = async (req , res) =>{
     try{
 
-        
+           
     }catch(err){
         res.status(401).send("Error :- " +err);
     }
 }
+
+
+
+
+module.exports = { register , login , logout , getProfile  }
