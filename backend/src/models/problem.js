@@ -60,6 +60,20 @@ const ProblemSchema = Schema({
             },
         }
     ],
+
+    refernceSolution:[  // actual solution.
+        {
+           langauge:{
+            type:String,
+            required:true,
+           },
+           completeCode:{
+            type:String,
+            required:true,
+           }
+         }
+    ],
+
     problemCreator:{
         type:Schema.Types.ObjectId,
         ref:"user",
