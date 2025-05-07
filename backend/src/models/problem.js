@@ -61,9 +61,9 @@ const ProblemSchema = Schema({
         }
     ],
 
-    refernceSolution:[  // actual solution.
+    referenceSolution:[  // actual solution.
         {
-           langauge:{
+            language:{
             type:String,
             required:true,
            },

@@ -5,7 +5,7 @@ const database = require("./config/database");
 const cookieParser = require("cookie-parser");
 const redisClient = require("./config/redis");
 const authRouter = require("./routes/userAuth");
-
+const problemRouter = require("../src/routes/problemRoutes")
 
 
 const PORT_NO = process.env.PORT_NO
@@ -15,6 +15,7 @@ app.use(cookieParser());
 
 // routing.
 app.use("/user" , authRouter);
+app.use("/problem" , problemRouter);
 
 
 const initialConnection = async () =>{
