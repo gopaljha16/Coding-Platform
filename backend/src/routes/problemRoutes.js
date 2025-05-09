@@ -7,7 +7,7 @@ const problemRouter = express.Router();
 
 // create , fetch , update , delete
 problemRouter.post("/create" , adminMiddleware , createProblem);
-// problemRouter.patch("/:id" , adminMiddleware, updateProblem);
-// problemRouter.delete("/:id" , adminMiddleware . deleteProblem);
+problemRouter.patch("update/:id" , adminMiddleware, updateProblem);
+problemRouter.delete("delete/:id" , adminMiddleware . deleteProblem);
 
 module.exports = problemRouter;
