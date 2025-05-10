@@ -5,13 +5,15 @@ const database = require("./config/database");
 const cookieParser = require("cookie-parser");
 const redisClient = require("./config/redis");
 const authRouter = require("./routes/userAuth");
-const problemRouter = require("../src/routes/problemRoutes")
+const problemRouter = require("../src/routes/problemRoutes");
+const rateLimiter = require("./middleware/rateLimiter");
 
 
 const PORT_NO = process.env.PORT_NO
 
 app.use(express.json());
 app.use(cookieParser());
+// app.use(rateLimiter)
 
 // routing.
 app.use("/user" , authRouter);

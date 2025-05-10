@@ -23,8 +23,8 @@ const SubmitBatch = async(submissions) =>{
           base64_encoded: 'false'
         },
         headers: {
-          'x-rapidapi-key': '688fc6595emsh1f123e8f5a3be18p1e127ejsn819f20ee62cb',
-          'x-rapidapi-host': 'judge0-ce.p.rapidapi.com',
+          'x-rapidapi-key': process.env.JUDGE_0_API_KEY,
+          'x-rapidapi-host': process.env.JUDGE_0_HOST_API,
           'Content-Type': 'application/json'
         },
         data: {
@@ -60,8 +60,8 @@ const options = {
     fields: '*'
   },
   headers: {
-    'x-rapidapi-key': '688fc6595emsh1f123e8f5a3be18p1e127ejsn819f20ee62cb',
-    'x-rapidapi-host': 'judge0-ce.p.rapidapi.com'
+    'x-rapidapi-key': process.env.JUDGE_0_API_KEY,
+    'x-rapidapi-host': process.env.JUDGE_0_HOST_API
   }
 };
 
