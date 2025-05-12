@@ -113,7 +113,7 @@ const updateProblem = async (req, res) => {
             // update the problem 
             const newProblem = await Problem.findByIdAndUpdate(id, { ...req.body }, { runValidators: true, new: true });
 
-            res.status(200).send("Problem Has been Updated.")
+            res.status(200).send(newProblem)
 
         }
     } catch (err) {
