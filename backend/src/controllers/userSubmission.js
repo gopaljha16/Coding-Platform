@@ -1,0 +1,97 @@
+const Problem = require("../models/problem")
+const Submission = require("../models/submission")
+const { getLanguageById, submitToken, SubmitBatch } = require("../utils/problemUtility")
+
+
+
+const submitCode = async (req, res) => {
+    try {
+
+        const userId = req.result._id;
+
+        const problemId = req.params._id;
+
+        const { code, language } = req.body;
+
+        if (!userId || !problemId || !code || !language)
+            return res.status(401).send("Fields Are Missing");
+
+        //fetch the problem from database
+        const problem = await Problem.findById(problemId);
+
+
+        // first saving into the database if there is an issue in the judge0 first it should be saved as an pending
+        const submittedResult = await Submission.create({
+            userId,
+            problemId,
+            code,
+            language,
+            status: "Pending",
+            totalTestCases: problem.hiddenTestCases.length,
+        })
+
+        //now judge0 code submit 
+        const languageId = await getLanguageById(language);
+
+        if (!languageId)
+            return res.status(404).send(" Invalid Language Id");
+
+        const submission = problem.hiddenTestCases.map((testcase) => ({
+            source_code: code,
+            language_id: languageId,
+            stdin: testcase.input,
+            expected_output: testcase.output,
+        }))
+
+        const submitResult = await SubmitBatch(submission);
+
+        if (!submitResult || !Array.isArray(submitResult)) {
+            return res.status(500).send("Judge0 submission failed or no result returned.");
+        }
+
+
+        const resultToken = submitResult.map((value) => value.token);
+
+        const testResult = await submitToken(resultToken);
+
+
+        const testCasesPassed = 0;
+        const runtime = 0;
+        const memory = 0;
+        const errorMessage = null;
+        const status = "Accepted";
+
+
+        for (const test of testResult) {
+            if (test.status_id == 3) {
+                testCasesPassed++;
+                runtime = runtime + parseFloat(test.time);
+                memory = Math.max(memory, test.memory);
+            } else {
+                if (test.status_id == 4) {
+                    status = "Wrong Answer";
+                    errorMessage = test.sterr
+                } else {
+                    status = "Error";
+                    errorMessage = test.sterr
+                }
+            }
+        }
+
+        // update to the database submission store into the database which previous stored as pending if it's wrong answer that will also be stored 
+        submittedResult.status = status;
+        submittedResult.runtime = runtime;
+        submittedResult.testCasesPassed =  testCasesPassed;
+        submittedResult.memory = memory;
+      
+
+        await submittedResult.save();
+
+        res.status(201).send(" Problem Submitted Successfully ")
+
+    } catch (err) {
+        res.status(500).send("Internal Server Error " + err);
+    }
+}
+
+module.exports = { submitCode }

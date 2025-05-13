@@ -153,7 +153,7 @@ const getProblemById = async (req, res) => {
          if(!id)
             return res.status(403).send("Id is Missing");
 
-         const getProblem  = await Problem.findById(id);
+         const getProblem  = await Problem.findById(id).select("title description difficulty tags visibleTestCases startCode referenceSolution");
 
          if(!getProblem)
             return res.status(403).send("Problem is Missing");
@@ -168,7 +168,7 @@ const getProblemById = async (req, res) => {
 const getAllProblems = async (req ,res) =>{
     try{
         
-        const getProblems  = await Problem.find({});
+        const getProblems  = await Problem.find({ }).select("_id title tags difficulty");
 
         if(!getProblems)
             return res.status(403).send("Problems are Missing");
