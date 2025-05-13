@@ -8,10 +8,13 @@ const submitCode = async (req, res) => {
     try {
 
         const userId = req.result._id;
+        console.log(userId)
 
-        const problemId = req.params._id;
+        const {id} = req.params
+        const problemId = id;
+        console.log(problemId)
 
-        const { code, language } = req.body;
+        const { code , language } = req.body;
 
         if (!userId || !problemId || !code || !language)
             return res.status(401).send("Fields Are Missing");
@@ -55,11 +58,11 @@ const submitCode = async (req, res) => {
         const testResult = await submitToken(resultToken);
 
 
-        const testCasesPassed = 0;
-        const runtime = 0;
-        const memory = 0;
-        const errorMessage = null;
-        const status = "Accepted";
+        let testCasesPassed = 0;
+        let runtime = 0;
+        let memory = 0;
+        let errorMessage = null;
+        let status = "Accepted";
 
 
         for (const test of testResult) {
@@ -87,7 +90,7 @@ const submitCode = async (req, res) => {
 
         await submittedResult.save();
 
-        res.status(201).send(" Problem Submitted Successfully ")
+        res.status(201).send(submittedResult)
 
     } catch (err) {
         res.status(500).send("Internal Server Error " + err);

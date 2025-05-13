@@ -7,7 +7,7 @@ const redisClient = require("./config/redis");
 const authRouter = require("./routes/userAuth");
 const problemRouter = require("../src/routes/problemRoutes");
 const rateLimiter = require("./middleware/rateLimiter");
-
+const submissionRouter = require("./routes/submit")
 
 const PORT_NO = process.env.PORT_NO
 
@@ -18,6 +18,7 @@ app.use(cookieParser());
 // routing.
 app.use("/user" , authRouter);
 app.use("/problem" , problemRouter);
+app.use("/submission" , submissionRouter)
 
 
 const initialConnection = async () =>{
