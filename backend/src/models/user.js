@@ -36,7 +36,13 @@ const userScehma = Schema({
         default: "user",
     },
     problemSolved:{
-        type:[String], // all id problems
+        type:[
+            {
+                type:Schema.Types.ObjectId,
+                ref:"problem",
+                unique:true
+            },
+        ]
     }
 })
 

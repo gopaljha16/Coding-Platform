@@ -90,6 +90,12 @@ const submitCode = async (req, res) => {
 
         await submittedResult.save();
 
+    // after submission saving it to the problem Id
+        if(!req.result.problemSolved.includes(problemId)){
+            req.result.problemSolved.push(problemId);
+            await req.result.save();
+        }
+
         res.status(201).send(submittedResult)
 
     } catch (err) {
@@ -97,4 +103,55 @@ const submitCode = async (req, res) => {
     }
 }
 
-module.exports = { submitCode }
+
+const runCode = async(req , res) =>{
+    try{
+
+          const userId = req.result._id;
+        console.log(userId)
+
+        const {id} = req.params;
+        const problemId = id;
+
+        const { code , language } = req.body;
+
+        if (!userId || !problemId || !code || !language)
+            return res.status(401).send("Fields Are Missing");
+
+        //fetch the problem from database
+        const problem = await Problem.findById(problemId);
+
+        //now judge0 code submit 
+        const languageId = await getLanguageById(language);
+
+        if (!languageId)
+            return res.status(404).send(" Invalid Language Id");
+
+        const submission = problem.visibleTestCases.map((testcase) => ({
+            source_code: code,
+            language_id: languageId,
+            stdin: testcase.input,
+            expected_output: testcase.output,
+        }))
+
+        const submitResult = await SubmitBatch(submission);
+
+        if (!submitResult || !Array.isArray(submitResult)) {
+            return res.status(500).send("Judge0 submission failed or no result returned.");
+        }
+
+
+        const resultToken = submitResult.map((value) => value.token);
+
+        const testResult = await submitToken(resultToken);
+
+        res.status(201).send(testResult)
+        
+    }catch(err){
+            res.status(403).send("Error Occured " + err);
+    }
+}
+
+
+
+module.exports = { submitCode , runCode }
