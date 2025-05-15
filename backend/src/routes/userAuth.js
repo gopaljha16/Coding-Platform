@@ -1,5 +1,5 @@
 const express = require("express");
-const { register , getProfile , login ,logout } = require("../controllers/userAuthenticate");
+const { register , getProfile , login ,logout , deleteProfile } = require("../controllers/userAuthenticate");
 const userMiddleware = require("../middleware/userMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 const adminRegister = require("../controllers/adminAuthenticate");
@@ -11,5 +11,6 @@ authRouter.post("/login" ,  login);
 authRouter.post("/logout"  , userMiddleware ,  logout);
 authRouter.post("/admin/register" , adminMiddleware , adminRegister)
 authRouter.get("/getProfile" , getProfile );
+authRouter.delete("/deleteProfile" , userMiddleware , deleteProfile)
 
 module.exports  = authRouter;

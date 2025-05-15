@@ -3,7 +3,7 @@ const validate = require("../utils/validator");
 const bcrypt = require('bcrypt');
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
-
+const Submission = require("../models/submission")
 
 
  const  register = async (req, res) => {
@@ -87,7 +87,23 @@ const jwt = require("jsonwebtoken");
     }
 }
 
+const deleteProfile = async(req , res) =>{
+    try{
+       const userId = req.result._id;
+
+       await  User.findByIdAndDelete(userId);
+      
+    //    await Submission.deleteMany({userId});
+
+       res.status(200).send("User Deleted Successfully");
+
+
+    }catch(err){
+        res.status(403).send("Error Occured " + err );
+    }
+}
 
 
 
-module.exports = { register , login , logout , getProfile  }
+
+module.exports = { register , login , logout , getProfile , deleteProfile  }

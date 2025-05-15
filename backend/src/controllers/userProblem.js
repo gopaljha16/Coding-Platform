@@ -1,6 +1,7 @@
 const { getLanguageById, SubmitBatch, submitToken } = require("../utils/problemUtility");
 const Problem = require("../models/problem")
-const User = require("../models/user")
+const User = require("../models/user");
+const Submission = require("../models/submission");
 
 
 const createProblem = async (req, res) => {
@@ -196,5 +197,19 @@ const getAllSubmission = async (req , res) =>{
     }
 }
 
+const  submittedProblem  = async (req , res) =>{
+     try{
+         const userId  = req.result._id;
+         const problemId = req.params.pid;
 
-module.exports = { createProblem, updateProblem, deleteProblem, getAllProblems , getProblemById , getAllSubmission }
+       const ans =   await Submission.find({userId , problemId});
+
+         res.status(200).send(ans);
+
+     }catch(err){
+        res.status(403).send("Error Occured " + err );
+     }
+}
+
+
+module.exports = { createProblem, updateProblem, deleteProblem, getAllProblems , getProblemById , getAllSubmission , submittedProblem }

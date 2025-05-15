@@ -46,5 +46,10 @@ const userScehma = Schema({
     }
 })
 
+userScehma.post("findOneAndDelete" , async (userInfo) =>{
+    if(userInfo)
+         await mongoose.model("submission").deleteMany({userId : userInfo._id});
+})
+
 const User = mongoose.model("user" , userScehma);
 module.exports = User;
