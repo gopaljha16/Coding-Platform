@@ -13,4 +13,23 @@ authRouter.post("/admin/register" , adminMiddleware , adminRegister)
 authRouter.get("/getProfile" , getProfile );
 authRouter.delete("/deleteProfile" , userMiddleware , deleteProfile)
 
+// check auth for user enters the website for checking the user is registered or if register then redirect to home page not then login/signup page
+//so here token checking
+authRouter.get("/check" , userMiddleware , (req , res) =>{
+    try{
+        const reply = {
+            firstName:req.result.firstName,
+            emailId:req.result.emailId,
+            _id:req.result._id,
+        }
+
+        res.status(200).json({
+            user:reply,
+            message:"Valid User"
+        })
+    }catch(err){
+        res.status(500).send(" Error Occured " + err);
+    }
+})
+
 module.exports  = authRouter;

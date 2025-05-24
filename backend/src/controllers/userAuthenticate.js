@@ -22,9 +22,18 @@ const Submission = require("../models/submission")
         // created account login directy by using that token 
         const token = jwt.sign({ _id: user._id, emailId: user.emailId , role:"user" }, process.env.JWT_SECRET, { expiresIn: 60 * 60 });
 
+        const reply = {
+            firstName:user.firstName,
+            emailId:user.emailId,
+            _id:user._id,
+        }
+
         res.cookie("token", token, { maxAge: 60 * 60 * 1000 });
 
-        res.status(201).send("User Registered Successfully");
+        res.status(201).json({
+            user:reply,
+            message:"User Registered Successfully"
+        });
 
 
     } catch (err) {
@@ -51,7 +60,16 @@ const Submission = require("../models/submission")
 
         res.cookie("token" , token, {maxAge:60*60*1000});
 
-        res.status(201).send("Logged In Successfully");
+            const reply = {
+            firstName:user.firstName,
+            emailId:user.emailId,
+            _id:user._id,
+        }
+
+        res.status(201).json({
+            user:reply,
+            message:"Logged In Successfully"
+        });
 
     }catch(err){
         res.status(403).send("Error " + err );
