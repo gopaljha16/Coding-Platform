@@ -1,4 +1,4 @@
-import { createSlice , createAsyncThunk, isRejectedWithValue } from '@reduxjs/toolkit'
+import { createSlice , createAsyncThunk } from '@reduxjs/toolkit'
 import axiosClient from '../utils/axiosClient'
 
 // api's
@@ -124,7 +124,7 @@ const authSlice = createSlice({
             state.isAuthenticated = !!action.payload;
             state.user = action.payload;
          }) 
-         .addCase(checkAuth.pending , (state, action) =>{
+         .addCase(checkAuth.rejected , (state, action) =>{
             state.loading = false,
             state.error = action.payload?.message || "Something Went Wrong";
             state.isAuthenticated = false;

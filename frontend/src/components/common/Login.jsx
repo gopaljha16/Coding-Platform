@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "react-router";
+import { Link  , useNavigate} from "react-router";
 import { z } from "zod";
+import { useSelector , useDispatch } from "react-redux";
+import { loginUser } from "../../slice/authSlice";
+import { toast } from "react-toastify";
 
 // Zod schema without confirmPassword
 const loginSchema = z.object({
@@ -11,14 +14,26 @@ const loginSchema = z.object({
 });
 
 const Login = () => {
+
+   const dispatch = useDispatch();
+   const {isAuthenticated , loading , error} = useSelector((state) => state.auth);
+   const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm({ resolver: zodResolver(loginSchema) });
 
-  const submittedData = (data) => {
-    console.log(data);
+  useEffect(() =>{
+    if(isAuthenticated){
+      navigate("/");
+    }
+  },[isAuthenticated,navigate])
+
+  const onSubmit = (data) => {
+   dispatch(loginUser(data));
+   toast.success("Logged In Successfully")
   };
 
   return (
@@ -30,7 +45,7 @@ const Login = () => {
           className="w-32"
         />
         <form
-          onSubmit={handleSubmit(submittedData)}
+          onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col  justify-center"
         >
           <input
@@ -60,7 +75,7 @@ const Login = () => {
             type="submit"
             className="btn bg-[#4b4c4d] font-semibold text-white w-[300px] py-2 rounded  mt-4"
           >
-            Sign Up
+            Sign In
           </button>
         </form>
 

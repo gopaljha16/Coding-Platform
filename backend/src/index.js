@@ -8,8 +8,17 @@ const authRouter = require("./routes/userAuth");
 const problemRouter = require("../src/routes/problemRoutes");
 const rateLimiter = require("./middleware/rateLimiter");
 const submissionRouter = require("./routes/submit")
+const cors = require("cors");
 
-const PORT_NO = process.env.PORT_NO
+
+
+const PORT_NO = process.env.PORT_NO;
+
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}))
+
 
 app.use(express.json());
 app.use(cookieParser());

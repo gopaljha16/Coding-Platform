@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Route, Routes } from 'react-router'
+import { Route, Routes , Navigate } from 'react-router'
 import Homepage from './pages/Homepage'
 import Login from './components/common/Login'
 import Signup from './components/common/Signup'
@@ -16,14 +16,14 @@ const App = () => {
 
   useEffect(() =>{
    dispatch(checkAuth());
-  },[])
+  },[dispatch])
 
   return (
     <div>
       <Routes>
-        <Route path='/' element={<Homepage/>}/>
-        <Route path='/login' element={<Login/>}/>
-        <Route path='/signup' element={<Signup/>} />
+        <Route path='/' element={isAuthenticated ? <Homepage/> : <Navigate to="/signup"></Navigate>}/>
+        <Route path='/login' element={isAuthenticated ? <Navigate to="/"></Navigate> : <Login/> }/>
+        <Route path='/signup' element={isAuthenticated ? <Navigate to="/"></Navigate> : <Signup/>} />
       </Routes>
     </div>
   )

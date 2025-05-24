@@ -12,6 +12,7 @@ authRouter.post("/logout"  , userMiddleware ,  logout);
 authRouter.post("/admin/register" , adminMiddleware , adminRegister)
 authRouter.get("/getProfile" , getProfile );
 authRouter.delete("/deleteProfile" , userMiddleware , deleteProfile)
+// uthRouter.post("/googleAuth" , userMiddleware , googleAuth);
 
 // check auth for user enters the website for checking the user is registered or if register then redirect to home page not then login/signup page
 //so here token checking
