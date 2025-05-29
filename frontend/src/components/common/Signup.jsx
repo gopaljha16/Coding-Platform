@@ -1,11 +1,14 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate  } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { z } from "zod";
-import { useSelector , useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { registerUser } from "../../slice/authSlice";
 import { toast } from "react-toastify";
+import { EyeOff } from 'lucide-react';
+import { Eye } from 'lucide-react';
+
 
 // Zod schema
 const signupSchema = z.object({
@@ -15,38 +18,44 @@ const signupSchema = z.object({
 });
 
 const Signup = () => {
-
-
-   const dispatch = useDispatch();
-   const {isAuthenticated , loading , error } = useSelector((state) => state.auth);
-   const navigate = useNavigate();
+  const [showPassword, setShowpassword] = useState(false);
+  const dispatch = useDispatch();
+  const { isAuthenticated, loading, error } = useSelector(
+    (state) => state.auth
+  );
+  const navigate = useNavigate();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm({ resolver: zodResolver(signupSchema) });
-  
 
-  // if(loading)
-  //   return (<div>Data is Loading....</div>)
+
 
   // if(error)
   //   reutrn (<div>Error Occured</div>)
 
-  useEffect(() =>{
-    if(isAuthenticated){
+  useEffect(() => {
+    if (isAuthenticated) {
       navigate("/");
     }
-  },[isAuthenticated , navigate])
+  }, [isAuthenticated, navigate]);
+
+ const onSubmit = async (data) => {
+  try {
+    const res = await dispatch(registerUser(data));
+    if (res?.meta?.requestStatus === "fulfilled") {
+      toast.success("Registered successfully");
+    } else {
+      toast.error("Something went wrong");
+    }
+  } catch (error) {
+    toast.error("Failed to register");
+  }
+};
 
 
-  const onSubmit = (data) => {
-    dispatch(registerUser(data));
-    toast.success("Logged In Successfully")
-  };
-
-  
   return (
     <div className="bg-[#ECEFF1] flex h-screen w-full items-center justify-center">
       <div className="h-auto py-10 flex w-[500px] items-center justify-center flex-col gap-6 bg-white shadow-3xl rounded-lg">
@@ -58,7 +67,7 @@ const Signup = () => {
 
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col justify-center"
+          className="flex flex-col justify-center w-[300px]"
         >
           <input
             className="input bg-white text-black border border-gray-700 w-[300px] p-2 rounded mt-3"
@@ -82,23 +91,33 @@ const Signup = () => {
             </span>
           )}
 
-          <input
-            className="input bg-white text-black border border-gray-700 w-[300px] p-2 rounded mt-4"
-            type="password"
-            {...register("password")}
-            placeholder="Enter your password"
-          />
-          {errors.password && (
-            <span className="text-red-600 text-sm text-left">
-              {errors.password.message}
-            </span>
-          )}
+          <div className="relative">
+            <input
+              className="input bg-white text-black border border-gray-700 w-[300px] p-2 rounded mt-4"
+              type={showPassword ? "text" : "password"}
+              {...register("password")}
+              placeholder="Enter your password"
+            />
+            {errors.password && (
+              <span className="text-red-600 text-sm text-left">
+                {errors.password.message}
+              </span>
+            )}
+             <div className="absolute right-3 top-[37px] transform -translate-y-1/2 cursor-pointer" onClick={() =>setShowpassword(!showPassword)}>
+            {
+              showPassword ? <EyeOff color="black"/> : <Eye color="black"/> 
+             }
+
+             </div>
+          
+          </div>
 
           <button
             type="submit"
-            className="btn bg-[#4b4c4d] font-semibold text-white w-[300px] py-2 rounded mt-4"
+            className={`btn bg-[#4b4c4d] font-semibold text-white w-[300px] py-2 rounded mt-4 ${loading ? "loading" : " "}`}
+             disabled={loading}
           >
-            Sign Up
+           {loading ? "Signing Up" : "Sign Up"}
           </button>
         </form>
 
@@ -113,13 +132,33 @@ const Signup = () => {
           <p>or you can sign in with</p>
           <div div className="flex gap-4 justify-center mt-2 cursor-pointer ">
             <div>
-             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32">
-              <path d="M23.75,16A7.7446,7.7446,0,0,1,8.7177,18.6259L4.2849,22.1721A13.244,13.244,0,0,0,29.25,16" fill="#00ac47" />
-              <path d="M23.75,16a7.7387,7.7387,0,0,1-3.2516,6.2987l4.3824,3.5059A13.2042,13.2042,0,0,0,29.25,16" fill="#4285f4" />
-              <path d="M8.25,16a7.698,7.698,0,0,1,.4677-2.6259L4.2849,9.8279a13.177,13.177,0,0,0,0,12.3442l4.4328-3.5462A7.698,7.698,0,0,1,8.25,16Z" fill="#ffba00" />
-              <path d="M16,8.25a7.699,7.699,0,0,1,4.558,1.4958l4.06-3.7893A13.2152,13.2152,0,0,0,4.2849,9.8279l4.4328,3.5462A7.756,7.756,0,0,1,16,8.25Z" fill="#ea4435" />
-              <path d="M29.25,15v1L27,19.5H16.5V14H28.25A1,1,0,0,1,29.25,15Z" fill="#4285f4" />
-            </svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 32 32"
+              >
+                <path
+                  d="M23.75,16A7.7446,7.7446,0,0,1,8.7177,18.6259L4.2849,22.1721A13.244,13.244,0,0,0,29.25,16"
+                  fill="#00ac47"
+                />
+                <path
+                  d="M23.75,16a7.7387,7.7387,0,0,1-3.2516,6.2987l4.3824,3.5059A13.2042,13.2042,0,0,0,29.25,16"
+                  fill="#4285f4"
+                />
+                <path
+                  d="M8.25,16a7.698,7.698,0,0,1,.4677-2.6259L4.2849,9.8279a13.177,13.177,0,0,0,0,12.3442l4.4328-3.5462A7.698,7.698,0,0,1,8.25,16Z"
+                  fill="#ffba00"
+                />
+                <path
+                  d="M16,8.25a7.699,7.699,0,0,1,4.558,1.4958l4.06-3.7893A13.2152,13.2152,0,0,0,4.2849,9.8279l4.4328,3.5462A7.756,7.756,0,0,1,16,8.25Z"
+                  fill="#ea4435"
+                />
+                <path
+                  d="M29.25,15v1L27,19.5H16.5V14H28.25A1,1,0,0,1,29.25,15Z"
+                  fill="#4285f4"
+                />
+              </svg>
             </div>
             <div>
               <svg

@@ -1,11 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect , useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link  , useNavigate} from "react-router";
+import { Link, useNavigate } from "react-router";
 import { z } from "zod";
-import { useSelector , useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { loginUser } from "../../slice/authSlice";
 import { toast } from "react-toastify";
+import { EyeOff } from "lucide-react";
+import { Eye } from "lucide-react";
 
 // Zod schema without confirmPassword
 const loginSchema = z.object({
@@ -14,10 +16,12 @@ const loginSchema = z.object({
 });
 
 const Login = () => {
-
-   const dispatch = useDispatch();
-   const {isAuthenticated , loading , error} = useSelector((state) => state.auth);
-   const navigate = useNavigate();
+  const [showPassword, setShowpassword] = useState(false);
+  const dispatch = useDispatch();
+  const { isAuthenticated, loading, error } = useSelector(
+    (state) => state.auth
+  );
+  const navigate = useNavigate();
 
   const {
     register,
@@ -25,15 +29,24 @@ const Login = () => {
     formState: { errors },
   } = useForm({ resolver: zodResolver(loginSchema) });
 
-  useEffect(() =>{
-    if(isAuthenticated){
+  useEffect(() => {
+    if (isAuthenticated) {
       navigate("/");
     }
-  },[isAuthenticated,navigate])
+  }, [isAuthenticated, navigate]);
 
-  const onSubmit = (data) => {
-   dispatch(loginUser(data));
-   toast.success("Logged In Successfully")
+  const onSubmit = async (data) => {
+    try{
+ const res = await dispatch(loginUser(data));
+    if(res?.meta?.requestStatus === "fulfilled"){
+      toast.success("Logged In Successfully");
+    }else{
+      toast.error("Something Went Wrong")
+    }
+    }catch(err){
+      toast.error("Failed to Login")
+    }
+  
   };
 
   return (
@@ -46,7 +59,7 @@ const Login = () => {
         />
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col  justify-center"
+          className="flex flex-col  justify-center w-[300px]"
         >
           <input
             className="input bg-white text-black border border-gray-700 w-[300px] p-2 rounded  mt-4"
@@ -59,23 +72,38 @@ const Login = () => {
             </span>
           )}
 
-          <input
-            className="input bg-white text-black border border-gray-700 w-[300px] p-2 rounded  mt-4"
-            type="password"
-            {...register("password")}
-            placeholder="Enter your password"
-          />
-          {errors.password && (
-            <span className="text-red-600 text-sm text-left">
-              {errors.password.message}
-            </span>
-          )}
+          <div className="relative">
+            <input
+              className="input bg-white text-black border border-gray-700 w-[300px] p-2 rounded mt-4"
+              type={showPassword ? "text" : "password"}
+              {...register("password")}
+              placeholder="Enter your password"
+            />
+            {errors.password && (
+              <span className="text-red-600 text-sm text-left">
+                {errors.password.message}
+              </span>
+            )}
+            <div
+              className="absolute right-3 top-[37px] transform -translate-y-1/2 cursor-pointer"
+              onClick={() => setShowpassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff color="black" /> : <Eye color="black" />}
+            </div>
+          </div>
 
           <button
             type="submit"
-            className="btn bg-[#4b4c4d] font-semibold text-white w-[300px] py-2 rounded  mt-4"
+            className={`btn bg-[#4b4c4d] font-semibold text-white w-[300px] py-2 rounded  mt-4 ${loading ? 'loading btn-disabled' : ''}`}
           >
-            Sign In
+           {
+            loading ? (
+              <>
+               <span className="loading loading-spinner"></span>
+                    Logging in...
+              </>
+            ) : "Login"
+           }
           </button>
         </form>
 

@@ -182,7 +182,7 @@ const getAllProblems = async (req ,res) =>{
     }
 }
 
-const getAllSubmission = async (req , res) =>{
+const problemsSolvedByUser = async (req , res) =>{
     try{
         const userId = req.result._id;
         const user = await User.findById(userId).populate({
@@ -212,4 +212,4 @@ const  submittedProblem  = async (req , res) =>{
 }
 
 
-module.exports = { createProblem, updateProblem, deleteProblem, getAllProblems , getProblemById , getAllSubmission , submittedProblem }
+module.exports = { createProblem, updateProblem, deleteProblem, getAllProblems , getProblemById , problemsSolvedByUser , submittedProblem }
