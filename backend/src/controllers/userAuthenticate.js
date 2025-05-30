@@ -27,7 +27,7 @@ const register = async (req, res) => {
             firstName: user.firstName,
             emailId: user.emailId,
             _id: user._id,
-            role:req.result.role
+            // role:req.result.role
         }
 
         res.cookie("token", token, { maxAge: 60 * 60 * 1000 });
@@ -46,6 +46,7 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { emailId, password } = req.body;
+
 
         if (!emailId || !password)
             throw new Error("Credentials Missing");
@@ -66,8 +67,9 @@ const login = async (req, res) => {
             firstName: user.firstName,
             emailId: user.emailId,
             _id: user._id,
-             role:req.result.role
+            // role:req.result.role
         }
+
 
         res.status(201).json({
             user: reply,

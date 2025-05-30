@@ -10,7 +10,7 @@ const CodeEditor = () => {
     <div className="p-10 ">
       <Editor
         height="90vh"
-        defaultLanguage="javascript"
+        defaultLanguage="cpp"
         defaultValue="#include <iostream>
 using namespace std;
                     

@@ -55,7 +55,7 @@ const Problem = () => {
     <>
      <Navbar/>
     {/* main contents */}
-    <div className="container auto  p-4">
+    <div className="container auto p-10 relative mt-20">
         {/* filters */}
         <div className="flex gap-4">
    

@@ -1,4 +1,4 @@
-import React, { useEffect , useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router";
@@ -36,27 +36,24 @@ const Login = () => {
   }, [isAuthenticated, navigate]);
 
   const onSubmit = async (data) => {
-    try{
- const res = await dispatch(loginUser(data));
-    if(res?.meta?.requestStatus === "fulfilled"){
-      toast.success("Logged In Successfully");
-    }else{
-      toast.error("Something Went Wrong")
+    try {
+      const res = await dispatch(loginUser(data));
+      if (res?.meta?.requestStatus === "fulfilled") {
+        toast.success("Logged In Successfully");
+      } else{
+        toast.error("Something went wrong")
+      }
+    } catch (err) {
+      toast.error("Failed to Login");
     }
-    }catch(err){
-      toast.error("Failed to Login")
-    }
-  
   };
 
   return (
-    <div className="bg-[#ECEFF1] flex h-screen w-full items-center justify-center">
-      <div className="h-auto py-10 flex w-[500px] items-center justify-center flex-col gap-6 bg-white shadow-3xl rounded-lg">
-        <img
-          src="https://leetcode.com/static/webpack_bundles/images/logo.c36eaf5e6.svg"
-          alt="Logo"
-          className="w-32"
-        />
+    <div className=" flex   h-screen w-full items-center justify-center ">
+      <div className="h-auto py-10 flex w-[500px] items-center justify-center flex-col gap-6 bg-black shadow-3xl rounded-lg">
+        <span className="text-4xl italic text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-500 to-orange-500 tracking-tight font-semibold">
+          Codexa
+        </span>
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col  justify-center w-[300px]"
@@ -94,16 +91,18 @@ const Login = () => {
 
           <button
             type="submit"
-            className={`btn bg-[#4b4c4d] font-semibold text-white w-[300px] py-2 rounded  mt-4 ${loading ? 'loading btn-disabled' : ''}`}
+            className={`btn bg-[#4b4c4d] font-semibold text-white w-[300px] py-2 rounded  mt-4 ${
+              loading ? "loading btn-disabled" : ""
+            }`}
           >
-           {
-            loading ? (
+            {loading ? (
               <>
-               <span className="loading loading-spinner"></span>
-                    Logging in...
+                <span className="loading loading-spinner"></span>
+                Logging in...
               </>
-            ) : "Login"
-           }
+            ) : (
+              "Login"
+            )}
           </button>
         </form>
 

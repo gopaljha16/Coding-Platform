@@ -1,82 +1,51 @@
-import React, { useEffect , useState } from 'react'
-import { Route, Routes , Navigate } from 'react-router'
-import Homepage from './pages/Homepage'
-import Login from './components/common/Login'
-import Signup from './components/common/Signup'
-import { useDispatch , useSelector } from 'react-redux'
-import { checkAuth } from './slice/authSlice'
-import Problem from './pages/Problem'
-import Navbar from './components/common/Navbar'
-import CodeEditor from './components/common/CodeEditor'
-import AdminDashboard from './components/Dashboards/AdminDashboard'
-import AnimatedBackground from './components/background/AnimatedBackground'
+import React, { useEffect, useState } from 'react';
 
+const AnimatedBackground = ({ children, className = "" }) => {
+  const [stars, setStars] = useState([]);
+  const [particles, setParticles] = useState([]);
 
-const App = ({children, className = ""}) => {
+  useEffect(() => {
+    // Generate random stars
+    const generateStars = () => {
+      const newStars = [];
+      for (let i = 0; i < 50; i++) {
+        newStars.push({
+          id: i,
+          x: Math.random() * 100,
+          y: Math.random() * 100,
+          size: Math.random() * 3 + 1,
+          opacity: Math.random() * 0.8 + 0.2,
+          animationDelay: Math.random() * 4,
+          animationDuration: Math.random() * 3 + 2,
+        });
+      }
+      setStars(newStars);
+    };
 
-  // authenticated when the user opens website then first authentication doing
-  const {isAuthenticated , loading , user} = useSelector((state) => state.auth)
-  const dispatch = useDispatch();
-    const [stars, setStars] = useState([]);
-    const [particles, setParticles] = useState([]);
-  
-    useEffect(() => {
-      // Generate random stars
-      const generateStars = () => {
-        const newStars = [];
-        for (let i = 0; i < 50; i++) {
-          newStars.push({
-            id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            size: Math.random() * 3 + 1,
-            opacity: Math.random() * 0.8 + 0.2,
-            animationDelay: Math.random() * 4,
-            animationDuration: Math.random() * 3 + 2,
-          });
-        }
-        setStars(newStars);
-      };
-  
-      // Generate floating particles
-      const generateParticles = () => {
-        const newParticles = [];
-        for (let i = 0; i < 20; i++) {
-          newParticles.push({
-            id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            size: Math.random() * 6 + 2,
-            color: i % 3 === 0 ? '#f59e0b' : i % 3 === 1 ? '#ef4444' : '#8b5cf6',
-            animationDelay: Math.random() * 5,
-            animationDuration: Math.random() * 8 + 6,
-            direction: Math.random() > 0.5 ? 1 : -1,
-          });
-        }
-        setParticles(newParticles);
-      };
-  
-      generateStars();
-      generateParticles();
-    }, []);
-  
+    // Generate floating particles
+    const generateParticles = () => {
+      const newParticles = [];
+      for (let i = 0; i < 20; i++) {
+        newParticles.push({
+          id: i,
+          x: Math.random() * 100,
+          y: Math.random() * 100,
+          size: Math.random() * 6 + 2,
+          color: i % 3 === 0 ? '#f59e0b' : i % 3 === 1 ? '#ef4444' : '#8b5cf6',
+          animationDelay: Math.random() * 5,
+          animationDuration: Math.random() * 8 + 6,
+          direction: Math.random() > 0.5 ? 1 : -1,
+        });
+      }
+      setParticles(newParticles);
+    };
 
-
-  useEffect(() =>{
-   dispatch(checkAuth());
-  },[dispatch])
-
-
-  
-   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">
-      <span className="loading loading-spinner loading-lg"></span>
-    </div>;
-  }
-
+    generateStars();
+    generateParticles();
+  }, []);
 
   return (
- <div className={`relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-hidden ${className}`}>
+    <div className={`relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-hidden ${className}`}>
       
       {/* Animated Stars */}
       {stars.map((star) => (
@@ -159,27 +128,8 @@ const App = ({children, className = ""}) => {
       <div className="relative z-10">
         {children}
       </div>
-
-   
-
-{/* //routes  */}
-       <div>
-      <Routes>
-        <Route path='/' element={<Homepage/>}/>
-        <Route path='/login' element={<Login/>}/>
-        <Route path='/signup' element={ <Signup/>} />
-        <Route path='/problems' element={isAuthenticated ? <Problem></Problem> : <Navigate to="/signup"></Navigate>} />
-        <Route path='/codeEditor' element={isAuthenticated ? <CodeEditor/> : <Navigate to="/login"></Navigate>} />
-        {/* <Route
-        path='/admin'
-        element={isAuthenticated && user?.role==="admin" ? <AdminDashboard/> : <Navigate to="/login"></Navigate>}
-        ></Route> */}
-      </Routes>
-    </div> 
     </div>
-  )
-}
+  );
+};
 
-export default App
-
-
+export default AnimatedBackground;

@@ -59,11 +59,7 @@ const Signup = () => {
   return (
     <div className="bg-[#ECEFF1] flex h-screen w-full items-center justify-center">
       <div className="h-auto py-10 flex w-[500px] items-center justify-center flex-col gap-6 bg-white shadow-3xl rounded-lg">
-        <img
-          src="https://leetcode.com/static/webpack_bundles/images/logo.c36eaf5e6.svg"
-          alt="Logo"
-          className="w-32"
-        />
+       
 
         <form
           onSubmit={handleSubmit(onSubmit)}
