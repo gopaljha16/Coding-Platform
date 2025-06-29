@@ -25,6 +25,9 @@ const userScehma = Schema({
         type:String,
         required:true,
     },
+    confirmPassword:{
+        type:String,
+    },
     age:{
         type:Number,
         min:6,

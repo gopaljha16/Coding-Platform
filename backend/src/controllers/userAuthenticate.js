@@ -11,12 +11,17 @@ const register = async (req, res) => {
     try {
 
         validate(req.body);
-        const { firstName, emailId, password } = req.body;
+        const { firstName, emailId, password , confirmPassword  } = req.body;
 
         if (!firstName || !emailId)
             throw new Error("Credential Missing");
 
+
+      if (password !== confirmPassword)
+            throw new Error("Password Doesn't Match");
+
         req.body.password = await bcrypt.hash(password, 10);
+    
 
         const user = await User.create(req.body);
         req.body.role = "user";
@@ -27,7 +32,7 @@ const register = async (req, res) => {
             firstName: user.firstName,
             emailId: user.emailId,
             _id: user._id,
-            // role:req.result.role
+           
         }
 
         res.cookie("token", token, { maxAge: 60 * 60 * 1000 });
