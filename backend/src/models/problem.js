@@ -70,8 +70,10 @@ const ProblemSchema = Schema({
            completeCode:{
             type:String,
             required:true,
-           }
+           },
+            default: []
          }
+         
     ],
 
     problemCreator:{

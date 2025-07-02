@@ -10,14 +10,17 @@ const submitCode = async (req, res) => {
         const userId = req.result._id;
         console.log(userId)
 
-        const {id} = req.params
-        const problemId = id;
-        console.log(problemId)
+        const problemId = req.params.id;
+     
 
-        const { code , language } = req.body;
+        const { code, language } = req.body;
+
 
         if (!userId || !problemId || !code || !language)
             return res.status(401).send("Fields Are Missing");
+
+        if (language === 'cpp')
+            language = 'c++'
 
         //fetch the problem from database
         const problem = await Problem.findById(problemId);
@@ -73,10 +76,10 @@ const submitCode = async (req, res) => {
             } else {
                 if (test.status_id == 4) {
                     status = "Wrong Answer";
-                    errorMessage = test.sterr
+                    errorMessage = test.stderr
                 } else {
                     status = "Error";
-                    errorMessage = test.sterr
+                    errorMessage = test.stderr
                 }
             }
         }
@@ -84,19 +87,30 @@ const submitCode = async (req, res) => {
         // update to the database submission store into the database which previous stored as pending if it's wrong answer that will also be stored 
         submittedResult.status = status;
         submittedResult.runtime = runtime;
-        submittedResult.testCasesPassed =  testCasesPassed;
+        submittedResult.testCasesPassed = testCasesPassed;
         submittedResult.memory = memory;
-      
+        submittedResult.errorMessage = errorMessage;
 
         await submittedResult.save();
 
-    // after submission saving it to the problem Id
-        if(!req.result.problemSolved.includes(problemId)){
+        // after submission saving it to the problem Id
+        if (!req.result.problemSolved.includes(problemId)) {
             req.result.problemSolved.push(problemId);
             await req.result.save();
         }
 
-        res.status(201).send(submittedResult)
+    
+
+        const accepted = (status == 'Accepted')
+        res.status(201).json({
+            accepted,
+            totalTestCases: submittedResult.totalTestCases,
+            passedTestCases: testCasesPassed,
+            runtime,
+            memory
+        });
+        
+       
 
     } catch (err) {
         res.status(500).send("Internal Server Error " + err);
@@ -104,16 +118,18 @@ const submitCode = async (req, res) => {
 }
 
 
-const runCode = async(req , res) =>{
-    try{
+const runCode = async (req, res) => {
+    try {
 
-          const userId = req.result._id;
+        const userId = req.result._id;
         console.log(userId)
 
-        const {id} = req.params;
+        const { id } = req.params;
         const problemId = id;
 
-        const { code , language } = req.body;
+        const { code, language } = req.body;
+        if (language === 'cpp')
+            language = 'c++'
 
         if (!userId || !problemId || !code || !language)
             return res.status(401).send("Fields Are Missing");
@@ -145,14 +161,41 @@ const runCode = async(req , res) =>{
 
         const testResult = await submitToken(resultToken);
 
-        res.status(201).send(testResult)
-        
-    }catch(err){
-            res.status(403).send("Error Occured " + err);
+        let testCasesPassed = 0;
+        let runtime = 0;
+        let memory = 0;
+        let status = true;
+        let errorMessage = null;
+
+        for (const test of testResult) {
+            if (test.status_id == 3) {
+                testCasesPassed++;
+                runtime = runtime + parseFloat(test.time)
+                memory = Math.max(memory, test.memory);
+            } else {
+                if (test.status_id == 4) {
+                    status = false
+                    errorMessage = test.stderr
+                }
+                else {
+                    status = false
+                    errorMessage = test.stderr
+                }
+            }
+        }
+
+        res.status(201).json({
+            success: status,
+            testCases: testResult,
+            runtime,
+            memory
+        });
+    } catch (err) {
+        res.status(403).send("Error Occured " + err);
     }
 }
 
 
 
 
-module.exports = { submitCode , runCode }
+module.exports = { submitCode, runCode }

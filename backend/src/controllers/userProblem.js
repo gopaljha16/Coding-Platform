@@ -149,23 +149,27 @@ const deleteProblem = async (req, res) => {
 
 
 const getProblemById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        
-         if(!id)
-            return res.status(403).send("Id is Missing");
+  try {
+    const { id } = req.params;
 
-         const getProblem  = await Problem.findById(id).select("title description difficulty tags visibleTestCases startCode referenceSolution");
+    if (!id)
+      return res.status(403).send("Id is Missing");
 
-         if(!getProblem)
-            return res.status(403).send("Problem is Missing");
+    const getProblem = await Problem.findById(id).select(
+      "title description difficulty tags visibleTestCases startCode referenceSolution"
+    );
 
+    if (!getProblem)
+      return res.status(403).send("Problem is Missing");
 
-         res.status(200).send(getProblem);
-        
-    } catch (err) { }
-    res.status(500).send("Error Occured " + err);
-}
+    res.status(200).send(getProblem);
+    
+  } catch (err) {
+    console.error("Error fetching problem by ID:", err); 
+    res.status(500).send("Error Occurred: " + err.message);
+  }
+};
+
 
 const getAllProblems = async (req ,res) =>{
     try{
