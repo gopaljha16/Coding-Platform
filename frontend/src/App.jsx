@@ -7,7 +7,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { checkAuth } from "./slice/authSlice";
 import Problem from "./pages/Problem";
 import ProblemSolve from "./pages/ProblemSolve";
-import AdminDashboard from "./components/Dashboards/AdminDashboard";
+// import AdminDashboard from "./components/Dashboards/AdminDashboard"
+import AdminPage from "./pages/AdminPage";
+import CreateProblem from "./components/Admin/CreateProblem";
+import UpdateProblem from "./components/Admin/UpdateProblem";
 
 const App = ({ children, className = "" }) => {
   // authenticated when the user opens website then first authentication doing
@@ -46,7 +49,15 @@ const App = ({ children, className = "" }) => {
           <Route path="/problem/:problemId" element={<ProblemSolve />} />
           <Route
         path='/admin'
-        element={isAuthenticated && user?.role==="admin" ? <AdminDashboard/> : <Navigate to="/login"></Navigate>}
+        element={isAuthenticated && user?.role==="admin" ? <AdminPage/> : <Navigate to="/login"></Navigate>}
+        ></Route>
+        <Route
+        path='/admin/create'
+        element={isAuthenticated && user?.role==="admin" ? <CreateProblem/> : <Navigate to="/login"></Navigate>}
+        ></Route>
+        <Route
+        path='/admin/update'
+        element={isAuthenticated && user?.role==="admin" ? <UpdateProblem/> : <Navigate to="/login"></Navigate>}
         ></Route>
         </Routes>
       </div>

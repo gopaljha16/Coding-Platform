@@ -1,5 +1,5 @@
 const express = require("express");
-const { register , getProfile , login ,logout , deleteProfile } = require("../controllers/userAuthenticate");
+const { register , getProfile , login ,logout , deleteProfile , activeUsers} = require("../controllers/userAuthenticate");
 const userMiddleware = require("../middleware/userMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 const adminRegister = require("../controllers/adminAuthenticate");
@@ -12,6 +12,7 @@ authRouter.post("/logout"  , userMiddleware ,  logout);
 authRouter.post("/admin/register" , adminMiddleware , adminRegister)
 authRouter.get("/getProfile" , getProfile );
 authRouter.delete("/deleteProfile" , userMiddleware , deleteProfile)
+authRouter.get("/activeuser" , adminMiddleware , activeUsers)
 // uthRouter.post("/googleAuth" , userMiddleware , googleAuth);
 
 // check auth for user enters the website for checking the user is registered or if register then redirect to home page not then login/signup page

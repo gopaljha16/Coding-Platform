@@ -11,17 +11,17 @@ const register = async (req, res) => {
     try {
 
         validate(req.body);
-        const { firstName, emailId, password , confirmPassword  } = req.body;
+        const { firstName, emailId, password, confirmPassword } = req.body;
 
         if (!firstName || !emailId)
             throw new Error("Credential Missing");
 
 
-      if (password !== confirmPassword)
+        if (password !== confirmPassword)
             throw new Error("Password Doesn't Match");
 
         req.body.password = await bcrypt.hash(password, 10);
-    
+
 
         const user = await User.create(req.body);
         req.body.role = "user";
@@ -32,7 +32,7 @@ const register = async (req, res) => {
             firstName: user.firstName,
             emailId: user.emailId,
             _id: user._id,
-           
+
         }
 
         res.cookie("token", token, { maxAge: 60 * 60 * 1000 });
@@ -72,7 +72,7 @@ const login = async (req, res) => {
             firstName: user.firstName,
             emailId: user.emailId,
             _id: user._id,
-            // role:req.result.role
+            role:user.role
         }
 
 
@@ -131,7 +131,24 @@ const deleteProfile = async (req, res) => {
     }
 }
 
+const activeUsers = async (req, res) => {
+    try {
+        const userCount = await User.countDocuments({});
+
+        res.status(200).json({
+            message: "User count fetched successfully",
+            count: userCount,
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            message: "Error while fetching user Count",
+            error: err.message,
+        })
+    }
+}
 
 
 
-module.exports = { register, login, logout, getProfile, deleteProfile }
+
+module.exports = { register, login, logout, getProfile, deleteProfile ,activeUsers  }
