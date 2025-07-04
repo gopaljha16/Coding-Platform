@@ -9,7 +9,8 @@ const problemRouter = require("../src/routes/problemRoutes");
 const rateLimiter = require("./middleware/rateLimiter");
 const submissionRouter = require("./routes/submit")
 const cors = require("cors");
-const aiRouter = require("./routes/AiChat")
+const aiRouter = require("./routes/AiChat");
+const videoRouter = require("./routes/Video");
 
 
 
@@ -30,6 +31,7 @@ app.use("/user" , authRouter);
 app.use("/problem" , problemRouter);
 app.use("/submission" , submissionRouter)
 app.use("/ai" , aiRouter)
+app.use("/video" , videoRouter)
 
 
 const initialConnection = async () =>{

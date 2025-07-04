@@ -14,11 +14,13 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft,
 } from 'lucide-react';
 import axiosClient from '../../utils/axiosClient';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router';
+import { NavLink, useNavigate } from 'react-router';
+NavLink
 
 
 // Zod schema matching the problem schema
@@ -202,6 +204,12 @@ function CreateProblem() {
     <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
+         <NavLink to="/">
+                      <button className="flex items-center gap-2 text-gray-400 hover:text-orange-500 transition-colors">
+                        <ArrowLeft size={20} />
+                        Back to Home
+                      </button>
+                    </NavLink>
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
             Create New Problem

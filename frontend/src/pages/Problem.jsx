@@ -25,9 +25,9 @@ import {
   Flame,
   ArrowLeft,
 } from "lucide-react";
-import axiosClient from "../utils/axiosClient";
 import { NavLink } from "react-router";
 import Navbar from "../components/common/Navbar";
+import axiosClient from "../utils/axiosClient";
 
 const Problem = () => {
   const { user } = useSelector((state) => state.auth);

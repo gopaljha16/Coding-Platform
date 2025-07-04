@@ -7,12 +7,17 @@ import { useDispatch, useSelector } from "react-redux";
 import { checkAuth } from "./slice/authSlice";
 import Problem from "./pages/Problem";
 import ProblemSolve from "./pages/ProblemSolve";
-// import AdminDashboard from "./components/Dashboards/AdminDashboard"
 import AdminPage from "./pages/AdminPage";
 import CreateProblem from "./components/Admin/CreateProblem";
 import UpdateProblem from "./components/Admin/UpdateProblem";
+import DeleteProblem from "./components/Admin/DeleteProblem";
+import UserManagement from "./components/Admin/UserManagement";
+import PlatformAnalytics from "./components/Admin/PlatformAnalytics";
+import ManageVideo from "./components/Admin/ManageVideo";
+import UploadVideo from "./components/Admin/UploadVideo";
 
-const App = ({ children, className = "" }) => {
+
+const App = () => {
   // authenticated when the user opens website then first authentication doing
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -58,6 +63,26 @@ const App = ({ children, className = "" }) => {
         <Route
         path='/admin/update'
         element={isAuthenticated && user?.role==="admin" ? <UpdateProblem/> : <Navigate to="/login"></Navigate>}
+        ></Route>
+         <Route
+        path='/admin/delete'
+        element={isAuthenticated && user?.role==="admin" ? <DeleteProblem/> : <Navigate to="/login"></Navigate>}
+        ></Route>
+         <Route
+        path='/admin/users'
+        element={isAuthenticated && user?.role==="admin" ? <UserManagement/> : <Navigate to="/login"></Navigate>}
+        ></Route>
+         <Route
+        path='/admin/analytics'
+        element={isAuthenticated && user?.role==="admin" ? <PlatformAnalytics/> : <Navigate to="/login"></Navigate>}
+        ></Route>
+          <Route
+        path='/admin/video'
+        element={isAuthenticated && user?.role==="admin" ? <ManageVideo/> : <Navigate to="/login"></Navigate>}
+        ></Route>
+         <Route
+        path='/admin/upload/:problemId'
+        element={isAuthenticated && user?.role==="admin" ? <UploadVideo/> : <Navigate to="/login"></Navigate>}
         ></Route>
         </Routes>
       </div>

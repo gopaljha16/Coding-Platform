@@ -81,7 +81,7 @@ const ProblemSchema = Schema({
         ref: "user",
         required: true,
     }
-})
+}, {Timestamp:true})
 
 const Problem = mongoose.model("problem", ProblemSchema);
 module.exports = Problem;
