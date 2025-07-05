@@ -1,22 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router';
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router";
 import {
-  Upload, 
-  Trash2, 
-  Play, 
-  Eye, 
-  Search, 
-  Filter, 
+  Upload,
+  Trash2,
+  Play,
+  Eye,
+  Search,
+  Filter,
   Plus,
   ArrowLeft,
   CheckCircle,
   AlertCircle,
   X,
   Edit,
-  ExternalLink
-} from 'lucide-react';
-import axiosClient from '../../utils/axiosClient';
+  ExternalLink,
+  Maximize,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import axiosClient from "../../utils/axiosClient";
+import { toast } from "react-toastify";
 
 const ManageVideo = () => {
   const navigate = useNavigate();
@@ -24,10 +28,20 @@ const ManageVideo = () => {
   const [filteredProblems, setFilteredProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [difficultyFilter, setDifficultyFilter] = useState('All');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState("All");
   const [deleteLoading, setDeleteLoading] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
+  const [videoStatusCache, setVideoStatusCache] = useState({});
+
+  // Video preview modal state
+  const [videoPreview, setVideoPreview] = useState({
+    isOpen: false,
+    videoUrl: "",
+    problemTitle: "",
+    isLoading: false,
+    error: null,
+  });
 
   useEffect(() => {
     fetchProblems();
@@ -40,78 +54,183 @@ const ManageVideo = () => {
   const fetchProblems = async () => {
     try {
       setLoading(true);
-      const response = await axiosClient.get('/problem/getAllProblems');
-      setProblems(response.data);
+      const response = await axiosClient.get("/problem/getAllProblems");
+      const problemsData = response.data;
+      setProblems(problemsData);
+
+      // Check video status for all problems
+      await checkVideoStatusForProblems(problemsData);
     } catch (err) {
-      setError('Failed to fetch problems');
+      setError("Failed to fetch problems");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // const checkVideoIsPresent = async () =>{
-  //   try{
-  //     setLoading(true);
-  //     const response = await axiosClient.get(`/video/videoExists/${pr}`)
-  //   }
-  // }
+  const checkVideoStatusForProblems = async (problemsData) => {
+    const statusPromises = problemsData.map(async (problem) => {
+      try {
+        const response = await axiosClient.get(
+          `/video/videoExists/${problem._id}`
+        );
+        return {
+          problemId: problem._id,
+          hasVideo: response.data.exists || false,
+          videoUrl: response.data.videoUrl || null,
+        };
+      } catch (err) {
+        console.error(`Error checking video for problem ${problem._id}:`, err);
+        return {
+          problemId: problem._id,
+          hasVideo: false,
+          videoUrl: null,
+        };
+      }
+    });
+
+    const statuses = await Promise.all(statusPromises);
+    const statusMap = {};
+    statuses.forEach((status) => {
+      statusMap[status.problemId] = {
+        hasVideo: status.hasVideo,
+        videoUrl: status.videoUrl,
+      };
+    });
+
+    setVideoStatusCache(statusMap);
+  };
+
+  const checkIfVideoExists = async (problemId) => {
+    try {
+      const response = await axiosClient.get(`/video/videoExists/${problemId}`);
+      const videoStatus = {
+        hasVideo: response.data.exists || false,
+        videoUrl: response.data.videoUrl || null,
+      };
+
+      // Update cache
+      setVideoStatusCache((prev) => ({
+        ...prev,
+        [problemId]: videoStatus,
+      }));
+
+      return videoStatus;
+    } catch (err) {
+      console.error(`Error checking video for problem ${problemId}:`, err);
+      return { hasVideo: false, videoUrl: null };
+    }
+  };
 
   const handleDelete = async (problemId) => {
-    if (!window.confirm('Are you sure you want to delete this video?')) return;
-    
+    if (!window.confirm("Are you sure you want to delete this video?")) return;
+
     try {
       setDeleteLoading(problemId);
       await axiosClient.delete(`/video/delete/${problemId}`);
-      
-      // Update the problem in state to reflect video removal
-      setProblems(problems.map(problem => 
-        problem._id === problemId 
-          ? { ...problem, hasVideo: false, videoUrl: null }
-          : problem
-      ));
-      
-      setSuccessMessage('Video deleted successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+
+      // Update the video status cache
+      setVideoStatusCache((prev) => ({
+        ...prev,
+        [problemId]: { hasVideo: false, videoUrl: null },
+      }));
+
+      setSuccessMessage("Video deleted successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      toast.success("Video Deleted Successfully");
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to delete video');
+      setError(err.response?.data?.error || "Failed to delete video");
       console.error(err);
+      toast.error("Video cannot be Deleted Successfully");
     } finally {
       setDeleteLoading(null);
     }
   };
-
-  
 
   const handleUploadRedirect = (problemId) => {
     // Navigate to upload page with problem ID
     navigate(`/admin/upload/${problemId}`);
   };
 
-  const handleViewVideo = (problem) => {
-    // Handle viewing video - you can implement this based on your video storage
-    if (problem.videoUrl) {
-      window.open(problem.videoUrl, '_blank');
+  const handleViewVideo = async (problem) => {
+    const videoStatus = videoStatusCache[problem._id];
+
+    if (!videoStatus || !videoStatus.hasVideo) {
+      toast.error("No video available for this problem");
+      return;
     }
+
+    setVideoPreview({
+      isOpen: true,
+      videoUrl: videoStatus.videoUrl,
+      problemTitle: problem.title,
+      isLoading: !videoStatus.videoUrl,
+      error: null,
+    });
+
+    // If we don't have the video URL cached, fetch it
+    if (!videoStatus.videoUrl) {
+      try {
+        const response = await axiosClient.get(
+          `/video/videoExists/${problem._id}`
+        );
+        if (response.data.exists && response.data.videoUrl) {
+          setVideoPreview((prev) => ({
+            ...prev,
+            videoUrl: response.data.videoUrl,
+            isLoading: false,
+          }));
+        } else {
+          setVideoPreview((prev) => ({
+            ...prev,
+            error: "Video URL not found",
+            isLoading: false,
+          }));
+        }
+      } catch (err) {
+        setVideoPreview((prev) => ({
+          ...prev,
+          error: "Failed to load video",
+          isLoading: false,
+        }));
+      }
+    }
+  };
+
+  const closeVideoPreview = () => {
+    setVideoPreview({
+      isOpen: false,
+      videoUrl: "",
+      problemTitle: "",
+      isLoading: false,
+      error: null,
+    });
   };
 
   const filterProblems = () => {
     let filtered = problems;
 
     if (searchTerm) {
-      filtered = filtered.filter(problem => {
-        const titleMatch = problem.title.toLowerCase().includes(searchTerm.toLowerCase());
-        const tagsMatch = problem.tags ? 
-          (Array.isArray(problem.tags) ? 
-            problem.tags.join(',').toLowerCase().includes(searchTerm.toLowerCase()) :
-            problem.tags.toLowerCase().includes(searchTerm.toLowerCase())
-          ) : false;
+      filtered = filtered.filter((problem) => {
+        const titleMatch = problem.title
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+        const tagsMatch = problem.tags
+          ? Array.isArray(problem.tags)
+            ? problem.tags
+                .join(",")
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())
+            : problem.tags.toLowerCase().includes(searchTerm.toLowerCase())
+          : false;
         return titleMatch || tagsMatch;
       });
     }
 
-    if (difficultyFilter !== 'All') {
-      filtered = filtered.filter(problem => problem.difficulty === difficultyFilter);
+    if (difficultyFilter !== "All") {
+      filtered = filtered.filter(
+        (problem) => problem.difficulty === difficultyFilter
+      );
     }
 
     setFilteredProblems(filtered);
@@ -119,33 +238,63 @@ const ManageVideo = () => {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 'Easy': return 'from-green-500 to-green-600';
-      case 'Medium': return 'from-yellow-500 to-orange-500';
-      case 'Hard': return 'from-red-500 to-red-600';
-      default: return 'from-gray-500 to-gray-600';
+      case "easy":
+        return "from-green-500 to-green-600";
+      case "medium":
+        return "from-yellow-500 to-orange-500";
+      case "hard":
+        return "from-red-500 to-red-600";
+      default:
+        return "from-gray-500 to-gray-600";
     }
   };
 
   const getVideoStatus = (problem) => {
-    if (problem.videoSolution && problem.videoSolution.length > 0) {
-      return { hasVideo: true, status: 'Uploaded' };
+    const cachedStatus = videoStatusCache[problem._id];
+    if (cachedStatus) {
+      return {
+        hasVideo: cachedStatus.hasVideo,
+        status: cachedStatus.hasVideo ? "Uploaded" : "No Video",
+      };
     }
-    return { hasVideo: false, status: 'No Video' };
+
+    // Fallback to original logic
+    if (problem.videoSolution && problem.videoSolution.length > 0) {
+      return { hasVideo: true, status: "Uploaded" };
+    }
+    return { hasVideo: false, status: "No Video" };
   };
 
   // Helper function to safely handle tags
   const formatTags = (tags) => {
     if (!tags) return [];
-    
+
     if (Array.isArray(tags)) {
       return tags;
     }
-    
-    if (typeof tags === 'string') {
-      return tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+
+    if (typeof tags === "string") {
+      return tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag);
     }
-    
+
     return [];
+  };
+
+  // Calculate statistics based on video status cache
+  const getVideoStatistics = () => {
+    const totalProblems = problems.length;
+    const withVideos = problems.filter((p) => {
+      const status = getVideoStatus(p);
+      return status.hasVideo;
+    }).length;
+    const withoutVideos = totalProblems - withVideos;
+    const coverage =
+      totalProblems > 0 ? Math.round((withVideos / totalProblems) * 100) : 0;
+
+    return { totalProblems, withVideos, withoutVideos, coverage };
   };
 
   if (loading) {
@@ -157,7 +306,9 @@ const ManageVideo = () => {
           className="text-center"
         >
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading problems...</p>
+          <p className="text-gray-400">
+            Loading problems and checking video status...
+          </p>
         </motion.div>
       </div>
     );
@@ -187,6 +338,8 @@ const ManageVideo = () => {
     );
   }
 
+  const stats = getVideoStatistics();
+
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       <div className="container mx-auto px-4 py-8">
@@ -200,12 +353,14 @@ const ManageVideo = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent mb-2">
               Video Management
             </h1>
-            <p className="text-gray-400">Upload and manage problem solution videos</p>
+            <p className="text-gray-400">
+              Upload and manage problem solution videos
+            </p>
           </div>
-          
+
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
-            <button 
-              onClick={() => navigate('/admin')}
+            <button
+              onClick={() => navigate("/admin")}
               className="flex items-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
             >
               <ArrowLeft size={20} />
@@ -259,7 +414,10 @@ const ManageVideo = () => {
         >
           <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={20}
+              />
               <input
                 type="text"
                 placeholder="Search problems..."
@@ -268,9 +426,12 @@ const ManageVideo = () => {
                 className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
-            
+
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Filter
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={20}
+              />
               <select
                 value={difficultyFilter}
                 onChange={(e) => setDifficultyFilter(e.target.value)}
@@ -287,24 +448,26 @@ const ManageVideo = () => {
           {/* Statistics */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-slate-700 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-white">{problems.length}</div>
+              <div className="text-2xl font-bold text-white">
+                {stats.totalProblems}
+              </div>
               <div className="text-sm text-gray-400">Total Problems</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-green-400">
-                {problems.filter(p => getVideoStatus(p).hasVideo).length}
+                {stats.withVideos}
               </div>
               <div className="text-sm text-gray-400">With Videos</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-orange-400">
-                {problems.filter(p => !getVideoStatus(p).hasVideo).length}
+                {stats.withoutVideos}
               </div>
               <div className="text-sm text-gray-400">Without Videos</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-blue-400">
-                {problems.length > 0 ? Math.round((problems.filter(p => getVideoStatus(p).hasVideo).length / problems.length) * 100) : 0}%
+                {stats.coverage}%
               </div>
               <div className="text-sm text-gray-400">Coverage</div>
             </div>
@@ -322,30 +485,44 @@ const ManageVideo = () => {
             <table className="w-full">
               <thead className="bg-slate-700">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">#</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">Problem</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">Difficulty</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">Tags</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">Video Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">Actions</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">
+                    #
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">
+                    Problem
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">
+                    Difficulty
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">
+                    Tags
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">
+                    Video Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
                 <AnimatePresence>
                   {filteredProblems.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
-                        {searchTerm || difficultyFilter !== 'All' ? 
-                          'No problems found matching your criteria.' : 
-                          'No problems available.'
-                        }
+                      <td
+                        colSpan="6"
+                        className="px-6 py-12 text-center text-gray-400"
+                      >
+                        {searchTerm || difficultyFilter !== "All"
+                          ? "No problems found matching your criteria."
+                          : "No problems available."}
                       </td>
                     </tr>
                   ) : (
                     filteredProblems.map((problem, index) => {
                       const videoStatus = getVideoStatus(problem);
                       const tags = formatTags(problem.tags);
-                      
+
                       return (
                         <motion.tr
                           key={problem._id}
@@ -356,17 +533,25 @@ const ManageVideo = () => {
                           className="hover:bg-slate-700 transition-colors cursor-pointer"
                           onClick={() => handleUploadRedirect(problem._id)}
                         >
-                          <td className="px-6 py-4 text-sm text-gray-300">{index + 1}</td>
+                          <td className="px-6 py-4 text-sm text-gray-300">
+                            {index + 1}
+                          </td>
                           <td className="px-6 py-4">
                             <div className="font-medium text-white hover:text-orange-400 transition-colors">
                               {problem.title}
                             </div>
                             <div className="text-sm text-gray-400 mt-1">
-                              {problem.description ? problem.description.substring(0, 100) + '...' : 'No description'}
+                              {problem.description
+                                ? problem.description.substring(0, 100) + "..."
+                                : "No description"}
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r text-white ${getDifficultyColor(problem.difficulty)}`}>
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r text-white ${getDifficultyColor(
+                                problem.difficulty
+                              )}`}
+                            >
                               {problem.difficulty}
                             </span>
                           </td>
@@ -374,12 +559,17 @@ const ManageVideo = () => {
                             <div className="flex flex-wrap gap-1">
                               {tags.length > 0 ? (
                                 tags.slice(0, 3).map((tag, i) => (
-                                  <span key={i} className="px-2 py-1 bg-slate-600 text-gray-300 rounded text-xs">
+                                  <span
+                                    key={i}
+                                    className="px-2 py-1 bg-slate-600 text-gray-300 rounded text-xs"
+                                  >
                                     {tag}
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-gray-500 text-xs">No tags</span>
+                                <span className="text-gray-500 text-xs">
+                                  No tags
+                                </span>
                               )}
                               {tags.length > 3 && (
                                 <span className="px-2 py-1 bg-slate-600 text-gray-300 rounded text-xs">
@@ -411,12 +601,18 @@ const ManageVideo = () => {
                                   handleUploadRedirect(problem._id);
                                 }}
                                 className="flex items-center space-x-1 px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded-md transition-colors"
-                                title={videoStatus.hasVideo ? "Replace Video" : "Upload Video"}
+                                title={
+                                  videoStatus.hasVideo
+                                    ? "Replace Video"
+                                    : "Upload Video"
+                                }
                               >
                                 <Upload size={16} />
-                                <span>{videoStatus.hasVideo ? "Replace" : "Upload"}</span>
+                                <span>
+                                  {videoStatus.hasVideo ? "Replace" : "Upload"}
+                                </span>
                               </button>
-                              
+
                               {videoStatus.hasVideo && (
                                 <>
                                   <button
@@ -430,7 +626,7 @@ const ManageVideo = () => {
                                     <Eye size={16} />
                                     <span>View</span>
                                   </button>
-                                  
+
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -461,7 +657,7 @@ const ManageVideo = () => {
           </div>
         </motion.div>
 
-        {/* Pagination or Load More could go here */}
+        {/* Pagination info */}
         {filteredProblems.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -473,6 +669,140 @@ const ManageVideo = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Video Preview Modal */}
+      <AnimatePresence>
+        {videoPreview.isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+            onClick={closeVideoPreview}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                <h3 className="text-lg font-semibold text-white truncate">
+                  {videoPreview.problemTitle}
+                </h3>
+                <div className="flex items-center space-x-2">
+                  {videoPreview.videoUrl && (
+                    <button
+                      onClick={() =>
+                        window.open(videoPreview.videoUrl, "_blank")
+                      }
+                      className="flex items-center space-x-1 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors"
+                      title="Open in new tab"
+                    >
+                      <ExternalLink size={16} />
+                      <span>Open</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={closeVideoPreview}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-4">
+                {videoPreview.isLoading ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                      <p className="text-gray-400">Loading video...</p>
+                    </div>
+                  </div>
+                ) : videoPreview.error ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center text-red-400">
+                      <AlertCircle size={48} className="mx-auto mb-4" />
+                      <p className="text-lg font-semibold mb-2">
+                        Error Loading Video
+                      </p>
+                      <p className="text-gray-400">{videoPreview.error}</p>
+                    </div>
+                  </div>
+                ) : videoPreview.videoUrl ? (
+                  <div className="relative">
+                    <video
+                      src={videoPreview.videoUrl}
+                      controls
+                      autoPlay
+                      className="w-full max-h-[70vh] rounded-lg bg-black"
+                      onError={(e) => {
+                        console.error("Video error:", e);
+                        setVideoPreview((prev) => ({
+                          ...prev,
+                          error:
+                            "Failed to load video. The video format might not be supported.",
+                        }));
+                      }}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+
+                    {/* Video Controls Overlay */}
+                    <div className="absolute bottom-4 right-4 flex items-center space-x-2">
+                      <button
+                        onClick={() => {
+                          const video = document.querySelector("video");
+                          if (video.requestFullscreen) {
+                            video.requestFullscreen();
+                          }
+                        }}
+                        className="p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-all"
+                        title="Fullscreen"
+                      >
+                        <Maximize size={20} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center text-gray-400">
+                      <Play size={48} className="mx-auto mb-4" />
+                      <p className="text-lg font-semibold mb-2">
+                        No Video Available
+                      </p>
+                      <p>Video URL not found for this problem.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between p-4 border-t border-slate-700 bg-slate-900">
+                <div className="text-sm text-gray-400">
+                  {videoPreview.videoUrl &&
+                    !videoPreview.isLoading &&
+                    !videoPreview.error && (
+                      <span>Video loaded successfully</span>
+                    )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={closeVideoPreview}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
