@@ -28,6 +28,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { NavLink } from "react-router";
+import Editorial from "../components/common/Editorial";
 
 const ProblemPage = () => {
   const [problem, setProblem] = useState(null);
@@ -411,10 +412,7 @@ const ProblemPage = () => {
                       </h2>
                     </div>
                     <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                      <div className="text-gray-300 leading-relaxed">
-                        Editorial content will be available after you solve the
-                        problem or when the contest ends.
-                      </div>
+                    <Editorial secureUrl={problem.secureUrl} thumbnailUrl={problem.thumbnailUrl} duration={problem.duration}></Editorial>
                     </div>
                   </div>
                 )}

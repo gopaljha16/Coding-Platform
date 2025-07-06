@@ -11,7 +11,7 @@ const submissionRouter = require("./routes/submit")
 const cors = require("cors");
 const aiRouter = require("./routes/AiChat");
 const videoRouter = require("./routes/Video");
-
+const payRoute = require("./routes/payment");
 
 
 const PORT_NO = process.env.PORT_NO;
@@ -32,6 +32,7 @@ app.use("/problem" , problemRouter);
 app.use("/submission" , submissionRouter)
 app.use("/ai" , aiRouter)
 app.use("/video" , videoRouter)
+app.use("/api/payments" , payRoute);
 
 
 const initialConnection = async () =>{

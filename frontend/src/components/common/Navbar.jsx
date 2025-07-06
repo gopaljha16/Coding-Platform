@@ -3,21 +3,22 @@ import { useSelector, useDispatch } from "react-redux";
 import { logutUser } from "../../slice/authSlice";
 import { useNavigate, Link, NavLink } from "react-router";
 import { toast } from "react-toastify";
-import { 
-  User, 
-  ChevronDown, 
-  Menu, 
-  X, 
-  Code2, 
-  Trophy, 
-  MessageCircle, 
-  Briefcase, 
+
+import {
+  User,
+  ChevronDown,
+  Menu,
+  X,
+  Code2,
+  Trophy,
+  MessageCircle,
+  Briefcase,
   Store,
   Search,
   Settings,
   LogOut,
   Shield,
-  Bell
+  Bell,
 } from "lucide-react";
 import codexa from "../../utils/logo/codexa-logo.png";
 
@@ -68,24 +69,26 @@ const Navbar = () => {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (isOpen && !event.target.closest('.user-dropdown')) {
+      if (isOpen && !event.target.closest(".user-dropdown")) {
         setIsopen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
   return (
     <>
       {/* Navbar Spacer - ensures content doesn't get hidden under navbar */}
       <div className="h-20"></div>
-      
+
       {/* Main Navbar */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out ${
-          isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+          isVisible
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-full opacity-0"
         }`}
       >
         <div
@@ -98,16 +101,22 @@ const Navbar = () => {
           <div className="flex items-center justify-between py-2.5 px-6">
             {/* Logo Section */}
             <div className="flex-shrink-0">
-              <NavLink to="/" className="group relative overflow-hidden flex items-center space-x-3">
+              <NavLink
+                to="/"
+                className="group relative overflow-hidden flex items-center space-x-3"
+              >
                 <div className="relative">
-                  <img className="h-10 w-auto transition-transform duration-300 group-hover:scale-105" src={codexa} alt="Codexa" />
+                  <img
+                    className="h-10 w-auto transition-transform duration-300 group-hover:scale-105"
+                    src={codexa}
+                    alt="Codexa"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-amber-400/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
                 </div>
                 <div className="hidden lg:block">
                   <h1 className="text-lg font-bold bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">
-                    CodeXa
+                    Codexa
                   </h1>
-                  <p className="text-xs text-slate-400 -mt-1">Code • Learn • Excel</p>
                 </div>
               </NavLink>
             </div>
@@ -151,10 +160,11 @@ const Navbar = () => {
             <div className="flex items-center space-x-4">
               {/* Notifications (if authenticated) */}
               {isAuthenticated && (
-                <button className="relative p-2 text-slate-400 hover:text-white transition-colors duration-200 rounded-lg hover:bg-slate-800/50">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full"></span>
-                </button>
+                <NavLink to="/premium" className="cursor-pointer">
+                  <button className="relative p-2 text-slate-40 font-semibold text-white transition-colors cursor-pointer duration-200 rounded-lg bg-orange-500">
+                    Premium
+                  </button>
+                </NavLink>
               )}
 
               {/* User Menu */}
@@ -173,8 +183,12 @@ const Navbar = () => {
                         <User className="w-4 h-4 text-white" />
                       </div>
                       <div className="hidden sm:block text-left">
-                        <p className="text-sm font-medium text-white">{user?.firstName}</p>
-                        <p className="text-xs text-slate-400 capitalize">{user?.role || "User"}</p>
+                        <p className="text-sm font-medium text-white">
+                          {user?.firstName}
+                        </p>
+                        <p className="text-xs text-slate-400 capitalize">
+                          {user?.role || "User"}
+                        </p>
                       </div>
                       <ChevronDown
                         className={`w-4 h-4 text-slate-400 transition-all duration-200 ${
@@ -199,7 +213,9 @@ const Navbar = () => {
                                 </p>
                                 <p className="text-sm text-slate-400 capitalize flex items-center space-x-2">
                                   <span>{user?.role || "User"}</span>
-                                  {user?.role === "admin" && <Shield className="w-3 h-3" />}
+                                  {user?.role === "admin" && (
+                                    <Shield className="w-3 h-3" />
+                                  )}
                                 </p>
                               </div>
                             </div>
@@ -216,13 +232,15 @@ const Navbar = () => {
                               <Settings className="w-5 h-5 text-slate-400 group-hover:text-orange-400" />
                               <div>
                                 <p className="font-medium">Profile Settings</p>
-                                <p className="text-xs text-slate-500">Manage your account</p>
+                                <p className="text-xs text-slate-500">
+                                  Manage your account
+                                </p>
                               </div>
                             </Link>
 
                             {/* Admin Dashboard */}
                             {user?.role === "admin" && (
-                              <NavLink 
+                              <NavLink
                                 to="/admin"
                                 onClick={() => setIsopen(false)}
                                 className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl bg-gradient-to-r from-blue-900/30 to-indigo-900/30 hover:from-blue-800/40 hover:to-indigo-800/40 border border-blue-700/30 transition-all duration-200 group"
@@ -231,8 +249,12 @@ const Navbar = () => {
                                   <Shield className="w-4 h-4 text-white" />
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-blue-300">Admin Dashboard</p>
-                                  <p className="text-xs text-blue-400">Management panel</p>
+                                  <p className="font-semibold text-blue-300">
+                                    Admin Dashboard
+                                  </p>
+                                  <p className="text-xs text-blue-400">
+                                    Management panel
+                                  </p>
                                 </div>
                               </NavLink>
                             )}
@@ -248,7 +270,9 @@ const Navbar = () => {
                               <LogOut className="w-5 h-5 text-slate-400 group-hover:text-red-400" />
                               <div>
                                 <p className="font-medium">Sign Out</p>
-                                <p className="text-xs text-slate-500">See you later!</p>
+                                <p className="text-xs text-slate-500">
+                                  See you later!
+                                </p>
                               </div>
                             </button>
                           </div>
@@ -280,7 +304,11 @@ const Navbar = () => {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors duration-200 rounded-lg hover:bg-slate-800/50"
               >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {mobileMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
               </button>
             </div>
           </div>
@@ -290,7 +318,10 @@ const Navbar = () => {
       {/* Mobile Navigation Menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}></div>
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          ></div>
           <div className="fixed top-20 left-4 right-4 bg-slate-900/98 backdrop-blur-xl rounded-xl border border-slate-700/50 shadow-2xl max-h-[calc(100vh-6rem)] overflow-y-auto">
             <div className="p-6">
               <nav className="space-y-2">
