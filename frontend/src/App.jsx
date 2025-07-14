@@ -16,6 +16,9 @@ import PlatformAnalytics from "./components/Admin/PlatformAnalytics";
 import ManageVideo from "./components/Admin/ManageVideo";
 import UploadVideo from "./components/Admin/UploadVideo";
 import Premium from "./components/common/Premium";
+import Success from "./components/common/Success";
+import Interview from "./pages/Interview";
+import Explore from "./pages/Explore";
 
 const App = () => {
   // authenticated when the user opens website then first authentication doing
@@ -39,6 +42,7 @@ const App = () => {
       <div>
         <Routes>
           <Route path="/" element={<Homepage />} />
+          <Route path="/explore" element={<Explore/>}/>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route
@@ -138,6 +142,7 @@ const App = () => {
               isAuthenticated ? <Premium /> : <Navigate to="/login"></Navigate>
             }
           ></Route>
+        <Route path="/interview" element={isAuthenticated ? <Interview/> : <Navigate to="/login"></Navigate>} ></Route>
         </Routes>
       </div>
     </>

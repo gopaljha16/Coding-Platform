@@ -19,6 +19,8 @@ import {
   LogOut,
   Shield,
   Bell,
+  Crown,
+  Star,
 } from "lucide-react";
 import codexa from "../../utils/logo/codexa-logo.png";
 
@@ -158,13 +160,30 @@ const Navbar = () => {
 
             {/* Right Side - User Menu & Mobile Toggle */}
             <div className="flex items-center space-x-4">
-              {/* Notifications (if authenticated) */}
+              {/* Premium Status (if authenticated) */}
               {isAuthenticated && (
-                <NavLink to="/premium" className="cursor-pointer">
-                  <button className="relative p-2 text-slate-40 font-semibold text-white transition-colors cursor-pointer duration-200 rounded-lg bg-orange-500">
-                    Premium
-                  </button>
-                </NavLink>
+                <div>
+                  {user?.isPremium ? (
+                    // Premium User - Show Premium Badge
+                    <div className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 rounded-lg">
+                      <Crown className="w-4 h-4 text-yellow-400" />
+                      <span className="text-sm font-semibold text-yellow-400">
+                        Premium
+                      </span>
+                      <Star className="w-3 h-3 text-yellow-400 animate-pulse" />
+                    </div>
+                  ) : (
+                    // Non-Premium User - Show Upgrade Button
+                    <NavLink to="/premium" className="cursor-pointer">
+                      <button className="relative p-2 text-slate-40 font-semibold text-white transition-all duration-200 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg hover:shadow-xl">
+                        <span className="flex items-center space-x-1">
+                          <Crown className="w-4 h-4" />
+                          <span>Premium</span>
+                        </span>
+                      </button>
+                    </NavLink>
+                  )}
+                </div>
               )}
 
               {/* User Menu */}
@@ -179,15 +198,27 @@ const Navbar = () => {
                           : "bg-slate-800/60 hover:bg-slate-700/70"
                       } border border-slate-600/50 hover:border-slate-500/50 shadow-lg hover:shadow-xl group`}
                     >
-                      <div className="w-7 h-7 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center relative ${
+                        user?.isPremium 
+                          ? "bg-gradient-to-br from-yellow-500 to-amber-500" 
+                          : "bg-gradient-to-br from-orange-500 to-amber-500"
+                      }`}>
                         <User className="w-4 h-4 text-white" />
+                        {user?.isPremium && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full flex items-center justify-center">
+                            <Crown className="w-2 h-2 text-slate-800" />
+                          </div>
+                        )}
                       </div>
                       <div className="hidden sm:block text-left">
-                        <p className="text-sm font-medium text-white">
-                          {user?.firstName}
+                        <p className="text-sm font-medium text-white flex items-center space-x-1">
+                          <span>{user?.firstName}</span>
+                          {user?.isPremium && (
+                            <Crown className="w-3 h-3 text-yellow-400" />
+                          )}
                         </p>
                         <p className="text-xs text-slate-400 capitalize">
-                          {user?.role || "User"}
+                          {user?.isPremium ? "Premium Member" : user?.role || "User"}
                         </p>
                       </div>
                       <ChevronDown
@@ -202,17 +233,35 @@ const Navbar = () => {
                       <div className="absolute right-0 mt-3 w-80 opacity-100 translate-y-0 scale-100 transition-all duration-300 ease-out">
                         <div className="bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
                           {/* Header */}
-                          <div className="p-6 bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600/30">
+                          <div className={`p-6 border-b border-slate-600/30 ${
+                            user?.isPremium 
+                              ? "bg-gradient-to-r from-yellow-900/30 to-amber-900/30" 
+                              : "bg-gradient-to-r from-slate-800 to-slate-700"
+                          }`}>
                             <div className="flex items-center space-x-4">
-                              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center relative ${
+                                user?.isPremium 
+                                  ? "bg-gradient-to-br from-yellow-500 to-amber-500" 
+                                  : "bg-gradient-to-br from-orange-500 to-amber-500"
+                              }`}>
                                 <User className="w-6 h-6 text-white" />
+                                {user?.isPremium && (
+                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                                    <Crown className="w-2.5 h-2.5 text-slate-800" />
+                                  </div>
+                                )}
                               </div>
                               <div>
-                                <p className="font-semibold text-white text-lg">
-                                  {user?.firstName} {user?.lastName}
+                                <p className="font-semibold text-white text-lg flex items-center space-x-2">
+                                  <span>{user?.firstName} {user?.lastName}</span>
+                                  {user?.isPremium && (
+                                    <Crown className="w-4 h-4 text-yellow-400" />
+                                  )}
                                 </p>
                                 <p className="text-sm text-slate-400 capitalize flex items-center space-x-2">
-                                  <span>{user?.role || "User"}</span>
+                                  <span>
+                                    {user?.isPremium ? "Premium Member" : user?.role || "User"}
+                                  </span>
                                   {user?.role === "admin" && (
                                     <Shield className="w-3 h-3" />
                                   )}
@@ -237,6 +286,45 @@ const Navbar = () => {
                                 </p>
                               </div>
                             </Link>
+
+                            {/* Premium Section */}
+                            {user?.isPremium ? (
+                              <Link
+                                to="/premium/dashboard"
+                                onClick={() => setIsopen(false)}
+                                className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl bg-gradient-to-r from-yellow-900/30 to-amber-900/30 hover:from-yellow-800/40 hover:to-amber-800/40 border border-yellow-700/30 transition-all duration-200 group"
+                              >
+                                <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-lg flex items-center justify-center">
+                                  <Crown className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-yellow-300">
+                                    Premium Dashboard
+                                  </p>
+                                  <p className="text-xs text-yellow-400">
+                                    Exclusive features
+                                  </p>
+                                </div>
+                              </Link>
+                            ) : (
+                              <Link
+                                to="/premium"
+                                onClick={() => setIsopen(false)}
+                                className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl bg-gradient-to-r from-orange-900/30 to-amber-900/30 hover:from-orange-800/40 hover:to-amber-800/40 border border-orange-700/30 transition-all duration-200 group"
+                              >
+                                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
+                                  <Crown className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-orange-300">
+                                    Upgrade to Premium
+                                  </p>
+                                  <p className="text-xs text-orange-400">
+                                    Unlock exclusive features
+                                  </p>
+                                </div>
+                              </Link>
+                            )}
 
                             {/* Admin Dashboard */}
                             {user?.role === "admin" && (
