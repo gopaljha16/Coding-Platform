@@ -13,6 +13,7 @@ const aiRouter = require("./routes/AiChat");
 const videoRouter = require("./routes/Video");
 const payRoute = require("./routes/payment");
 const interviewRouter = require("./routes/aiInterview");
+const contestRouter = require("./routes/contetsRoute")
 
 
 
@@ -29,28 +30,29 @@ app.use(cookieParser());
 // app.use(rateLimiter)
 
 // routing.
-app.use("/user" , authRouter);
-app.use("/problem" , problemRouter);
-app.use("/submission" , submissionRouter)
-app.use("/ai" , aiRouter)
-app.use("/video" , videoRouter)
-app.use("/api/payments" , payRoute);
-app.use("/api" , interviewRouter);
+app.use("/user", authRouter);
+app.use("/problem", problemRouter);
+app.use("/submission", submissionRouter)
+app.use("/ai", aiRouter)
+app.use("/video", videoRouter)
+app.use("/api/payments", payRoute);
+app.use("/api", interviewRouter);
+app.use("/contest", contestRouter)
 
 
-const initialConnection = async () =>{
-    try{
+const initialConnection = async () => {
+    try {
         await Promise.all([
-         redisClient.connect(),
-         database(),
+            redisClient.connect(),
+            database(),
         ])
         console.log("Databases Connected")
 
-        app.listen(PORT_NO , () =>{
+        app.listen(PORT_NO, () => {
             console.log(`Server is Listening on port no ${PORT_NO}`);
         })
 
-    }catch(err){
+    } catch (err) {
         console.log("Error :-  " + err);
     }
 }

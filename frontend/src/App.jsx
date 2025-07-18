@@ -19,6 +19,7 @@ import Premium from "./components/common/Premium";
 import Success from "./components/common/Success";
 import Interview from "./pages/Interview";
 import Explore from "./pages/Explore";
+import AdminContest from "./components/Admin/AdminContest";
 
 const App = () => {
   // authenticated when the user opens website then first authentication doing
@@ -121,6 +122,16 @@ const App = () => {
             element={
               isAuthenticated && user?.role === "admin" ? (
                 <ManageVideo />
+              ) : (
+                <Navigate to="/login"></Navigate>
+              )
+            }
+          ></Route>
+          <Route
+            path="/admin/contest"
+            element={
+              isAuthenticated && user?.role === "admin" ? (
+                <AdminContest />
               ) : (
                 <Navigate to="/login"></Navigate>
               )

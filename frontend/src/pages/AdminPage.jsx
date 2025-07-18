@@ -78,6 +78,16 @@ function AdminPage() {
       route: "/admin/analytics",
 
     },
+    {
+      id: "analytics",
+      title: "Contest Management",
+      description: "Creating , Updating the contests",
+      icon: BarChart3,
+      color: "from-pink-500 to-rose-600",
+      hoverColor: "hover:from-pink-600 hover:to-rose-700",
+      route: "/admin/contest",
+
+    },
   ];
 
  useEffect(() => {
