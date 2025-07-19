@@ -1,56 +1,24 @@
 const express = require("express");
 const {
   createContest,
-  registerForContest,
-  getContestById,
   getAllContests,
-  getContestsByStatus,
-  getContestLeaderboard,
+  getContestById,
   updateContest,
   deleteContest,
+  getAllProblems,
+  getProblemOfTheDay,
 } = require("../controllers/contestController");
-
-const Contest = require("../models/contest");
-const userMiddleware = require("../middleware/userMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
-
 const contestRouter = express.Router();
 
-// Middleware: To ensure contest is live
-exports.ensureContestAccess = async (req, res, next) => {
-  try {
-    const contest = await Contest.findById(req.params.id);
-    const now = new Date();
-
-    if (now < contest.startTime)
-      return res.status(403).json({ message: "Contest hasn't started." });
-    if (now > contest.endTime)
-      return res.status(403).json({ message: "Contest ended." });
-
-    next();
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Admin: Create contest
 contestRouter.post("/create", adminMiddleware, createContest);
-
-// Admin: Update & Delete contest
+contestRouter.get("/", getAllContests);
+contestRouter.get("/:id", getContestById);
 contestRouter.put("/update/:id", adminMiddleware, updateContest);
 contestRouter.delete("/delete/:id", adminMiddleware, deleteContest);
 
-// Public: Get all contests
-contestRouter.get("/", getAllContests);
-
-// Public: Get contest by ID
-contestRouter.get("/:id", getContestById);
-
-// User: Register for contest
-contestRouter.post("/register/:id", userMiddleware, registerForContest);
-
-// Public (or user): Filter contests and view leaderboard
-contestRouter.get("/filter", getContestsByStatus);
-contestRouter.get("/:id/leaderboard", getContestLeaderboard);
+// New routes for problem selection
+contestRouter.get("/problems", adminMiddleware, getAllProblems);
+contestRouter.get("/problem-of-the-day", getProblemOfTheDay);
 
 module.exports = contestRouter;

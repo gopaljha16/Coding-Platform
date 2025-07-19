@@ -19,7 +19,8 @@ import Premium from "./components/common/Premium";
 import Success from "./components/common/Success";
 import Interview from "./pages/Interview";
 import Explore from "./pages/Explore";
-import AdminContest from "./components/Admin/AdminContest";
+import AdminContest from "./components/Admin/contest/AdminContest";
+
 
 const App = () => {
   // authenticated when the user opens website then first authentication doing
