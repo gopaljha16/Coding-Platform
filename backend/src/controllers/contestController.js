@@ -11,8 +11,9 @@ exports.createContest = async (req, res) => {
       problems: req.body.problems,
       startTime: req.body.startTime,
       endTime: req.body.endTime,
-      createdBy: req.result._id, //
+      createdBy: req.result._id, 
       isPublic: req.body.isPublic,
+      date: new Date(req.body.startTime).toISOString().split("T")[0] 
     });
 
     await contest.save();
@@ -82,5 +83,24 @@ exports.getProblemOfTheDay = async (req, res) => {
     res.json(problems[randomIndex]);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+exports.getTodayContest = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+    const contest = await Contest.findOne({ date: today });
+
+    if (!contest) {
+      return res.status(404).json({ error: "No contest found for today" });
+    }
+
+    res.json(contest);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 };

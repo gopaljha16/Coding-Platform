@@ -30,6 +30,7 @@ const ContestSchema = new Schema({
             ref: "user"
         }
     ],
+    date:String,
     isPublic: { type: Boolean, default: true }
 }, { timestamps: true });
 

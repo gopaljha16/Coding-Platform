@@ -20,6 +20,8 @@ import Success from "./components/common/Success";
 import Interview from "./pages/Interview";
 import Explore from "./pages/Explore";
 import AdminContest from "./components/Admin/contest/AdminContest";
+import ContestPage  from "../src/pages/ContestPage"
+import ContestDetail from "./components/Admin/contest/ContestDetail";
 
 
 const App = () => {
@@ -133,6 +135,36 @@ const App = () => {
             element={
               isAuthenticated && user?.role === "admin" ? (
                 <AdminContest />
+              ) : (
+                <Navigate to="/login"></Navigate>
+              )
+            }
+          ></Route>
+          <Route
+            path="/contest"
+            element={
+              isAuthenticated ?  (
+                <ContestPage />
+              ) : (
+                <Navigate to="/login"></Navigate>
+              )
+            }
+          ></Route>
+            <Route
+            path="/contest/:id"
+            element={
+              isAuthenticated ?  (
+                <ContestDetail />
+              ) : (
+                <Navigate to="/login"></Navigate>
+              )
+            }
+          ></Route>
+           <Route
+            path="/contest/:id/:problemId"
+            element={
+              isAuthenticated ?  (
+                <ProblemSolve />
               ) : (
                 <Navigate to="/login"></Navigate>
               )

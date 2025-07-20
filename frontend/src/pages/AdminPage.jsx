@@ -83,7 +83,7 @@ function AdminPage() {
       title: "Contest Management",
       description: "Creating , Updating the contests",
       icon: BarChart3,
-      color: "from-pink-500 to-rose-600",
+      color: "from-purple-500 to-rose-600",
       hoverColor: "hover:from-pink-600 hover:to-rose-700",
       route: "/admin/contest",
 

@@ -6,11 +6,13 @@ const {
   updateContest,
   deleteContest,
   getAllProblems,
-  getProblemOfTheDay,
+  getTodayContest
+  
 } = require("../controllers/contestController");
 const adminMiddleware = require("../middleware/adminMiddleware");
 const contestRouter = express.Router();
 
+contestRouter.get("/today", getTodayContest);
 contestRouter.post("/create", adminMiddleware, createContest);
 contestRouter.get("/", getAllContests);
 contestRouter.get("/:id", getContestById);
@@ -19,6 +21,6 @@ contestRouter.delete("/delete/:id", adminMiddleware, deleteContest);
 
 // New routes for problem selection
 contestRouter.get("/problems", adminMiddleware, getAllProblems);
-contestRouter.get("/problem-of-the-day", getProblemOfTheDay);
+
 
 module.exports = contestRouter;
