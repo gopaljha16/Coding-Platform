@@ -18,7 +18,7 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     console.log('API Request:', config.method?.toUpperCase(), config.url);
     return config;
   },
@@ -36,87 +36,93 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     console.error('API Error:', error.response?.status, error.response?.data || error.message);
-    
+
     // Handle common error scenarios
     if (error.response?.status === 401) {
       // Handle unauthorized access
       localStorage.removeItem('auth_token');
       window.location.href = '/login';
     }
-    
+
     return Promise.reject(error);
   }
 );
 
+// Update createInterviewSession function
 export const createInterviewSession = async (file, candidateInfo) => {
   try {
-    let resumeText = '';
+    // First upload the resume
+    const uploadResult = await interviewAPI.uploadResume(file);
     
-    // Extract text based on file type
-    if (file.type === 'application/pdf') {
-      resumeText = await parsePDF(file);
-    } else if (file.type === 'text/plain') {
-      resumeText = await file.text();
-    } else {
-      throw new Error('Unsupported file type. Please upload PDF or TXT files.');
+    if (!uploadResult.success) {
+      throw new Error(uploadResult.error);
     }
-
-    // Validate resume text length
-    if (resumeText.trim().length < 50) {
-      throw new Error('Resume content is too short. Please provide a more detailed resume.');
-    }
-
-    // Prepare the request payload
-    const requestData = {
-      resumeText: resumeText.trim(),
+    
+    // Get the extracted text from the upload response
+    const resumeText = uploadResult.data.text;
+    
+    // DEBUG: Log extracted text
+    console.log('Extracted Resume Text:', resumeText.substring(0, 100) + '...');
+    console.log('Text Length:', resumeText.length);
+    
+    // Then create session with the uploaded resume data
+    const sessionResult = await interviewAPI.createSession({
+      resumeText, // Make sure this key matches backend expectation
       fileName: file.name,
       fileSize: file.size,
       candidate: {
         name: candidateInfo?.name || 'Anonymous',
         email: candidateInfo?.email || ''
       }
-    };
-
-    console.log('Creating session with data:', {
-      resumeLength: resumeText.length,
-      fileName: file.name,
-      candidateName: candidateInfo?.name
     });
-
-    // Make API call
-    const response = await fetch('http://localhost:3000/api/ai/create-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestData)
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || `HTTP error! status: ${response.status}`);
+    
+    if (!sessionResult.success) {
+      throw new Error(sessionResult.error);
     }
-
-    if (!result.success) {
-      throw new Error(result.message || 'Failed to create session');
-    }
-
-    console.log('✅ Session created successfully:', result.data);
-    return result.data;
-
+    
+    return sessionResult.data;
   } catch (error) {
     console.error('❌ Create session error:', error);
     throw error;
   }
 };
 
+// Update createSession API call
+createSession: async (sessionData) => {
+  try {
+    const response = await fetch('http://localhost:3000/api/ai/create-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sessionData) // Send the entire session data object
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('API Error Response:', result);
+      throw new Error(result.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return {
+      success: true,
+      data: result.data || result
+    };
+  } catch (error) {
+    console.error('API Error:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to create session'
+    };
+  }
+};
 
 // Interview API methods
 export const interviewAPI = {
   // Create new interview session
   createSession: async (resumeData) => {
-     try {
+    try {
       const response = await fetch('http://localhost:3000/api/ai/create-session', {
         method: 'POST',
         headers: {
@@ -155,7 +161,7 @@ export const interviewAPI = {
 
   // Continue interview with user answer
   continueInterview: async (sessionId, userAnswer) => {
-   try {
+    try {
       const response = await fetch('http://localhost:3000/api/ai/continue', {
         method: 'POST',
         headers: {
@@ -193,7 +199,7 @@ export const interviewAPI = {
         sessionId,
         endTime: new Date().toISOString()
       });
-      
+
       return {
         success: true,
         data: response.data
@@ -210,7 +216,7 @@ export const interviewAPI = {
   getSessionStatus: async (sessionId) => {
     try {
       const response = await apiClient.get(`/ai/session/${sessionId}`);
-      
+
       return {
         success: true,
         data: response.data
@@ -228,7 +234,7 @@ export const interviewAPI = {
     try {
       const formData = new FormData();
       formData.append('resume', file);
-      
+
       const response = await apiClient.post('/ai/upload-resume', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -238,7 +244,7 @@ export const interviewAPI = {
           console.log('Upload Progress:', percentCompleted + '%');
         }
       });
-      
+
       return {
         success: true,
         data: response.data
@@ -255,7 +261,7 @@ export const interviewAPI = {
   getFeedback: async (sessionId) => {
     try {
       const response = await apiClient.get(`/ai/feedback/${sessionId}`);
-      
+
       return {
         success: true,
         data: response.data
@@ -274,13 +280,13 @@ export const interviewAPI = {
       const formData = new FormData();
       formData.append('recording', audioBlob, 'interview-recording.wav');
       formData.append('sessionId', sessionId);
-      
+
       const response = await apiClient.post('/interview/save-recording', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         }
       });
-      
+
       return {
         success: true,
         data: response.data
@@ -298,7 +304,7 @@ export const interviewAPI = {
 export const extractTextFromPDF = async (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = async (event) => {
       try {
         // This is a simplified version - you'd need a PDF parsing library like pdf-parse
@@ -312,7 +318,7 @@ export const extractTextFromPDF = async (file) => {
         reject(error);
       }
     };
-    
+
     reader.onerror = reject;
     reader.readAsText(file);
   });
@@ -324,18 +330,18 @@ export const useInterviewAPI = () => {
     try {
       // First upload the resume
       const uploadResult = await interviewAPI.uploadResume(resumeFile);
-      
+
       if (!uploadResult.success) {
         throw new Error(uploadResult.error);
       }
-      
+
       // Then create session with the uploaded resume data
       const sessionResult = await interviewAPI.createSession(uploadResult.data);
-      
+
       if (!sessionResult.success) {
         throw new Error(sessionResult.error);
       }
-      
+
       return sessionResult.data;
     } catch (error) {
       console.error('Create session error:', error);
@@ -349,11 +355,11 @@ export const useInterviewAPI = () => {
         ...userAnswer,
         responseTime
       });
-      
+
       if (!result.success) {
         throw new Error(result.error);
       }
-      
+
       return result.data;
     } catch (error) {
       console.error('Continue interview error:', error);
@@ -364,11 +370,11 @@ export const useInterviewAPI = () => {
   const endInterview = async (sessionId) => {
     try {
       const result = await interviewAPI.endInterview(sessionId);
-      
+
       if (!result.success) {
         throw new Error(result.error);
       }
-      
+
       return result.data;
     } catch (error) {
       console.error('End interview error:', error);

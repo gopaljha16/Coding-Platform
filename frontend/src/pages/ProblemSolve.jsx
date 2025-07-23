@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import Editor from "@monaco-editor/react";
 import { useParams } from "react-router";
 import codexalogo from "../utils/logo/Codexa .png";
-import axiosClient from "../utils/axiosClient";
+
 import {
   Play,
   Send,
@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { NavLink } from "react-router";
 import Editorial from "../components/common/Editorial";
+import axiosClient from "../utils/axiosClient";
+import DobutAi from "../components/common/DoubtAi";
 
 const ProblemPage = () => {
   const [problem, setProblem] = useState(null);
@@ -45,6 +47,10 @@ const ProblemPage = () => {
   const [theme, setTheme] = useState("vs-dark");
   const [showConsole, setShowConsole] = useState(false);
   const [consoleHeight, setConsoleHeight] = useState(200);
+  const [doubtMessages, setDoubtMessages] = useState([]);
+  const [doubtInput, setDoubtInput] = useState("");
+  const [isDoubtLoading, setIsDoubtLoading] = useState(false);
+  const messagesEndRef = useRef(null);
   const editorRef = useRef(null);
   let { problemId } = useParams();
 
@@ -55,6 +61,138 @@ const ProblemPage = () => {
     { id: "java", name: "Java", icon: "☕" },
     { id: "cpp", name: "C++", icon: "⚡" },
   ];
+
+
+const handleDoubtSubmit = async (e) => {
+  e.preventDefault();
+  if (!doubtInput.trim() || isDoubtLoading) return;
+
+  const token = localStorage.getItem('token');
+  console.log('🔐 AI Token:', token);
+
+  if (!token || token === 'undefined' || token.length < 20) {
+    setDoubtMessages(prev => [
+      ...prev,
+      {
+        id: Date.now() + '-error',
+        role: 'system',
+        content: '❌ Please log in to use the AI assistant',
+        isError: true,
+        timestamp: new Date()
+      }
+    ]);
+    return;
+  }
+
+  const userMessage = {
+    id: Date.now() + '-user',
+    role: 'user',
+    content: doubtInput,
+    timestamp: new Date(),
+  };
+
+  const messageId = Date.now();
+  const streamingMessage = {
+    id: messageId,
+    role: 'assistant',
+    content: '',
+    isStreaming: true,
+    timestamp: new Date(),
+  };
+
+  setDoubtMessages(prev => [...prev, userMessage, streamingMessage]);
+  setDoubtInput('');
+  setIsDoubtLoading(true);
+
+  try {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const response = await fetch('http://localhost:3000/ai/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        messages: [...doubtMessages, userMessage].map(m => ({
+          role: m.role,
+          content: m.content
+        })),
+        title: problem?.title || '',
+        description: problem?.description || '',
+        testCases: problem?.visibleTestCases || [],
+        startCode: problem?.startCode || ''
+      }),
+      signal
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'AI request failed');
+    }
+
+    if (!response.body) throw new Error('No response from AI');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let full = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = JSON.parse(line.slice(5));
+
+        if (data.type === 'error') throw new Error(data.content);
+        if (data.type === 'chunk') {
+          full += data.content;
+          setDoubtMessages(prev => prev.map(m =>
+            m.id === messageId ? { ...m, content: full } : m
+          ));
+        }
+        if (data.type === 'complete') {
+          let final = full;
+          let aiData = null;
+          try {
+            const cleaned = full.trim().replace(/^```(json)?/, '').replace(/```$/, '').trim();
+            aiData = JSON.parse(cleaned);
+            final = aiData.message || cleaned;
+          } catch (_){ console.warn('Invalid JSON from AI'); }
+
+          setDoubtMessages(prev => prev.map(m =>
+            m.id === messageId
+              ? { ...m, content: final, isStreaming: false, aiData }
+              : m
+          ));
+        }
+      }
+    }
+  } catch (err) {
+    console.error('❌ AI Error:', err);
+    const errMsg = err.message.includes('auth') ? 'Authentication failed, please log in again.' : err.message;
+    localStorage.removeItem('token');
+    setDoubtMessages(prev => prev.map(m =>
+      m.id === messageId
+        ? { ...m, content: `❌ ${errMsg}`, isStreaming: false, isError: true }
+        : m
+    ));
+  } finally {
+    setIsDoubtLoading(false);
+  }
+};
+
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [doubtMessages]);
 
   // Fetch problem data
   useEffect(() => {
@@ -91,7 +229,7 @@ const ProblemPage = () => {
     fetchProblem();
   }, [problemId]);
 
-  // Update code when language changes
+  // Update code when language changes5
   useEffect(() => {
     if (problem) {
       const initialCode =
@@ -311,6 +449,7 @@ const ProblemPage = () => {
               { id: "editorial", label: "Editorial", icon: BookOpen },
               { id: "solutions", label: "Solutions", icon: Target },
               { id: "submissions", label: "Submissions", icon: History },
+              { id: "DoubtAi", label: "DoubtAi", icon: History },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -412,7 +551,11 @@ const ProblemPage = () => {
                       </h2>
                     </div>
                     <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                    <Editorial secureUrl={problem.secureUrl} thumbnailUrl={problem.thumbnailUrl} duration={problem.duration}></Editorial>
+                      <Editorial
+                        secureUrl={problem.secureUrl}
+                        thumbnailUrl={problem.thumbnailUrl}
+                        duration={problem.duration}
+                      ></Editorial>
                     </div>
                   </div>
                 )}
@@ -471,6 +614,18 @@ const ProblemPage = () => {
                 )}
               </>
             )}
+
+
+              {activeLeftTab === 'DoubtAi' && (
+                <div className="prose max-w-none">
+                  <h2 className="text-xl font-bold mb-4">CHAT with AI</h2>
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    <DobutAi problem={problem}></DobutAi>
+                  </div>
+                </div>
+              )}
+          
+
           </div>
         </div>
 
