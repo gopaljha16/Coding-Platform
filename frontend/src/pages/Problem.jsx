@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { useSelector } from "react-redux";
 import {
   Search,
@@ -24,10 +26,15 @@ import {
   Award,
   Flame,
   ArrowLeft,
+  Plus,
+  FolderPlus,
+  ListPlus,
+  X,
+  Folder,
 } from "lucide-react";
 import { NavLink } from "react-router";
-import Navbar from "../components/common/Navbar";
 import axiosClient from "../utils/axiosClient";
+
 
 const Problem = () => {
   const { user } = useSelector((state) => state.auth);
@@ -50,6 +57,11 @@ const Problem = () => {
     medium: 0,
     hard: 0,
   });
+  const [playlists, setPlaylists] = useState([]);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [selectedProblemForPlaylist, setSelectedProblemForPlaylist] = useState(null);
+  const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -84,15 +96,28 @@ const Problem = () => {
       }
     };
 
+    const fetchPlaylists = async () => {
+      try {
+        if (user) {
+          const { data } = await axiosClient.get("/playlists/user");
+          setPlaylists(data);
+        }
+      } catch (err) {
+        console.error("Error fetching playlists", err);
+      }
+    };
+
     fetchProblem();
-    if (user) fetchSolvedProblems();
+    if (user) {
+      fetchSolvedProblems();
+      fetchPlaylists();
+    }
   }, [user]);
 
   const filteredProblems = problems.filter((problem) => {
     const difficultyMatch =
       filters.difficulty === "all" || problem.difficulty === filters.difficulty;
 
-    // Handle tags properly - could be string, array, or undefined
     const problemTags = Array.isArray(problem.tags)
       ? problem.tags
       : typeof problem.tags === "string"
@@ -157,6 +182,38 @@ const Problem = () => {
     return solvedProblems.some((sp) => sp._id === problemId);
   };
 
+const handleCreatePlaylist = async () => {
+  try {
+    if (!newPlaylistName.trim()) {
+      toast.error("Playlist name cannot be empty");
+      return;
+    }
+    
+    const { data } = await axiosClient.post("/playlists", {
+      name: newPlaylistName,
+    });
+    setPlaylists([...playlists, data]);
+    setNewPlaylistName("");
+    setShowPlaylistModal(false);
+    toast.success("Playlist created successfully!");
+  } catch (err) {
+    console.error("Error creating playlist", err);
+    toast.error(err.response?.data?.message || "Failed to create playlist");
+  }
+}; 
+
+  const handleAddToPlaylist = async (playlistId) => {
+    try {
+      await axiosClient.post(`/playlists/${playlistId}/problems`, {
+        problemId: selectedProblemForPlaylist,
+      });
+      setShowAddToPlaylistModal(false);
+      // You might want to show a success message here
+    } catch (err) {
+      console.error("Error adding problem to playlist", err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -177,9 +234,8 @@ const Problem = () => {
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
                   <NavLink to="/">
-                    <ArrowLeft className="w-7 h-7 hover:text-orange-500  mt-1" />
+                    <ArrowLeft className="w-7 h-7 hover:text-orange-500 mt-1" />
                   </NavLink>
-                  {/* <Code className="w-8 h-8 text-orange-500" /> */}
                   Problems
                 </h1>
                 <p className="text-slate-400">
@@ -187,6 +243,15 @@ const Problem = () => {
                 </p>
               </div>
               <div className="flex items-center gap-4">
+                {user && (
+                  <button
+                    onClick={() => setShowPlaylistModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    New Playlist
+                  </button>
+                )}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setViewMode("card")}
@@ -260,6 +325,31 @@ const Problem = () => {
                 </div>
               </div>
             </div>
+
+            {/* Playlists Section */}
+            {user && playlists.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                  <Folder className="w-5 h-5 text-orange-400" />
+                  Your Playlists
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  {playlists.map((playlist) => (
+                    <NavLink
+                      key={playlist._id}
+                      to={`/playlists/${playlist._id}`}
+                      className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/30 rounded-lg text-white flex items-center gap-2 transition-colors"
+                    >
+                      <List className="w-4 h-4" />
+                      {playlist.name}
+                      <span className="text-xs text-slate-400">
+                        ({playlist.problems.length} problems)
+                      </span>
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Search and Filters */}
             <div className="flex flex-col lg:flex-row gap-4 items-center">
@@ -340,10 +430,16 @@ const Problem = () => {
                   >
                     <option value="all">All Tags</option>
                     <option value="Array">Array</option>
-                    <option value="Stack">Stack</option>
-                    <option value="Queue">Queue</option>
-                    <option value="Dp">Dynamic Programming</option>
-                    <option value="LinkedList">Linked List</option>
+                    <option value="String">String</option>
+                    <option value="Hash Table">Hash Table</option>
+                    <option value="Dynamic Programming">Dynamic Programming</option>
+                    <option value="Math">Math</option>
+                    <option value="Sorting">Sorting</option>
+                    <option value="Greedy">Greedy</option>
+                    <option value="Depth-First Search">DFS</option>
+                    <option value="Binary Search">Binary Search</option>
+                    <option value="Tree">Tree</option>
+                    <option value="Graph">Graph</option>
                   </select>
                 </div>
               </div>
@@ -362,8 +458,22 @@ const Problem = () => {
           {viewMode === "card" ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {sortedProblems.map((problem) => (
-                <div key={problem._id} className="group">
-                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 hover:bg-slate-700/50 hover:border-slate-600/50 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10 hover:-translate-y-1">
+                <div key={problem._id} className="group relative">
+                  {/* Add to playlist button (only for logged in users) */}
+                  {user && (
+                    <button
+                      onClick={() => {
+                        setSelectedProblemForPlaylist(problem._id);
+                        setShowAddToPlaylistModal(true);
+                      }}
+                      className="absolute top-4 right-4 p-2 rounded-full bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white transition-colors z-10"
+                      title="Add to playlist"
+                    >
+                      <ListPlus className="w-4 h-4" />
+                    </button>
+                  )}
+                  
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 hover:bg-slate-700/50 hover:border-slate-600/50 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10 hover:-translate-y-1 h-full flex flex-col">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-2">
                         {isProblemSolved(problem._id) ? (
@@ -389,15 +499,20 @@ const Problem = () => {
                         {problem.difficulty.charAt(0).toUpperCase() +
                           problem.difficulty.slice(1)}
                       </span>
+                      {problem.acceptance && (
+                        <span className="text-xs text-slate-400">
+                          {problem.acceptance}% Acceptance
+                        </span>
+                      )}
                     </div>
 
                     {problem.description && (
-                      <p className="text-slate-400 text-sm mb-4 line-clamp-2">
+                      <p className="text-slate-400 text-sm mb-4 line-clamp-2 flex-grow">
                         {problem.description}
                       </p>
                     )}
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mt-auto">
                       <div className="flex flex-wrap gap-1">
                         {(() => {
                           const tags = Array.isArray(problem.tags)
@@ -460,6 +575,9 @@ const Problem = () => {
                       </th>
                       <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">
                         Tags
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">
+                        Acceptance
                       </th>
                       <th className="px-6 py-4 text-left text-sm font-medium text-slate-300">
                         Action
@@ -530,7 +648,22 @@ const Problem = () => {
                             })()}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-slate-400">
+                          {problem.acceptance ? `${problem.acceptance}%` : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 flex items-center gap-2">
+                          {user && (
+                            <button
+                              onClick={() => {
+                                setSelectedProblemForPlaylist(problem._id);
+                                setShowAddToPlaylistModal(true);
+                              }}
+                              className="p-1.5 rounded-full bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white transition-colors"
+                              title="Add to playlist"
+                            >
+                              <ListPlus className="w-4 h-4" />
+                            </button>
+                          )}
                           <NavLink
                             to={`/problem/${problem._id}`}
                             className="hover:text-primary text-2xl"
@@ -561,6 +694,102 @@ const Problem = () => {
           )}
         </div>
       </div>
+
+      {/* Create Playlist Modal */}
+      {showPlaylistModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-800/90 border border-slate-700/50 rounded-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Create New Playlist</h3>
+              <button
+                onClick={() => setShowPlaylistModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="mb-4">
+              <label className="block text-slate-300 mb-2">Playlist Name</label>
+              <input
+                type="text"
+                value={newPlaylistName}
+                onChange={(e) => setNewPlaylistName(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                placeholder="My Study Plan"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowPlaylistModal(false)}
+                className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreatePlaylist}
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                disabled={!newPlaylistName.trim()}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add to Playlist Modal */}
+      {showAddToPlaylistModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-800/90 border border-slate-700/50 rounded-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Add to Playlist</h3>
+              <button
+                onClick={() => setShowAddToPlaylistModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="mb-4 max-h-96 overflow-y-auto">
+              {playlists.length > 0 ? (
+                <ul className="space-y-2">
+                  {playlists.map((playlist) => (
+                    <li key={playlist._id}>
+                      <button
+                        onClick={() => handleAddToPlaylist(playlist._id)}
+                        className="w-full text-left px-4 py-3 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/30 rounded-lg text-white flex items-center justify-between transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Folder className="w-5 h-5 text-orange-400" />
+                          <span>{playlist.name}</span>
+                        </div>
+                        <span className="text-xs text-slate-400">
+                          {playlist.problems.length} problems
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-6 text-slate-400">
+                  <Folder className="w-10 h-10 mx-auto mb-3" />
+                  <p>You don't have any playlists yet.</p>
+                  <button
+                    onClick={() => {
+                      setShowAddToPlaylistModal(false);
+                      setShowPlaylistModal(true);
+                    }}
+                    className="mt-3 text-orange-400 hover:text-orange-300 flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create a new playlist
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

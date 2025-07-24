@@ -13,7 +13,9 @@ const aiRouter = require("./routes/AiChat");
 const videoRouter = require("./routes/Video");
 const payRoute = require("./routes/payment");
 const interviewRouter = require("./routes/aiInterview");
-const contestRouter = require("./routes/contetsRoute")
+const contestRouter = require("./routes/contetsRoute");
+const playlistRouter = require("./routes/playlistRoute");
+
 
 
 
@@ -38,7 +40,7 @@ app.use("/video", videoRouter)
 app.use("/api/payments", payRoute);
 app.use("/api", interviewRouter);
 app.use("/contest", contestRouter)
-
+app.use('/playlists', playlistRouter);
 
 const initialConnection = async () => {
     try {
