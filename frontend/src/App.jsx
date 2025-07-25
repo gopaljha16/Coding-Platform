@@ -16,7 +16,6 @@ import PlatformAnalytics from "./components/Admin/PlatformAnalytics";
 import ManageVideo from "./components/Admin/ManageVideo";
 import UploadVideo from "./components/Admin/UploadVideo";
 import Premium from "./components/common/Premium";
-import Success from "./components/common/Success";
 import Interview from "./pages/Interview";
 import Explore from "./pages/Explore";
 import AdminContest from "./components/Admin/contest/AdminContest";
@@ -25,7 +24,7 @@ import ContestDetail from "./components/Admin/contest/ContestDetail";
 
 
 const App = () => {
-  // authenticated when the user opens website then first authentication doing
+
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
