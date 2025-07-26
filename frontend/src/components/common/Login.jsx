@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, NavLink, useNavigate } from "react-router";
 import { z } from "zod";
 import { useSelector, useDispatch } from "react-redux";
-import { loginUser } from "../../slice/authSlice";
+import { loginUser, getProfile, googleLoginUser } from "../../slice/authSlice";
 import { toast } from "react-toastify";
 import { EyeOff, Eye, ArrowLeft } from "lucide-react";
 
@@ -39,12 +39,40 @@ const Login = () => {
       const res = await dispatch(loginUser(data));
       if (res?.meta?.requestStatus === "fulfilled") {
         toast.success("Logged In Successfully");
+        await dispatch(getProfile());
       } else {
         toast.error("Something went wrong");
       }
     } catch (err) {
       toast.error("Failed to Login");
     }
+  };
+
+  // Google sign-in handler
+  const handleGoogleSignIn = () => {
+    /* global google */
+    if (!window.google) {
+      toast.error("Google API not loaded");
+      return;
+    }
+    window.google.accounts.id.initialize({
+      client_id: process.env.VITE_GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        try {
+          const token = response.credential;
+          const res = await dispatch(googleLoginUser(token));
+          if (res?.meta?.requestStatus === "fulfilled") {
+            toast.success("Logged In Successfully with Google");
+            await dispatch(getProfile());
+          } else {
+            toast.error("Google login failed");
+          }
+        } catch (err) {
+          toast.error("Google login error");
+        }
+      },
+    });
+    window.google.accounts.id.prompt();
   };
 
   return (
@@ -78,7 +106,11 @@ const Login = () => {
               <p className="text-gray-400">Join Codexa for Challenges</p>
             </div>
 
-            <button className="w-full bg-slate-700/50 hover:bg-slate-700 border border-slate-600 text-white py-3 px-4 rounded-xl mb-6 flex items-center justify-center transition-all duration-200">
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="w-full bg-slate-700/50 hover:bg-slate-700 border border-slate-600 text-white py-3 px-4 rounded-xl mb-6 flex items-center justify-center transition-all duration-200"
+            >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"

@@ -198,12 +198,25 @@ const Navbar = () => {
                           : "bg-slate-800/60 hover:bg-slate-700/70"
                       } border border-slate-600/50 hover:border-slate-500/50 shadow-lg hover:shadow-xl group`}
                     >
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center relative ${
-                        user?.isPremium 
-                          ? "bg-gradient-to-br from-yellow-500 to-amber-500" 
-                          : "bg-gradient-to-br from-orange-500 to-amber-500"
-                      }`}>
-                        <User className="w-4 h-4 text-white" />
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center relative overflow-hidden ${
+                          user?.isPremium
+                            ? "bg-gradient-to-br from-yellow-500 to-amber-500"
+                            : "bg-gradient-to-br from-orange-500 to-amber-500"
+                        }`}
+                      >
+                      {console.log("Navbar user.profileImage:", user?.profileImage)}
+                      {user?.profileImage ? (
+                          <img
+                            src={user.profileImage.startsWith('http') ? user.profileImage : `${import.meta.env.VITE_BACKEND_URL}${user.profileImage}`}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white text-sm font-bold">
+                            {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+                          </span>
+                        )}
                         {user?.isPremium && (
                           <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full flex items-center justify-center">
                             <Crown className="w-2 h-2 text-slate-800" />
@@ -218,7 +231,9 @@ const Navbar = () => {
                           )}
                         </p>
                         <p className="text-xs text-slate-400 capitalize">
-                          {user?.isPremium ? "Premium Member" : user?.role || "User"}
+                          {user?.isPremium
+                            ? "Premium Member"
+                            : user?.role || "User"}
                         </p>
                       </div>
                       <ChevronDown
@@ -233,34 +248,52 @@ const Navbar = () => {
                       <div className="absolute right-0 mt-3 w-80 opacity-100 translate-y-0 scale-100 transition-all duration-300 ease-out">
                         <div className="bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
                           {/* Header */}
-                          <div className={`p-6 border-b border-slate-600/30 ${
-                            user?.isPremium 
-                              ? "bg-gradient-to-r from-yellow-900/30 to-amber-900/30" 
-                              : "bg-gradient-to-r from-slate-800 to-slate-700"
-                          }`}>
+                          <div
+                            className={`p-6 border-b border-slate-600/30 ${
+                              user?.isPremium
+                                ? "bg-gradient-to-r from-yellow-900/30 to-amber-900/30"
+                                : "bg-gradient-to-r from-slate-800 to-slate-700"
+                            }`}
+                          >
                             <div className="flex items-center space-x-4">
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center relative ${
-                                user?.isPremium 
-                                  ? "bg-gradient-to-br from-yellow-500 to-amber-500" 
-                                  : "bg-gradient-to-br from-orange-500 to-amber-500"
-                              }`}>
-                                <User className="w-6 h-6 text-white" />
-                                {user?.isPremium && (
-                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
-                                    <Crown className="w-2.5 h-2.5 text-slate-800" />
-                                  </div>
-                                )}
+                          <div
+                            className={`w-12 h-12 rounded-full flex items-center justify-center relative overflow-hidden ${
+                              user?.isPremium
+                                ? "bg-gradient-to-br from-yellow-500 to-amber-500"
+                                : "bg-gradient-to-br from-orange-500 to-amber-500"
+                            }`}
+                          >
+                            {user?.profileImage ? (
+                              <img
+                                src={user.profileImage.startsWith('http') ? user.profileImage : `${import.meta.env.VITE_BACKEND_URL}${user.profileImage}`}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-white text-sm font-bold">
+                                {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+                              </span>
+                            )}
+                            {user?.isPremium && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                                <Crown className="w-2.5 h-2.5 text-slate-800" />
                               </div>
+                            )}
+                          </div>
                               <div>
                                 <p className="font-semibold text-white text-lg flex items-center space-x-2">
-                                  <span>{user?.firstName} {user?.lastName}</span>
+                                  <span>
+                                    {user?.firstName} {user?.lastName}
+                                  </span>
                                   {user?.isPremium && (
                                     <Crown className="w-4 h-4 text-yellow-400" />
                                   )}
                                 </p>
                                 <p className="text-sm text-slate-400 capitalize flex items-center space-x-2">
                                   <span>
-                                    {user?.isPremium ? "Premium Member" : user?.role || "User"}
+                                    {user?.isPremium
+                                      ? "Premium Member"
+                                      : user?.role || "User"}
                                   </span>
                                   {user?.role === "admin" && (
                                     <Shield className="w-3 h-3" />
@@ -283,6 +316,20 @@ const Navbar = () => {
                                 <p className="font-medium">Profile Settings</p>
                                 <p className="text-xs text-slate-500">
                                   Manage your account
+                                </p>
+                              </div>
+                            </Link>
+
+                            <Link
+                              to="/dashboard"
+                              onClick={() => setIsopen(false)}
+                              className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200 group"
+                            >
+                              <Settings className="w-5 h-5 text-slate-400 group-hover:text-orange-400" />
+                              <div>
+                                <p className="font-medium">Dashboard</p>
+                                <p className="text-xs text-slate-500">
+                                  User Dashboard
                                 </p>
                               </div>
                             </Link>

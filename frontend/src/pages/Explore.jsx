@@ -1,406 +1,544 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Trophy, Flame, Bot, Code, GraduationCap, FileText, UserCheck, Users, Medal, Coins, Calendar, MessageCircle, Zap, Star, ArrowRight, Play, Check, Target, Sparkles, TrendingUp, Clock, Globe, Award, Heart, Lightbulb } from 'lucide-react';
+import { 
+  Zap, Rocket, Play, Sparkles, Trophy, Flame, Swords, Cpu,
+  BrainCircuit, Code2, GraduationCap, Users, Check, GitBranch,
+  BookOpen, MessageSquare, Clock, Star, ChevronDown, Lightbulb,
+  Target, Medal, Coins, Calendar, UserCheck, FileText, Globe,
+  Shield, TrendingUp, Heart, CircleDashed, BadgeCheck, Terminal,
+  Bot, Code, FileCode, Laptop, Notebook, Puzzle, GitPullRequest,
+  Award, BarChart, Database, Server, ShieldCheck, Timer
+} from 'lucide-react';
 
 const Explore = () => {
+  const [activeJourney, setActiveJourney] = useState('competitive');
   const [activeFeature, setActiveFeature] = useState(null);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [animatedStats, setAnimatedStats] = useState({
+    users: 0,
+    problems: 0,
+    offers: 0,
+    streaks: 0
+  });
 
-  const features = [
-    {
-      id: 'contests',
-      title: 'Daily Contests',
-      icon: Trophy,
-      description: 'Join daily coding contests created by admins. Test your skills against other coders and climb the leaderboard.',
-      badge: 'Live',
-      badgeColor: 'bg-green-500',
-      details: 'Participate in algorithmically challenging contests every day. Compete with thousands of users globally and win exciting prizes.',
-      benefits: ['Daily challenges', 'Global rankings', 'Skill assessment', 'Prizes & rewards'],
-      difficulty: 'All Levels',
-      participants: '5K+ daily'
-    },
-    {
-      id: 'streaks',
-      title: 'Daily Streaks',
-      icon: Flame,
-      description: 'Build your coding habit with unique daily streaks. Solve problems daily and maintain your momentum.',
-      badge: 'Popular',
-      badgeColor: 'bg-orange-500',
-      details: 'Maintain your coding streak with personalized challenges that adapt to your skill level and help build consistent habits.',
-      benefits: ['Habit building', 'Personalized challenges', 'Progress tracking', 'Motivation system'],
-      difficulty: 'Adaptive',
-      participants: '15K+ active'
-    },
-    {
-      id: 'ai-assistant',
-      title: 'AI Assistant',
-      icon: Bot,
-      description: 'Get help from our AI assistant. Unlimited access for premium users with advanced debugging and explanations.',
-      badge: 'Premium',
-      badgeColor: 'bg-yellow-500',
-      details: 'Advanced AI that helps debug code, explains algorithms, provides coding suggestions, and acts as your personal coding mentor.',
-      benefits: ['Code debugging', 'Algorithm explanations', 'Real-time help', 'Learning assistance'],
-      difficulty: 'All Levels',
-      participants: '8K+ users'
-    },
-    {
-      id: 'hackathons',
-      title: 'Hackathons',
-      icon: Code,
-      description: 'Participate in coding hackathons and build innovative projects. Collaborate with teams globally.',
-      badge: 'Upcoming',
-      badgeColor: 'bg-blue-500',
-      details: 'Join team-based hackathons and build innovative projects with developers worldwide. Win prizes and gain recognition.',
-      benefits: ['Team collaboration', 'Project building', 'Innovation challenges', 'Network building'],
-      difficulty: 'Intermediate+',
-      participants: '3K+ teams'
-    },
-    {
-      id: 'courses',
-      title: 'Interactive Courses',
-      icon: GraduationCap,
-      description: 'Learn from structured courses covering algorithms, data structures, and programming languages.',
-      badge: 'New',
-      badgeColor: 'bg-purple-500',
-      details: 'Comprehensive learning paths designed by industry experts and competitive programmers with hands-on practice.',
-      benefits: ['Structured learning', 'Expert content', 'Hands-on practice', 'Progress tracking'],
-      difficulty: 'Beginner to Advanced',
-      participants: '12K+ learners'
-    },
-    {
-      id: 'sheets',
-      title: 'Personal Sheets',
-      icon: FileText,
-      description: 'Create and organize your personal coding sheets. Track your progress and notes in one place.',
-      badge: 'Essential',
-      badgeColor: 'bg-emerald-500',
-      details: 'Organize your coding journey with customizable sheets, progress tracking, and collaborative features.',
-      benefits: ['Personal organization', 'Progress tracking', 'Note taking', 'Custom categories'],
-      difficulty: 'All Levels',
-      participants: '20K+ users'
-    },
-    {
-      id: 'interview',
-      title: 'AI Interview Prep',
-      icon: UserCheck,
-      description: 'Practice with AI-powered interview sessions. Upload your resume and get personalized mock interviews.',
-      badge: 'Beta',
-      badgeColor: 'bg-green-400',
-      details: 'Advanced AI interviewer that adapts to your resume and provides realistic interview experience with detailed feedback.',
-      benefits: ['Mock interviews', 'Resume analysis', 'Feedback system', 'Industry-specific prep'],
-      difficulty: 'Job Seekers',
-      participants: '2K+ interviews'
-    },
-    {
-      id: 'live-solving',
-      title: 'Live Problem Solving',
-      icon: Users,
-      description: 'See who\'s currently solving the same problem as you. Connect and collaborate in real-time.',
-      badge: 'Live',
-      badgeColor: 'bg-green-500',
-      details: 'Real-time collaboration features that connect you with other problem solvers for peer learning and support.',
-      benefits: ['Real-time collaboration', 'Peer learning', 'Live discussions', 'Problem sharing'],
-      difficulty: 'All Levels',
-      participants: '1K+ online'
-    },
-    {
-      id: 'leaderboards',
-      title: 'Multi-tier Leaderboards',
-      icon: Medal,
-      description: 'Daily, college-wise, and global leaderboards. Earn points based on problem difficulty and compete for prizes.',
-      badge: 'Competitive',
-      badgeColor: 'bg-amber-500',
-      details: 'Comprehensive ranking system with multiple leaderboard categories and seasonal competitions.',
-      benefits: ['Multiple rankings', 'College competitions', 'Global leaderboards', 'Seasonal prizes'],
-      difficulty: 'Competitive',
-      participants: '25K+ ranked'
-    },
-    {
-      id: 'points-shop',
-      title: 'Points & Shop',
-      icon: Coins,
-      description: 'Earn coins by solving problems and spend them in our shop. Buy themes, badges, and exclusive content.',
-      badge: 'Rewarding',
-      badgeColor: 'bg-yellow-600',
-      details: 'Comprehensive reward system with virtual currency, exclusive items, and customization options.',
-      benefits: ['Earn rewards', 'Exclusive items', 'Theme customization', 'Achievement system'],
-      difficulty: 'All Levels',
-      participants: '18K+ shoppers'
-    },
-    {
-      id: 'events',
-      title: 'Custom Events',
-      icon: Calendar,
-      description: 'Join custom events created by educators and institutions. Participate in specialized competitions.',
-      badge: 'Educational',
-      badgeColor: 'bg-indigo-500',
-      details: 'Participate in custom coding events designed for educational institutions and specialized learning.',
-      benefits: ['Educational events', 'Institution support', 'Specialized competitions', 'Learning focused'],
-      difficulty: 'All Levels',
-      participants: '500+ events'
-    },
-    {
-      id: 'community',
-      title: 'Community Hall',
-      icon: MessageCircle,
-      description: 'Join our community chat room. Discuss problems, share knowledge, and connect with fellow coders.',
-      badge: 'Social',
-      badgeColor: 'bg-pink-500',
-      details: 'Vibrant community space for discussions, help, networking, and sharing coding experiences.',
-      benefits: ['Community discussions', 'Knowledge sharing', 'Networking', 'Help & support'],
-      difficulty: 'All Levels',
-      participants: '30K+ members'
-    }
-  ];
+  // Animated counting effect
+  useEffect(() => {
+    const duration = 1800;
+    const startValues = { users: 0, problems: 0, offers: 0, streaks: 0 };
+    const targetValues = { users: 35892, problems: 215673, offers: 1243, streaks: 18765 };
+    
+    const animate = (startTime) => {
+      const now = Date.now();
+      const progress = Math.min(1, (now - startTime) / duration);
+      
+      setAnimatedStats({
+        users: Math.floor(progress * targetValues.users),
+        problems: Math.floor(progress * targetValues.problems),
+        offers: Math.floor(progress * targetValues.offers),
+        streaks: Math.floor(progress * targetValues.streaks)
+      });
+
+      if (progress < 1) requestAnimationFrame(() => animate(startTime));
+    };
+
+    animate(Date.now());
+  }, []);
+
+  // Feature categories organized by developer journey
+  const journeyFeatures = {
+    competitive: [
+      {
+        id: 'arena',
+        title: 'Code Arena',
+        icon: Swords,
+        description: 'Real-time coding battles',
+        status: 'LIVE',
+        statusColor: 'bg-red-500',
+        stats: '3.2K active now',
+        details: 'Compete in algorithm duels with live leaderboards and instant feedback. Our matchmaking system pairs you with coders at your skill level.',
+        highlights: [
+          'Head-to-head matches',
+          '15+ programming languages',
+          'Dynamic difficulty',
+          'Weekly tournaments'
+        ],
+        difficulty: 'Beginner → Expert'
+      },
+      {
+        id: 'leaderboards',
+        title: 'Dynamic Leaderboards',
+        icon: Trophy,
+        description: 'Track your progress',
+        status: 'POPULAR',
+        statusColor: 'bg-amber-500',
+        stats: '25K+ ranked',
+        details: 'Real-time rankings across multiple dimensions - daily, weekly, monthly, and by technology stack.',
+        highlights: [
+          'College rankings',
+          'Skill-based tiers',
+          'Achievement badges',
+          'Seasonal rewards'
+        ],
+        difficulty: 'All Levels'
+      }
+    ],
+    learning: [
+      {
+        id: 'ai-mentor',
+        title: 'AI Mentor Pro',
+        icon: BrainCircuit,
+        description: 'Personalized guidance',
+        status: 'BETA',
+        statusColor: 'bg-purple-500',
+        stats: '8.4K testers',
+        details: 'Get 1:1 mentorship from our AI that learns your coding style and provides tailored recommendations.',
+        highlights: [
+          'Adaptive learning paths',
+          'Code review assistant',
+          'Interview simulator',
+          'Debugging companion'
+        ],
+        difficulty: 'Adaptive'
+      },
+      {
+        id: 'interactive-courses',
+        title: 'Interactive Courses',
+        icon: BookOpen,
+        description: 'Learn by doing',
+        status: 'NEW',
+        statusColor: 'bg-blue-500',
+        stats: '12K+ learners',
+        details: 'Project-based courses with instant feedback and real-world applications.',
+        highlights: [
+          'Algorithm mastery',
+          'System design',
+          'Web3 curriculum',
+          'Cloud computing'
+        ],
+        difficulty: 'Beginner → Advanced'
+      }
+    ],
+    professional: [
+      {
+        id: 'interview-prep',
+        title: 'Interview Dojo',
+        icon: UserCheck,
+        description: 'FAANG-level prep',
+        status: 'LIVE',
+        statusColor: 'bg-emerald-500',
+        stats: '2K+ hires',
+        details: 'Comprehensive interview preparation with company-specific question banks and mock interviews.',
+        highlights: [
+          'Resume-based simulations',
+          'Behavioral coaching',
+          'Whiteboard practice',
+          'Offer negotiation'
+        ],
+        difficulty: 'Job Seekers'
+      },
+      {
+        id: 'project-labs',
+        title: 'Project Labs',
+        icon: GitPullRequest,
+        description: 'Portfolio builder',
+        status: 'NEW',
+        statusColor: 'bg-indigo-500',
+        stats: '5K+ projects',
+        details: 'Build real-world applications with guided tutorials and deployment support.',
+        highlights: [
+          'Full-stack projects',
+          'Open-source contributions',
+          'DevOps integration',
+          'Team collaboration'
+        ],
+        difficulty: 'Intermediate+'
+      }
+    ],
+    community: [
+      {
+        id: 'hackathons',
+        title: 'Hackathon Hub',
+        icon: Timer,
+        description: 'Build and compete',
+        status: 'LIVE',
+        statusColor: 'bg-orange-500',
+        stats: '500+ events',
+        details: 'Regular hackathons with industry partners and prize pools.',
+        highlights: [
+          'Team formation',
+          'Judging criteria',
+          'Sponsor challenges',
+          'Career opportunities'
+        ],
+        difficulty: 'All Levels'
+      },
+      {
+        id: 'code-collab',
+        title: 'Live Collaboration',
+        icon: GitBranch,
+        description: 'Pair programming',
+        status: 'BETA',
+        statusColor: 'bg-cyan-500',
+        stats: '1K+ sessions',
+        details: 'Real-time collaborative coding environment with video and chat.',
+        highlights: [
+          'Shared workspaces',
+          'Code review tools',
+          'Interview practice',
+          'Mentor matching'
+        ],
+        difficulty: 'All Levels'
+      }
+    ]
+  };
 
   const testimonials = [
     {
-      name: "Priya Sharma",
-      role: "Software Engineer at Google",
-      content: "Codexa's daily contests helped me improve my problem-solving skills dramatically. The AI assistant is incredibly helpful!",
+      name: "Aarav Patel",
+      role: "SWE at Microsoft",
+      content: "Codexa's Arena helped me go from beginner to Google interview-ready in 4 months. The streak system kept me accountable every single day.",
       rating: 5,
-      avatar: "PS"
+      avatar: "AP",
+      result: "3 FAANG offers"
     },
     {
-      name: "Rahul Verma",
-      role: "Student at IIT Delhi",
-      content: "The streak feature kept me motivated to code every day. I've solved over 500 problems in the last 6 months!",
+      name: "Sophia Zhang",
+      role: "CS Student at MIT",
+      content: "The AI Mentor is revolutionary - it explains concepts better than most professors. I've doubled my problem-solving speed since joining.",
       rating: 5,
-      avatar: "RV"
+      avatar: "SZ",
+      result: "ICPC Regional Finalist"
     },
     {
-      name: "Ananya Patel",
-      role: "Full Stack Developer",
-      content: "The interview prep feature is amazing. I cracked my dream job interview thanks to the AI mock interviews.",
+      name: "Kwame Ofori",
+      role: "Bootcamp Graduate",
+      content: "As a career changer, Codexa gave me the structured path I needed. Landed my first dev job after completing the Full Stack track.",
       rating: 5,
-      avatar: "AP"
+      avatar: "KO",
+      result: "Hired in 3 months"
     }
   ];
 
-  const achievements = [
-    { icon: Globe, title: "Global Reach", desc: "Users from 50+ countries", color: "text-blue-400" },
-    { icon: Clock, title: "24/7 Active", desc: "Round-the-clock coding", color: "text-green-400" },
-    { icon: TrendingUp, title: "Growing Fast", desc: "500% growth this year", color: "text-orange-400" },
-    { icon: Heart, title: "Community Love", desc: "4.9/5 user rating", color: "text-red-400" }
-  ];
-
-  const stats = [
-    { value: '25K+', label: 'Active Users', icon: Users },
-    { value: '100K+', label: 'Problems Solved', icon: Check },
-    { value: '1K+', label: 'Daily Contests', icon: Trophy },
-    { value: '200+', label: 'Colleges', icon: GraduationCap }
-  ];
-
-  // Auto-rotate testimonials
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const FeatureCard = ({ feature, index }) => {
-    const isActive = activeFeature === feature.id;
-    
-    return (
-      <div
-        className={`group relative bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:border-orange-500/50 hover:bg-slate-800/70 ${
-          isActive ? 'border-orange-500 bg-slate-800/70' : ''
-        }`}
-        onClick={() => setActiveFeature(isActive ? null : feature.id)}
-        style={{
-          animationDelay: `${index * 0.1}s`
-        }}
-      >
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-            <feature.icon className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${feature.badgeColor}`}>
-                {feature.badge}
-              </span>
-            </div>
-            <p className="text-gray-300 text-sm mb-3">{feature.description}</p>
-            
-            <div className="flex items-center gap-4 text-xs text-gray-400 mb-3">
-              <span className="flex items-center gap-1">
-                <Target className="w-3 h-3" />
-                {feature.difficulty}
-              </span>
-              <span className="flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                {feature.participants}
-              </span>
-            </div>
-            
-            {isActive && (
-              <div className="space-y-4 border-t border-slate-700 pt-4">
-                <p className="text-gray-400">{feature.details}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {feature.benefits.map((benefit, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span className="text-sm text-gray-300">{benefit}</span>
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-2 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all duration-300 flex items-center justify-center gap-2">
-                  <Play className="w-4 h-4" />
-                  Try Now
-                </button>
-              </div>
-            )}
-          </div>
-          <ChevronDown className={`w-5 h-5 text-gray-400 transform transition-transform duration-300 ${
-            isActive ? 'rotate-180' : ''
-          }`} />
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gray-950 text-gray-100 overflow-hidden">
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(251,146,60,0.1),transparent_70%)]"></div>
-        <div className="relative max-w-7xl mx-auto px-6 py-20">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-full px-4 py-2 mb-6">
-              <Sparkles className="w-4 h-4 text-orange-400" />
-              <span className="text-sm text-gray-300">Explore Amazing Features</span>
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Unleash Your{' '}
-              <span className="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
-                Coding Potential
-              </span>
-            </h1>
-            
-            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              From daily coding contests to AI-powered interview prep, discover our comprehensive suite of features designed to accelerate your coding journey and unlock new opportunities.
-            </p>
+      <section className="relative pt-32 pb-24 px-6 bg-gradient-to-br from-gray-900 to-gray-950">
+        <div className="max-w-7xl mx-auto text-center">
+          <div className="inline-flex items-center bg-gradient-to-r from-orange-500/20 to-orange-500/10 border border-orange-500/30 rounded-full px-5 py-2 mb-6 backdrop-blur-sm">
+            <Sparkles className="w-5 h-5 text-orange-300 mr-2" />
+            <span className="text-sm font-medium text-orange-200">YOUR CODING JOURNEY STARTS HERE</span>
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+            <span className="bg-gradient-to-r from-orange-300 to-orange-500 bg-clip-text text-transparent">Master</span> 
+            <span className="text-white">. </span>
+            <span className="bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">Build</span>
+            <span className="text-white">. </span>
+            <span className="bg-gradient-to-r from-red-400 to-orange-500 bg-clip-text text-transparent">Dominate</span>
+          </h1>
+          
+          <p className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-10 leading-relaxed">
+            The only platform that adapts to your coding journey - whether you're prepping for competitions, interviews, or building real-world projects.
+          </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-105">
-                <Zap className="w-5 h-5" />
-                Start Exploring
-              </button>
-              <button className="border border-slate-600 text-gray-300 px-8 py-3 rounded-lg font-medium hover:border-orange-500 hover:text-white transition-all duration-300 flex items-center justify-center gap-2">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button className="relative overflow-hidden group bg-gradient-to-br from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30">
+              <span className="relative z-10 flex items-center gap-2">
+                <Rocket className="w-5 h-5" />
+                Start Free Challenge
+              </span>
+              <span className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+            </button>
+            
+            <button className="relative overflow-hidden group bg-gray-900 hover:bg-gray-800 border-2 border-gray-700 hover:border-orange-500 text-white font-medium py-4 px-8 rounded-xl transition-all duration-300 flex items-center justify-center gap-3">
+              <span className="relative z-10 flex items-center gap-2">
                 <Play className="w-5 h-5" />
                 Watch Demo
+              </span>
+              <span className="absolute inset-0 bg-gradient-to-r from-gray-800 to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-gradient-to-b from-gray-900/80 to-gray-950/80 backdrop-blur-sm border-y border-gray-800">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { 
+                value: animatedStats.users, 
+                label: "Active Coders", 
+                icon: Users,
+                color: "from-orange-400 to-amber-500" 
+              },
+              { 
+                value: animatedStats.problems, 
+                label: "Problems Solved", 
+                icon: Check,
+                color: "from-emerald-400 to-teal-500" 
+              },
+              { 
+                value: animatedStats.offers, 
+                label: "Job Offers", 
+                icon: BadgeCheck,
+                color: "from-blue-400 to-cyan-500" 
+              },
+              { 
+                value: animatedStats.streaks, 
+                label: "Active Streaks", 
+                icon: Flame,
+                color: "from-red-400 to-orange-500" 
+              }
+            ].map((stat, i) => (
+              <div key={i} className="relative p-6 bg-gray-900/50 border border-gray-800 rounded-2xl hover:border-orange-500/50 transition-all duration-300">
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-10 rounded-2xl`}></div>
+                <div className="relative z-10">
+                  <div className={`w-14 h-14 mb-4 mx-auto flex items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700`}>
+                    <stat.icon className={`w-6 h-6 bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`} />
+                  </div>
+                  <div className={`text-3xl font-extrabold mb-1 bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`}>
+                    {stat.value.toLocaleString()}+
+                  </div>
+                  <div className="text-gray-400 text-sm">{stat.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section - Organized by Developer Journey */}
+      <section className="py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent">Choose Your Path</span>
+            </h2>
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+              We've organized everything based on where you are in your coding journey
+            </p>
+          </div>
+
+          {/* Journey Tabs */}
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
+            {[
+              { id: 'competitive', label: 'Competitive Coding', icon: Trophy },
+              { id: 'learning', label: 'Skill Building', icon: BookOpen },
+              { id: 'professional', label: 'Career Prep', icon: UserCheck },
+              { id: 'community', label: 'Community', icon: Users }
+            ].map((journey) => (
+              <button
+                key={journey.id}
+                onClick={() => setActiveJourney(journey.id)}
+                className={`flex items-center px-6 py-3 rounded-xl transition-all duration-300 border ${
+                  activeJourney === journey.id 
+                    ? 'bg-gradient-to-br from-orange-500/20 to-orange-500/10 border-orange-500/30 text-orange-300 shadow-lg shadow-orange-500/10' 
+                    : 'border-gray-800 text-gray-400 hover:text-white hover:border-gray-700'
+                }`}
+              >
+                <journey.icon className="w-5 h-5 mr-2" />
+                {journey.label}
               </button>
+            ))}
+          </div>
+
+          {/* Feature Grid */}
+          <div className="grid gap-8 md:grid-cols-2">
+            {journeyFeatures[activeJourney].map((feature) => (
+              <div 
+                key={feature.id}
+                className={`relative overflow-hidden bg-gradient-to-b from-gray-900/50 to-gray-950/50 border rounded-2xl p-8 transition-all duration-500 ${
+                  activeFeature === feature.id 
+                    ? 'border-orange-500/70 shadow-lg shadow-orange-500/10' 
+                    : 'border-gray-800 hover:border-orange-500/50'
+                }`}
+                onClick={() => setActiveFeature(activeFeature === feature.id ? null : feature.id)}
+              >
+                <div className="relative z-10">
+                  <div className="flex items-start gap-5">
+                    <div className={`flex-shrink-0 w-14 h-14 flex items-center justify-center rounded-xl ${
+                      activeFeature === feature.id 
+                        ? 'bg-gradient-to-br from-orange-500 to-red-500' 
+                        : 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700'
+                    }`}>
+                      <feature.icon className={`w-6 h-6 ${
+                        activeFeature === feature.id ? 'text-white' : 'text-orange-400'
+                      }`} />
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-2xl font-bold">{feature.title}</h3>
+                        <span className={`px-3 py-1 text-xs font-bold rounded-full ${feature.statusColor}`}>
+                          {feature.status}
+                        </span>
+                      </div>
+                      
+                      <p className="text-gray-400 mb-4">{feature.description}</p>
+                      
+                      <div className="flex flex-wrap gap-3 text-sm mb-4">
+                        <span className="flex items-center gap-2 px-3 py-1 bg-gray-800/50 rounded-full">
+                          <Target className="w-4 h-4 text-orange-400" />
+                          {feature.difficulty}
+                        </span>
+                        <span className="flex items-center gap-2 px-3 py-1 bg-gray-800/50 rounded-full">
+                          <Users className="w-4 h-4 text-blue-400" />
+                          {feature.stats}
+                        </span>
+                      </div>
+                      
+                      {activeFeature === feature.id && (
+                        <div className="mt-6 pt-6 border-t border-gray-800 space-y-5">
+                          <p className="text-gray-300">{feature.details}</p>
+                          
+                          <div className="space-y-3">
+                            {feature.highlights.map((highlight, i) => (
+                              <div key={i} className="flex items-start gap-3">
+                                <div className="flex-shrink-0 mt-0.5">
+                                  <div className="w-5 h-5 rounded-full bg-orange-500/10 flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-orange-400" />
+                                  </div>
+                                </div>
+                                <span className="text-gray-300">{highlight}</span>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <button className="w-full mt-6 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center gap-2">
+                            <Zap className="w-5 h-5" />
+                            {feature.status === 'COMING SOON' ? 'Join Waitlist' : 'Try Now'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <ChevronDown className={`w-6 h-6 text-gray-500 transition-transform duration-300 flex-shrink-0 ${
+                      activeFeature === feature.id ? 'rotate-180 text-orange-400' : ''
+                    }`} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Additional Features Carousel */}
+          <div className="mt-16">
+            <h3 className="text-2xl font-bold mb-8 text-center">More Powerful Features</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { icon: Flame, name: 'Daily Streaks', stat: '18K+ active' },
+                { icon: Bot, name: 'AI Assistant', stat: 'Unlimited help' },
+                { icon: FileCode, name: 'Code Sheets', stat: '5K+ created' },
+                { icon: Puzzle, name: 'Challenges', stat: '1K+ daily' }
+              ].map((item, i) => (
+                <div key={i} className="p-4 bg-gray-900/50 border border-gray-800 rounded-xl hover:border-orange-500/50 transition-colors">
+                  <div className="w-10 h-10 mb-3 flex items-center justify-center rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
+                    <item.icon className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <h4 className="font-medium mb-1">{item.name}</h4>
+                  <p className="text-sm text-gray-400">{item.stat}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-
-      {/* Stats Section */}
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, index) => (
-            <div key={index} className="text-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <stat.icon className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-xl md:text-2xl font-bold text-white mb-1">{stat.value}</div>
-              <div className="text-sm text-gray-400">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="max-w-7xl mx-auto px-6 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Features & Services</h2>
-          <p className="text-lg md:text-xl text-gray-300">Everything you need to excel in competitive programming</p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature, index) => (
-            <FeatureCard key={feature.id} feature={feature} index={index} />
-          ))}
-        </div>
-      </div>
-
-      {/* Testimonials Section */}
-      <div className="bg-slate-800/30 backdrop-blur-sm border-y border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-6 py-20">
-          <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-12">What Our Users Say</h2>
-          <div className="max-w-4xl mx-auto">
-            <div className="relative min-h-[200px]">
-              {testimonials.map((testimonial, index) => (
-                <div
-                  key={index}
-                  className={`transition-all duration-500 ${
-                    index === currentTestimonial ? 'opacity-100' : 'opacity-0 absolute top-0 left-0 w-full'
-                  }`}
-                >
-                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 text-center">
-                    <div className="flex justify-center mb-4">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                      ))}
-                    </div>
-                    <p className="text-gray-300 text-base md:text-lg mb-6 italic">"{testimonial.content}"</p>
-                    <div className="flex items-center justify-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold">
+      {/* Testimonials */}
+      <section className="py-24 bg-gradient-to-b from-gray-900/80 to-gray-950/80 border-y border-gray-800">
+        <div className="max-w-6xl mx-auto px-6">
+          <h2 className="text-4xl font-bold text-center mb-20">
+            <span className="bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent">Transformations</span> Not Just Testimonials
+          </h2>
+          
+          <div className="relative">
+            {testimonials.map((testimonial, i) => (
+              <div 
+                key={i}
+                className={`transition-opacity duration-500 ${
+                  currentTestimonial === i ? 'opacity-100' : 'opacity-0 absolute top-0 left-0 w-full'
+                }`}
+              >
+                <div className="bg-gray-900/70 border border-gray-800 rounded-3xl p-8 md:p-10 backdrop-blur-sm">
+                  <div className="flex flex-col md:flex-row gap-8 items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-32 h-32 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center text-3xl font-bold text-white">
                         {testimonial.avatar}
                       </div>
+                    </div>
+                    
+                    <div>
+                      <div className="flex mb-4">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                          <Star key={i} className="w-6 h-6 text-amber-400 fill-current" />
+                        ))}
+                      </div>
+                      <blockquote className="text-xl md:text-2xl italic text-gray-300 mb-6">
+                        "{testimonial.content}"
+                      </blockquote>
                       <div>
-                        <div className="font-semibold text-white">{testimonial.name}</div>
-                        <div className="text-gray-400 text-sm">{testimonial.role}</div>
+                        <div className="font-bold text-lg">{testimonial.name}</div>
+                        <div className="text-orange-400">{testimonial.role}</div>
+                        <div className="mt-2 text-sm bg-gray-800 text-emerald-400 px-3 py-1 rounded-full inline-block">
+                          {testimonial.result}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
             
-            <div className="flex justify-center mt-6 gap-2">
-              {testimonials.map((_, index) => (
+            <div className="flex justify-center mt-8 gap-2">
+              {testimonials.map((_, i) => (
                 <button
-                  key={index}
-                  onClick={() => setCurrentTestimonial(index)}
+                  key={i}
+                  onClick={() => setCurrentTestimonial(i)}
                   className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    index === currentTestimonial ? 'bg-orange-500' : 'bg-slate-600'
+                    currentTestimonial === i ? 'bg-orange-500 w-6' : 'bg-gray-700 hover:bg-gray-600'
                   }`}
                 />
               ))}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* CTA Section */}
-      <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border-t border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-6 py-20 text-center">
-          <div className="inline-flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-full px-4 py-2 mb-6">
-            <Lightbulb className="w-4 h-4 text-orange-400" />
-            <span className="text-sm text-gray-300">Ready to Start?</span>
+      {/* Final CTA */}
+      <section className="py-32 bg-gradient-to-br from-gray-950 to-gray-900">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center bg-gradient-to-r from-orange-500/20 to-orange-500/10 border border-orange-500/30 rounded-full px-5 py-2 mb-6 backdrop-blur-sm">
+            <Lightbulb className="w-5 h-5 text-orange-300 mr-2" />
+            <span className="text-sm font-medium text-orange-200">READY TO LEVEL UP?</span>
           </div>
           
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Level Up Your Coding?</h2>
-          <p className="text-lg md:text-xl text-gray-300 mb-8">Join thousands of developers who are already improving their skills with Codexa</p>
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Start <span className="bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent">Your Journey</span> Today
+          </h2>
           
+          <p className="text-xl text-gray-300 mb-10 max-w-3xl mx-auto">
+            Join thousands of developers who've transformed their skills and careers with Codexa
+          </p>
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-105">
-              <Award className="w-5 h-5" />
-              Get Started Free
+            <button className="relative overflow-hidden group bg-gradient-to-br from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30">
+              <span className="relative z-10 flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Get Started Free
+              </span>
+              <span className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </button>
-            <button className="border border-slate-600 text-gray-300 px-8 py-3 rounded-lg font-medium hover:border-orange-500 hover:text-white transition-all duration-300 flex items-center justify-center gap-2">
-              <Users className="w-5 h-5" />
-              Join Community
+            
+            <button className="relative overflow-hidden group bg-gray-900 hover:bg-gray-800 border-2 border-gray-700 hover:border-orange-500 text-white font-medium py-4 px-10 rounded-xl transition-all duration-300 flex items-center justify-center gap-3">
+              <span className="relative z-10 flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Join Community
+              </span>
+              <span className="absolute inset-0 bg-gradient-to-r from-gray-800 to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

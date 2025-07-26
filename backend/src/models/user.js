@@ -43,7 +43,8 @@ const userScehma = Schema({
             {
                 type: Schema.Types.ObjectId,
                 ref: "problem",
-                unique: true
+                unique: true,
+                solvedAt: { type: Date, default: Date.now }
             },
         ]
     },
@@ -59,8 +60,22 @@ const userScehma = Schema({
     premiumExpiry: {
         type: Date,
         default: null
+    },
+    profileImage: {
+        type: String,
+        default: null
+    },
+    emailVerified: {
+        type: Boolean,
+        default: false
+    },
+    socialLinks: {
+        linkedin: { type: String, default: '' },
+        github: { type: String, default: '' },
+        twitter: { type: String, default: '' },
+        website: { type: String, default: '' }
     }
-}, { Timestamp: true })
+}, { timestamps: true })
 
 userScehma.post("findOneAndDelete", async (userInfo) => {
     if (userInfo)

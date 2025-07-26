@@ -215,5 +215,108 @@ const  submittedProblem  = async (req , res) =>{
      }
 }
 
+// Add these new controller methods to your existing file
 
-module.exports = { createProblem, updateProblem, deleteProblem, getAllProblems , getProblemById , problemsSolvedByUser , submittedProblem }
+/**
+ * Get problems solved by user with additional details for profile
+ */
+const getProfileProblemsSolved = async (req, res) => {
+    try {
+        const userId = req.result._id;
+        
+        // Get all submissions where user solved problems
+        const submissions = await Submission.find({
+            userId,
+            status: 'Accepted'
+        }).sort({ createdAt: -1 }); // Sort by newest first
+
+        // Get unique problem IDs from submissions
+        const problemIds = [...new Set(submissions.map(s => s.problemId))];
+        
+        // Get problem details
+        const problems = await Problem.find({
+            _id: { $in: problemIds }
+        }).select('_id title difficulty tags');
+
+        // Map to include submission date
+        const solvedProblems = problems.map(problem => {
+            const submission = submissions.find(s => s.problemId.equals(problem._id));
+            return {
+                ...problem.toObject(),
+                solvedAt: submission.createdAt
+            };
+        });
+
+        res.status(200).json({
+            count: solvedProblems.length,
+            problems: solvedProblems
+        });
+    } catch (err) {
+        console.error("Error in getProfileProblemsSolved:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+/**
+ * Get all problems with additional stats for profile
+ */
+const getProfileAllProblems = async (req, res) => {
+    try {
+        const userId = req.result._id;
+        
+        // Get all problems
+        const allProblems = await Problem.find({})
+            .select('_id title difficulty tags');
+        
+        // Get problems solved by user
+        const solvedSubmissions = await Submission.find({
+            userId,
+            status: 'Accepted'
+        });
+        const solvedProblemIds = [...new Set(solvedSubmissions.map(s => s.problemId))];
+
+        // Get problems user is attempting but not solved
+        const attemptingSubmissions = await Submission.find({
+            userId,
+            status: { $ne: 'Accepted' }
+        });
+        const attemptingProblemIds = [...new Set(attemptingSubmissions.map(s => s.problemId))];
+
+        // Add solved and attempting status to each problem
+        const problemsWithStatus = allProblems.map(problem => {
+            const isSolved = solvedProblemIds.some(id => id.equals(problem._id));
+            const isAttempting = !isSolved && attemptingProblemIds.some(id => id.equals(problem._id));
+            return {
+                ...problem.toObject(),
+                isSolved,
+                isAttempting
+            };
+        });
+
+        // Calculate stats
+        const totalProblems = problemsWithStatus.length;
+        const solvedCount = problemsWithStatus.filter(p => p.isSolved).length;
+        const unsolvedCount = totalProblems - solvedCount;
+        const easy = problemsWithStatus.filter(p => p.difficulty === 'easy').length;
+        const medium = problemsWithStatus.filter(p => p.difficulty === 'medium').length;
+        const hard = problemsWithStatus.filter(p => p.difficulty === 'hard').length;
+        const attempting = problemsWithStatus.filter(p => p.isAttempting).length;
+
+        res.status(200).json({
+            totalProblems,
+            solvedCount,
+            unsolvedCount,
+            easy,
+            medium,
+            hard,
+            attempting,
+            problems: problemsWithStatus
+        });
+    } catch (err) {
+        console.error("Error in getProfileAllProblems:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+
+module.exports = { createProblem, updateProblem, deleteProblem, getAllProblems , getProblemById , problemsSolvedByUser , submittedProblem , getProfileAllProblems , getProfileProblemsSolved }

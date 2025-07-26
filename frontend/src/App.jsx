@@ -22,7 +22,8 @@ import AdminContest from "./components/Admin/contest/AdminContest";
 import ContestPage  from "../src/pages/ContestPage"
 import ContestDetail from "./components/Admin/contest/ContestDetail";
 import PlaylistDetail from "./components/common/PlaylistDetail";
-
+import DashboardPage from "./components/Dashboards/DashboardPage";
+import UserProfile from "./pages/UserProfile";
 
 const App = () => {
 
@@ -30,7 +31,11 @@ const App = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    dispatch(checkAuth());
+    dispatch(checkAuth()).unwrap().then(() => {
+      dispatch(getProfile());
+    }).catch(() => {
+      // handle error if needed
+    });
   }, [dispatch]);
 
   if (loading) {
@@ -49,6 +54,16 @@ const App = () => {
           <Route path="/explore" element={<Explore/>}/>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+           <Route 
+            path="/dashboard" 
+            element={
+              isAuthenticated ? (
+                <DashboardPage />
+              ) : (
+                <Navigate to="/login" />
+              )
+            } 
+          />
           <Route
             path="/problems"
             element={
@@ -196,7 +211,7 @@ const App = () => {
               isAuthenticated ? <Premium /> : <Navigate to="/login"></Navigate>
             }
           ></Route>
-        <Route path="/interview" element={isAuthenticated ? <Interview/> : <Navigate to="/login"></Navigate>} ></Route>
+          <Route path="/profile" element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" />} />
         </Routes>
       </div>
     </>
