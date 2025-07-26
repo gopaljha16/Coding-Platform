@@ -31,7 +31,7 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
-  const { isAuthenticated, loading, error, user } = useSelector(
+  const { isAuthenticated, loading, error, user, profileLoading } = useSelector(
     (state) => state.auth
   );
   const navigate = useNavigate();
@@ -418,7 +418,7 @@ const Navbar = () => {
                 ) : (
                   <div className="flex items-center space-x-3">
                     <Link
-                      to="/register"
+                      to="/signup"
                       className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors duration-200"
                     >
                       Sign Up

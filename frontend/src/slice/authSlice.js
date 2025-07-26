@@ -26,7 +26,7 @@ export const loginUser = createAsyncThunk(
             const response = await axiosClient.post("/user/login", credentials);
             return response.data.user;
         } catch (err) {
-            return rejectWithValue(err);
+            return rejectWithValue(err.response?.data?.message || err.message || "Login failed");
         }
     }
 );
@@ -94,6 +94,68 @@ export const updateProfile = createAsyncThunk(
 
 
 
+import { requestEmailVerificationOTP, verifyEmailOTP, requestPasswordResetOTP, resetPassword, changePassword } from '../utils/apis/userApi';
+
+export const requestEmailVerificationOTPThunk = createAsyncThunk(
+  "auth/requestEmailVerificationOTP",
+  async (email, { rejectWithValue }) => {
+    try {
+      const response = await requestEmailVerificationOTP(email);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const verifyEmailOTPThunk = createAsyncThunk(
+  "auth/verifyEmailOTP",
+  async ({ email, otp }, { rejectWithValue }) => {
+    try {
+      const response = await verifyEmailOTP(email, otp);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const requestPasswordResetOTPThunk = createAsyncThunk(
+  "auth/requestPasswordResetOTP",
+  async (email, { rejectWithValue }) => {
+    try {
+      const response = await requestPasswordResetOTP(email);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const resetPasswordThunk = createAsyncThunk(
+  "auth/resetPassword",
+  async ({ email, otp, newPassword }, { rejectWithValue }) => {
+    try {
+      const response = await resetPassword(email, otp, newPassword);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const changePasswordThunk = createAsyncThunk(
+  "auth/changePassword",
+  async ({ oldPassword, newPassword }, { rejectWithValue }) => {
+    try {
+      const response = await changePassword(oldPassword, newPassword);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 //slice
 const authSlice = createSlice({
     name: "auth",
@@ -108,12 +170,48 @@ const authSlice = createSlice({
         updateProfileLoading: false,
         updateProfileError: null,
         updateProfileSuccess: false,
+        requestEmailVerificationOTPLoading: false,
+        requestEmailVerificationOTPError: null,
+        requestEmailVerificationOTPSuccess: false,
+        verifyEmailOTPLoading: false,
+        verifyEmailOTPError: null,
+        verifyEmailOTPSuccess: false,
+        requestPasswordResetOTPLoading: false,
+        requestPasswordResetOTPError: null,
+        requestPasswordResetOTPSuccess: false,
+        resetPasswordLoading: false,
+        resetPasswordError: null,
+        resetPasswordSuccess: false,
+        changePasswordLoading: false,
+        changePasswordError: null,
+        changePasswordSuccess: false,
     },
     reducers: {
         resetUpdateProfileState: (state) => {
             state.updateProfileLoading = false;
             state.updateProfileError = null;
             state.updateProfileSuccess = false;
+        },
+        resetEmailVerificationState: (state) => {
+            state.requestEmailVerificationOTPLoading = false;
+            state.requestEmailVerificationOTPError = null;
+            state.requestEmailVerificationOTPSuccess = false;
+            state.verifyEmailOTPLoading = false;
+            state.verifyEmailOTPError = null;
+            state.verifyEmailOTPSuccess = false;
+        },
+        resetPasswordResetState: (state) => {
+            state.requestPasswordResetOTPLoading = false;
+            state.requestPasswordResetOTPError = null;
+            state.requestPasswordResetOTPSuccess = false;
+            state.resetPasswordLoading = false;
+            state.resetPasswordError = null;
+            state.resetPasswordSuccess = false;
+        },
+        resetChangePasswordState: (state) => {
+            state.changePasswordLoading = false;
+            state.changePasswordError = null;
+            state.changePasswordSuccess = false;
         }
     },
     extraReducers: (builder) => {
@@ -243,10 +341,92 @@ const authSlice = createSlice({
         state.updateProfileLoading = false;
         state.updateProfileError = action.payload;
         state.updateProfileSuccess = false;
+    })
+
+    // requestEmailVerificationOTP
+    .addCase(requestEmailVerificationOTPThunk.pending, (state) => {
+        state.requestEmailVerificationOTPLoading = true;
+        state.requestEmailVerificationOTPError = null;
+        state.requestEmailVerificationOTPSuccess = false;
+    })
+    .addCase(requestEmailVerificationOTPThunk.fulfilled, (state) => {
+        state.requestEmailVerificationOTPLoading = false;
+        state.requestEmailVerificationOTPSuccess = true;
+    })
+    .addCase(requestEmailVerificationOTPThunk.rejected, (state, action) => {
+        state.requestEmailVerificationOTPLoading = false;
+        state.requestEmailVerificationOTPError = action.payload;
+        state.requestEmailVerificationOTPSuccess = false;
+    })
+
+    // verifyEmailOTP
+    .addCase(verifyEmailOTPThunk.pending, (state) => {
+        state.verifyEmailOTPLoading = true;
+        state.verifyEmailOTPError = null;
+        state.verifyEmailOTPSuccess = false;
+    })
+    .addCase(verifyEmailOTPThunk.fulfilled, (state) => {
+        state.verifyEmailOTPLoading = false;
+        state.verifyEmailOTPSuccess = true;
+    })
+    .addCase(verifyEmailOTPThunk.rejected, (state, action) => {
+        state.verifyEmailOTPLoading = false;
+        state.verifyEmailOTPError = action.payload;
+        state.verifyEmailOTPSuccess = false;
+    })
+
+    // requestPasswordResetOTP
+    .addCase(requestPasswordResetOTPThunk.pending, (state) => {
+        state.requestPasswordResetOTPLoading = true;
+        state.requestPasswordResetOTPError = null;
+        state.requestPasswordResetOTPSuccess = false;
+    })
+    .addCase(requestPasswordResetOTPThunk.fulfilled, (state) => {
+        state.requestPasswordResetOTPLoading = false;
+        state.requestPasswordResetOTPSuccess = true;
+    })
+    .addCase(requestPasswordResetOTPThunk.rejected, (state, action) => {
+        state.requestPasswordResetOTPLoading = false;
+        state.requestPasswordResetOTPError = action.payload;
+        state.requestPasswordResetOTPSuccess = false;
+    })
+
+    // resetPassword
+    .addCase(resetPasswordThunk.pending, (state) => {
+        state.resetPasswordLoading = true;
+        state.resetPasswordError = null;
+        state.resetPasswordSuccess = false;
+    })
+    .addCase(resetPasswordThunk.fulfilled, (state) => {
+        state.resetPasswordLoading = false;
+        state.resetPasswordSuccess = true;
+    })
+    .addCase(resetPasswordThunk.rejected, (state, action) => {
+        state.resetPasswordLoading = false;
+        state.resetPasswordError = action.payload;
+        state.resetPasswordSuccess = false;
+    })
+
+    // changePassword
+    .addCase(changePasswordThunk.pending, (state) => {
+        state.changePasswordLoading = true;
+        state.changePasswordError = null;
+        state.changePasswordSuccess = false;
+    })
+    .addCase(changePasswordThunk.fulfilled, (state) => {
+        state.changePasswordLoading = false;
+        state.changePasswordSuccess = true;
+    })
+    .addCase(changePasswordThunk.rejected, (state, action) => {
+        state.changePasswordLoading = false;
+        state.changePasswordError = action.payload;
+        state.changePasswordSuccess = false;
     });
     }
 })
 
-export const { resetUpdateProfileState } = authSlice.actions;
+
+
+export const { resetUpdateProfileState, resetEmailVerificationState, resetPasswordResetState, resetChangePasswordState } = authSlice.actions;
 
 export default authSlice.reducer;

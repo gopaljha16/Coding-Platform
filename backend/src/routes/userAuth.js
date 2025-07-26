@@ -1,5 +1,6 @@
 const express = require("express");
 const { register, getProfile, login, logout, deleteProfile, activeUsers, updateProfile, googleLogin } = require("../controllers/userAuthenticate");
+const { requestEmailVerificationOTP, verifyEmailOTP, requestPasswordResetOTP, resetPassword, changePassword } = require("../controllers/userVerification");
 const userMiddleware = require("../middleware/userMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 const adminRegister = require("../controllers/adminAuthenticate");
@@ -17,6 +18,13 @@ authRouter.get("/activeuser", adminMiddleware, activeUsers);
 
 // New route for Google login
 authRouter.post("/googleLogin", googleLogin);
+
+// New routes for email verification and password reset
+authRouter.post("/requestEmailVerificationOTP", requestEmailVerificationOTP);
+authRouter.post("/verifyEmailOTP", verifyEmailOTP);
+authRouter.post("/requestPasswordResetOTP", requestPasswordResetOTP);
+authRouter.post("/resetPassword", resetPassword);
+authRouter.post("/changePassword", userMiddleware, changePassword);
 
 // Dashboard endpoints
 authRouter.get("/streaks", userMiddleware, dashboardController.getUserStreaks);

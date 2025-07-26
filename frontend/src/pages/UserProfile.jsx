@@ -1,26 +1,72 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { getProfile, updateProfile, resetUpdateProfileState } from '../slice/authSlice';
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, NavLink } from "react-router";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import {
+  getProfile,
+  updateProfile,
+  resetUpdateProfileState,
+  requestEmailVerificationOTPThunk,
+  verifyEmailOTPThunk,
+  changePasswordThunk,
+  resetEmailVerificationState,
+  resetChangePasswordState,
+} from "../slice/authSlice";
+import{ ArrowLeft} from "lucide-react"
 
 const UserProfile = () => {
   const dispatch = useDispatch();
-  const { profile, profileLoading, profileError, updateProfileLoading, updateProfileError, updateProfileSuccess } = useSelector(state => state.auth);
+  const {
+    profile,
+    profileLoading,
+    profileError,
+    updateProfileLoading,
+    updateProfileError,
+    updateProfileSuccess,
+    requestEmailVerificationOTPLoading,
+    requestEmailVerificationOTPError,
+    requestEmailVerificationOTPSuccess,
+    verifyEmailOTPLoading,
+    verifyEmailOTPError,
+    verifyEmailOTPSuccess,
+    changePasswordLoading,
+    changePasswordError,
+    changePasswordSuccess,
+    user,
+  } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    age: '',
-    linkedin: '',
-    github: '',
-    twitter: '',
-    website: '',
+    firstName: "",
+    lastName: "",
+    age: "",
+    linkedin: "",
+    github: "",
+    twitter: "",
+    website: "",
     profileImage: null,
     profileImagePreview: null,
   });
 
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+
+  useEffect(() => {
+    if (profile?.user?.isEmailVerified) {
+      setShowEmailVerification(false);
+    }
+  }, [profile]);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [emailForVerification, setEmailForVerification] = useState("");
+  const [verificationOtp, setVerificationOtp] = useState("");
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [dragActive, setDragActive] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
+  const [passwordErrors, setPasswordErrors] = useState({});
 
   useEffect(() => {
     dispatch(getProfile());
@@ -29,84 +75,155 @@ const UserProfile = () => {
   useEffect(() => {
     if (profile) {
       setFormData({
-        firstName: profile.user.firstName || '',
-        lastName: profile.user.lastName || '',
-        age: profile.user.age || '',
-        linkedin: profile.user.socialLinks?.linkedin || '',
-        github: profile.user.socialLinks?.github || '',
-        twitter: profile.user.socialLinks?.twitter || '',
-        website: profile.user.socialLinks?.website || '',
+        firstName: profile.user.firstName || "",
+        lastName: profile.user.lastName || "",
+        age: profile.user.age || "",
+        linkedin: profile.user.socialLinks?.linkedin || "",
+        github: profile.user.socialLinks?.github || "",
+        twitter: profile.user.socialLinks?.twitter || "",
+        website: profile.user.socialLinks?.website || "",
         profileImage: null,
         profileImagePreview: profile.user.profileImage || null,
       });
+      setEmailForVerification(profile.user.email || "");
     }
   }, [profile]);
 
   useEffect(() => {
     if (updateProfileSuccess) {
-      setSuccessMessage('Profile updated successfully! 🎉');
+      setSuccessMessage("Profile updated successfully! 🎉");
       dispatch(resetUpdateProfileState());
       dispatch(getProfile());
-      setTimeout(() => setSuccessMessage(''), 5000);
+      setTimeout(() => setSuccessMessage(""), 5000);
     }
   }, [updateProfileSuccess, dispatch]);
 
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (changePasswordSuccess) {
+      toast.success("Password changed successfully! 🎉");
+      setPasswordData({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setShowChangePassword(false);
+      dispatch(resetChangePasswordState());
+      setTimeout(() => setSuccessMessage(""), 5000);
+      setTimeout(() => navigate("/profile"), 2000);
+    }
+  }, [changePasswordSuccess, dispatch, navigate]);
+
+  useEffect(() => {
+    if (verifyEmailOTPSuccess) {
+      toast.success("Email verified successfully! 🎉");
+      setShowEmailVerification(false);
+      setVerificationOtp("");
+      dispatch(resetEmailVerificationState());
+      dispatch(getProfile());
+      setTimeout(() => setSuccessMessage(""), 5000);
+      setTimeout(() => navigate("/profile"), 2000);
+    }
+  }, [verifyEmailOTPSuccess, dispatch, navigate]);
+
+  useEffect(() => {
+    if (profile?.user?.emailVerified) {
+      setShowEmailVerification(false);
+    }
+  }, [profile]);
+
   const validateForm = () => {
     const errors = {};
-    
+
     if (!formData.firstName.trim()) {
-      errors.firstName = 'First name is required';
-    }
-    
-    if (formData.age && (formData.age < 6 || formData.age > 80)) {
-      errors.age = 'Age must be between 6 and 80';
+      errors.firstName = "First name is required";
     }
 
-    // URL validation
+    if (formData.age && (formData.age < 6 || formData.age > 80)) {
+      errors.age = "Age must be between 6 and 80";
+    }
+
     const urlRegex = /^https?:\/\/.+/;
     if (formData.linkedin && !urlRegex.test(formData.linkedin)) {
-      errors.linkedin = 'Please enter a valid URL starting with http:// or https://';
+      errors.linkedin =
+        "Please enter a valid URL starting with http:// or https://";
     }
     if (formData.github && !urlRegex.test(formData.github)) {
-      errors.github = 'Please enter a valid URL starting with http:// or https://';
+      errors.github =
+        "Please enter a valid URL starting with http:// or https://";
     }
     if (formData.twitter && !urlRegex.test(formData.twitter)) {
-      errors.twitter = 'Please enter a valid URL starting with http:// or https://';
+      errors.twitter =
+        "Please enter a valid URL starting with http:// or https://";
     }
     if (formData.website && !urlRegex.test(formData.website)) {
-      errors.website = 'Please enter a valid URL starting with http:// or https://';
+      errors.website =
+        "Please enter a valid URL starting with http:// or https://";
     }
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
+  const validatePasswordChange = () => {
+    const errors = {};
+
+    if (!passwordData.oldPassword) {
+      errors.oldPassword = "Current password is required";
+    }
+
+    if (!passwordData.newPassword) {
+      errors.newPassword = "New password is required";
+    } else if (passwordData.newPassword.length < 6) {
+      errors.newPassword = "Password must be at least 6 characters";
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+
+    setPasswordErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    if (name === 'profileImage' && files.length > 0) {
+    if (name === "profileImage" && files.length > 0) {
       const file = files[0];
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setValidationErrors(prev => ({
+      if (file.size > 5 * 1024 * 1024) {
+        setValidationErrors((prev) => ({
           ...prev,
-          profileImage: 'File size must be less than 5MB'
+          profileImage: "File size must be less than 5MB",
         }));
         return;
       }
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         profileImage: file,
         profileImagePreview: URL.createObjectURL(file),
       }));
-      setValidationErrors(prev => ({ ...prev, profileImage: null }));
+      setValidationErrors((prev) => ({ ...prev, profileImage: null }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
       }));
-      // Clear validation error when user starts typing
       if (validationErrors[name]) {
-        setValidationErrors(prev => ({ ...prev, [name]: null }));
+        setValidationErrors((prev) => ({ ...prev, [name]: null }));
       }
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    if (passwordErrors[name]) {
+      setPasswordErrors((prev) => ({ ...prev, [name]: null }));
     }
   };
 
@@ -124,23 +241,23 @@ const UserProfile = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      if (file.type.startsWith('image/')) {
+      if (file.type.startsWith("image/")) {
         if (file.size > 5 * 1024 * 1024) {
-          setValidationErrors(prev => ({
+          setValidationErrors((prev) => ({
             ...prev,
-            profileImage: 'File size must be less than 5MB'
+            profileImage: "File size must be less than 5MB",
           }));
           return;
         }
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           profileImage: file,
           profileImagePreview: URL.createObjectURL(file),
         }));
-        setValidationErrors(prev => ({ ...prev, profileImage: null }));
+        setValidationErrors((prev) => ({ ...prev, profileImage: null }));
       }
     }
   };
@@ -150,31 +267,61 @@ const UserProfile = () => {
     if (!validateForm()) return;
 
     const data = new FormData();
-    data.append('firstName', formData.firstName);
-    data.append('lastName', formData.lastName);
-    data.append('age', formData.age);
-    data.append('socialLinks', JSON.stringify({
-      linkedin: formData.linkedin,
-      github: formData.github,
-      twitter: formData.twitter,
-      website: formData.website,
-    }));
+    data.append("firstName", formData.firstName);
+    data.append("lastName", formData.lastName);
+    data.append("age", formData.age);
+    data.append(
+      "socialLinks",
+      JSON.stringify({
+        linkedin: formData.linkedin,
+        github: formData.github,
+        twitter: formData.twitter,
+        website: formData.website,
+      })
+    );
     if (formData.profileImage) {
-      data.append('profileImage', formData.profileImage);
+      data.append("profileImage", formData.profileImage);
     }
-    dispatch(updateProfile(data)).unwrap().then(() => {
-      dispatch(getProfile());
-    });
+    dispatch(updateProfile(data));
   };
 
-  const getSocialIcon = (platform) => {
-    const icons = {
-      linkedin: '💼',
-      github: '🐙',
-      twitter: '🐦',
-      website: '🌐'
-    };
-    return icons[platform] || '🔗';
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (!validatePasswordChange()) return;
+
+    dispatch(
+      changePasswordThunk({
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword,
+      })
+    );
+  };
+
+  const handleRequestVerificationOTP = () => {
+    if (!emailForVerification) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        email: "Email is required",
+      }));
+      return;
+    }
+    dispatch(requestEmailVerificationOTPThunk(emailForVerification));
+  };
+
+  const handleVerifyEmail = () => {
+    if (!verificationOtp) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        otp: "OTP is required",
+      }));
+      return;
+    }
+    dispatch(
+      verifyEmailOTPThunk({
+        email: emailForVerification,
+        otp: verificationOtp,
+      })
+    );
   };
 
   if (profileLoading) {
@@ -183,7 +330,9 @@ const UserProfile = () => {
         <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700 shadow-2xl">
           <div className="flex items-center space-x-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            <span className="text-gray-300 text-lg">Loading your profile...</span>
+            <span className="text-gray-300 text-lg">
+              Loading your profile...
+            </span>
           </div>
         </div>
       </div>
@@ -192,11 +341,22 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-black py-8 px-4">
+      <ToastContainer />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
+      
+      <NavLink to="/" className="mb-6 inline-block text-gray-400 hover:text-orange-400 transition-colors ">
+          <ArrowLeft className="inline-block mr-2" /> 
+         Back
+        </NavLink>
+      
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Profile Settings</h1>
-          <p className="text-gray-400">Manage your account settings and preferences</p>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Profile Settings
+          </h1>
+          <p className="text-gray-400">
+            Manage your account settings and preferences
+          </p>
         </div>
 
         {/* Success Message */}
@@ -222,21 +382,23 @@ const UserProfile = () => {
                   <span className="mr-2">📸</span>
                   Profile Photo
                 </h3>
-                
+
                 {/* Profile Image Display */}
                 <div className="text-center mb-6">
                   <div className="relative inline-block">
                     <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 p-1 mx-auto shadow-xl">
                       <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
                         {formData.profileImagePreview ? (
-                          <img 
-                            src={formData.profileImagePreview} 
-                            alt="Profile" 
+                          <img
+                            src={formData.profileImagePreview}
+                            alt="Profile"
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <span className="text-4xl text-orange-400">
-                            {formData.firstName ? formData.firstName.charAt(0).toUpperCase() : '👤'}
+                            {formData.firstName
+                              ? formData.firstName.charAt(0).toUpperCase()
+                              : "👤"}
                           </span>
                         )}
                       </div>
@@ -250,9 +412,9 @@ const UserProfile = () => {
                 {/* Drag and Drop Zone */}
                 <div
                   className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300 ${
-                    dragActive 
-                      ? 'border-orange-400 bg-orange-400/10' 
-                      : 'border-gray-600 hover:border-orange-400/50 hover:bg-orange-400/5'
+                    dragActive
+                      ? "border-orange-400 bg-orange-400/10"
+                      : "border-gray-600 hover:border-orange-400/50 hover:bg-orange-400/5"
                   }`}
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
@@ -306,7 +468,7 @@ const UserProfile = () => {
                     <span className="mr-2">👤</span>
                     Personal Information
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* First Name */}
                     <div>
@@ -319,14 +481,16 @@ const UserProfile = () => {
                         value={formData.firstName}
                         onChange={handleChange}
                         className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 ${
-                          validationErrors.firstName 
-                            ? 'border-red-500 focus:ring-red-500/30' 
-                            : 'border-gray-600 focus:ring-orange-500/30 focus:border-orange-500'
+                          validationErrors.firstName
+                            ? "border-red-500 focus:ring-red-500/30"
+                            : "border-gray-600 focus:ring-orange-500/30 focus:border-orange-500"
                         }`}
                         placeholder="Enter your first name"
                       />
                       {validationErrors.firstName && (
-                        <p className="mt-2 text-red-400 text-sm">⚠️ {validationErrors.firstName}</p>
+                        <p className="mt-2 text-red-400 text-sm">
+                          ⚠️ {validationErrors.firstName}
+                        </p>
                       )}
                     </div>
 
@@ -358,14 +522,16 @@ const UserProfile = () => {
                         min="6"
                         max="80"
                         className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 ${
-                          validationErrors.age 
-                            ? 'border-red-500 focus:ring-red-500/30' 
-                            : 'border-gray-600 focus:ring-orange-500/30 focus:border-orange-500'
+                          validationErrors.age
+                            ? "border-red-500 focus:ring-red-500/30"
+                            : "border-gray-600 focus:ring-orange-500/30 focus:border-orange-500"
                         }`}
                         placeholder="Enter your age (6-80)"
                       />
                       {validationErrors.age && (
-                        <p className="mt-2 text-red-400 text-sm">⚠️ {validationErrors.age}</p>
+                        <p className="mt-2 text-red-400 text-sm">
+                          ⚠️ {validationErrors.age}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -377,7 +543,7 @@ const UserProfile = () => {
                     <span className="mr-2">🌐</span>
                     Social Links
                   </h3>
-                  
+
                   <div className="space-y-4">
                     {/* LinkedIn */}
                     <div>
@@ -391,14 +557,16 @@ const UserProfile = () => {
                         value={formData.linkedin}
                         onChange={handleChange}
                         className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 ${
-                          validationErrors.linkedin 
-                            ? 'border-red-500 focus:ring-red-500/30' 
-                            : 'border-gray-600 focus:ring-orange-500/30 focus:border-orange-500'
+                          validationErrors.linkedin
+                            ? "border-red-500 focus:ring-red-500/30"
+                            : "border-gray-600 focus:ring-orange-500/30 focus:border-orange-500"
                         }`}
                         placeholder="https://linkedin.com/in/yourprofile"
                       />
                       {validationErrors.linkedin && (
-                        <p className="mt-2 text-red-400 text-sm">⚠️ {validationErrors.linkedin}</p>
+                        <p className="mt-2 text-red-400 text-sm">
+                          ⚠️ {validationErrors.linkedin}
+                        </p>
                       )}
                     </div>
 
@@ -414,14 +582,16 @@ const UserProfile = () => {
                         value={formData.github}
                         onChange={handleChange}
                         className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 ${
-                          validationErrors.github 
-                            ? 'border-red-500 focus:ring-red-500/30' 
-                            : 'border-gray-600 focus:ring-orange-500/30 focus:border-orange-500'
+                          validationErrors.github
+                            ? "border-red-500 focus:ring-red-500/30"
+                            : "border-gray-600 focus:ring-orange-500/30 focus:border-orange-500"
                         }`}
                         placeholder="https://github.com/yourusername"
                       />
                       {validationErrors.github && (
-                        <p className="mt-2 text-red-400 text-sm">⚠️ {validationErrors.github}</p>
+                        <p className="mt-2 text-red-400 text-sm">
+                          ⚠️ {validationErrors.github}
+                        </p>
                       )}
                     </div>
 
@@ -437,14 +607,16 @@ const UserProfile = () => {
                         value={formData.twitter}
                         onChange={handleChange}
                         className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 ${
-                          validationErrors.twitter 
-                            ? 'border-red-500 focus:ring-red-500/30' 
-                            : 'border-gray-600 focus:ring-orange-500/30 focus:border-orange-500'
+                          validationErrors.twitter
+                            ? "border-red-500 focus:ring-red-500/30"
+                            : "border-gray-600 focus:ring-orange-500/30 focus:border-orange-500"
                         }`}
                         placeholder="https://twitter.com/yourusername"
                       />
                       {validationErrors.twitter && (
-                        <p className="mt-2 text-red-400 text-sm">⚠️ {validationErrors.twitter}</p>
+                        <p className="mt-2 text-red-400 text-sm">
+                          ⚠️ {validationErrors.twitter}
+                        </p>
                       )}
                     </div>
 
@@ -460,14 +632,16 @@ const UserProfile = () => {
                         value={formData.website}
                         onChange={handleChange}
                         className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 ${
-                          validationErrors.website 
-                            ? 'border-red-500 focus:ring-red-500/30' 
-                            : 'border-gray-600 focus:ring-orange-500/30 focus:border-orange-500'
+                          validationErrors.website
+                            ? "border-red-500 focus:ring-red-500/30"
+                            : "border-gray-600 focus:ring-orange-500/30 focus:border-orange-500"
                         }`}
                         placeholder="https://yourwebsite.com"
                       />
                       {validationErrors.website && (
-                        <p className="mt-2 text-red-400 text-sm">⚠️ {validationErrors.website}</p>
+                        <p className="mt-2 text-red-400 text-sm">
+                          ⚠️ {validationErrors.website}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -487,8 +661,8 @@ const UserProfile = () => {
                     disabled={updateProfileLoading}
                     className={`px-8 py-3 rounded-xl font-semibold text-white transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-orange-500/30 ${
                       updateProfileLoading
-                        ? 'bg-gray-600 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg hover:shadow-xl'
+                        ? "bg-gray-600 cursor-not-allowed"
+                        : "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg hover:shadow-xl"
                     }`}
                   >
                     {updateProfileLoading ? (
@@ -508,28 +682,264 @@ const UserProfile = () => {
             </div>
           </div>
 
+          {/* Email Verification Section */}
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-orange-400 flex items-center">
+                <span className="mr-2">✉️</span>
+                Email Verification
+              </h3>
+              {profile?.user?.isEmailVerified ? (
+                <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full flex items-center">
+                  <span className="mr-1">✓</span> Verified
+                </span>
+              ) : (
+                <button
+                  onClick={() =>
+                    setShowEmailVerification(!showEmailVerification)
+                  }
+                  className="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm rounded-full hover:bg-orange-500/30 transition-colors"
+                >
+                  {showEmailVerification ? "Hide" : "Verify Email"}
+                </button>
+              )}
+            </div>
+
+            {!profile?.user?.isEmailVerified && showEmailVerification && (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <p className="text-gray-400 text-sm mb-2">
+                    We'll send a verification code to your email address:{" "}
+                    <span className="font-medium text-white">
+                      {emailForVerification}
+                    </span>
+                  </p>
+
+                  {requestEmailVerificationOTPError && (
+                    <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm mb-4">
+                      ⚠️ {requestEmailVerificationOTPError}
+                    </div>
+                  )}
+
+                  {verifyEmailOTPError && (
+                    <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm mb-4">
+                      ⚠️ {verifyEmailOTPError}
+                    </div>
+                  )}
+
+                  {requestEmailVerificationOTPSuccess &&
+                    !verifyEmailOTPSuccess && (
+                      <div className="p-3 bg-green-500/20 border border-green-500/30 rounded-xl text-green-400 text-sm mb-4">
+                        Verification code sent to your email! Please check your
+                        inbox.
+                      </div>
+                    )}
+
+                  {!requestEmailVerificationOTPSuccess ? (
+                    <button
+                      onClick={handleRequestVerificationOTP}
+                      disabled={requestEmailVerificationOTPLoading}
+                      className={`w-full px-4 py-3 rounded-xl font-medium text-white transition-all ${
+                        requestEmailVerificationOTPLoading
+                          ? "bg-gray-600 cursor-not-allowed"
+                          : "bg-orange-500 hover:bg-orange-600"
+                      }`}
+                    >
+                      {requestEmailVerificationOTPLoading ? (
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          <span>Sending OTP...</span>
+                        </div>
+                      ) : (
+                        "Send Verification Code"
+                      )}
+                    </button>
+                  ) : (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-gray-300 text-sm font-medium mb-2">
+                          Verification Code
+                        </label>
+                        <input
+                          type="text"
+                          value={verificationOtp}
+                          onChange={(e) => setVerificationOtp(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
+                          placeholder="Enter 6-digit code"
+                        />
+                        {validationErrors.otp && (
+                          <p className="mt-2 text-red-400 text-sm">
+                            ⚠️ {validationErrors.otp}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={handleVerifyEmail}
+                        disabled={verifyEmailOTPLoading}
+                        className={`w-full px-4 py-3 rounded-xl font-medium text-white transition-all ${
+                          verifyEmailOTPLoading
+                            ? "bg-gray-600 cursor-not-allowed"
+                            : "bg-green-500 hover:bg-green-600"
+                        }`}
+                      >
+                        {verifyEmailOTPLoading ? (
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            <span>Verifying...</span>
+                          </div>
+                        ) : (
+                          "Verify Email"
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Change Password Section */}
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-orange-400 flex items-center">
+                <span className="mr-2">🔒</span>
+                Change Password
+              </h3>
+              <button
+                onClick={() => setShowChangePassword(!showChangePassword)}
+                className="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm rounded-full hover:bg-orange-500/30 transition-colors"
+              >
+                {showChangePassword ? "Hide" : "Change Password"}
+              </button>
+            </div>
+
+            {showChangePassword && (
+              <form onSubmit={handlePasswordSubmit} className="mt-4 space-y-4">
+                {changePasswordError && (
+                  <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm">
+                    ⚠️ {changePasswordError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Current Password
+                  </label>
+                  <input
+                    type="password"
+                    name="oldPassword"
+                    value={passwordData.oldPassword}
+                    onChange={handlePasswordChange}
+                    className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 ${
+                      passwordErrors.oldPassword
+                        ? "border-red-500 focus:ring-red-500/30"
+                        : "border-gray-600 focus:ring-orange-500/30 focus:border-orange-500"
+                    }`}
+                    placeholder="Enter your current password"
+                  />
+                  {passwordErrors.oldPassword && (
+                    <p className="mt-2 text-red-400 text-sm">
+                      ⚠️ {passwordErrors.oldPassword}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 ${
+                      passwordErrors.newPassword
+                        ? "border-red-500 focus:ring-red-500/30"
+                        : "border-gray-600 focus:ring-orange-500/30 focus:border-orange-500"
+                    }`}
+                    placeholder="Enter new password (min 6 characters)"
+                  />
+                  {passwordErrors.newPassword && (
+                    <p className="mt-2 text-red-400 text-sm">
+                      ⚠️ {passwordErrors.newPassword}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    className={`w-full px-4 py-3 bg-gray-700/50 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 ${
+                      passwordErrors.confirmPassword
+                        ? "border-red-500 focus:ring-red-500/30"
+                        : "border-gray-600 focus:ring-orange-500/30 focus:border-orange-500"
+                    }`}
+                    placeholder="Confirm your new password"
+                  />
+                  {passwordErrors.confirmPassword && (
+                    <p className="mt-2 text-red-400 text-sm">
+                      ⚠️ {passwordErrors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={changePasswordLoading}
+                  className={`w-full px-4 py-3 rounded-xl font-medium text-white transition-all ${
+                    changePasswordLoading
+                      ? "bg-gray-600 cursor-not-allowed"
+                      : "bg-orange-500 hover:bg-orange-600"
+                  }`}
+                >
+                  {changePasswordLoading ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Updating...</span>
+                    </div>
+                  ) : (
+                    "Change Password"
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
+
           {/* Profile Preview Section */}
-          {(formData.firstName || formData.lastName || Object.values(formData).some(val => typeof val === 'string' && val.startsWith('http'))) && (
+          {(formData.firstName ||
+            formData.lastName ||
+            Object.values(formData).some(
+              (val) => typeof val === "string" && val.startsWith("http")
+            )) && (
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-2xl">
               <h3 className="text-xl font-semibold text-orange-400 mb-6 flex items-center">
                 <span className="mr-2">👁️</span>
                 Profile Preview
               </h3>
-              
+
               <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
                 {/* Preview Image */}
                 <div className="flex-shrink-0">
                   <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 p-1 shadow-lg">
                     <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
                       {formData.profileImagePreview ? (
-                        <img 
-                          src={formData.profileImagePreview} 
-                          alt="Profile Preview" 
+                        <img
+                          src={formData.profileImagePreview}
+                          alt="Profile Preview"
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <span className="text-2xl text-orange-400">
-                          {formData.firstName ? formData.firstName.charAt(0).toUpperCase() : '👤'}
+                          {formData.firstName
+                            ? formData.firstName.charAt(0).toUpperCase()
+                            : "👤"}
                         </span>
                       )}
                     </div>
@@ -540,15 +950,42 @@ const UserProfile = () => {
                 <div className="flex-1 text-center md:text-left">
                   <h4 className="text-lg font-semibold text-white mb-2">
                     {formData.firstName} {formData.lastName}
-                    {formData.age && <span className="text-gray-400 text-sm ml-2">({formData.age} years old)</span>}
+                    {formData.age && (
+                      <span className="text-gray-400 text-sm ml-2">
+                        ({formData.age} years old)
+                      </span>
+                    )}
                   </h4>
-                  
+
+                  {/* Email Verification Status */}
+                  <div className="mb-3">
+                    <span
+                      className={`text-sm ${
+                        profile?.user?.isEmailVerified
+                          ? "text-green-400"
+                          : "text-yellow-400"
+                      }`}
+                    >
+                      {profile?.user?.isEmailVerified ? (
+                        <span className="flex items-center">
+                          <span className="mr-1">✓</span> Verified Email:{" "}
+                          {profile?.user?.email}
+                        </span>
+                      ) : (
+                        <span className="flex items-center">
+                          <span className="mr-1">⚠️</span> Email not verified:{" "}
+                          {profile?.user?.email}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
                   {/* Social Links Preview */}
                   <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-3">
                     {formData.linkedin && (
-                      <a 
-                        href={formData.linkedin} 
-                        target="_blank" 
+                      <a
+                        href={formData.linkedin}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center space-x-1 px-3 py-1 bg-blue-600/20 border border-blue-600/30 rounded-full text-blue-400 text-sm hover:bg-blue-600/30 transition-colors duration-200"
                       >
@@ -557,9 +994,9 @@ const UserProfile = () => {
                       </a>
                     )}
                     {formData.github && (
-                      <a 
-                        href={formData.github} 
-                        target="_blank" 
+                      <a
+                        href={formData.github}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center space-x-1 px-3 py-1 bg-gray-600/20 border border-gray-600/30 rounded-full text-gray-400 text-sm hover:bg-gray-600/30 transition-colors duration-200"
                       >
@@ -568,9 +1005,9 @@ const UserProfile = () => {
                       </a>
                     )}
                     {formData.twitter && (
-                      <a 
-                        href={formData.twitter} 
-                        target="_blank" 
+                      <a
+                        href={formData.twitter}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center space-x-1 px-3 py-1 bg-blue-400/20 border border-blue-400/30 rounded-full text-blue-400 text-sm hover:bg-blue-400/30 transition-colors duration-200"
                       >
@@ -579,9 +1016,9 @@ const UserProfile = () => {
                       </a>
                     )}
                     {formData.website && (
-                      <a 
-                        href={formData.website} 
-                        target="_blank" 
+                      <a
+                        href={formData.website}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center space-x-1 px-3 py-1 bg-green-600/20 border border-green-600/30 rounded-full text-green-400 text-sm hover:bg-green-600/30 transition-colors duration-200"
                       >
