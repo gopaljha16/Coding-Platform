@@ -1,4 +1,4 @@
-const redisClient = require("../config/redis");
+const redisWrapper = require("../config/redis");
 const crypto = require("crypto");
 
 const windowsize = 3600; // 60 minutes
@@ -11,21 +11,21 @@ const rateLimiter = async (req, res, next) => {
         const currentTime = Date.now() / 1000; // convert to seconds
         const window_time = currentTime - windowsize;
 
-        await redisClient.zRemRangeByScore(ip, 0, window_time);
+        await redisWrapper.zRemRangeByScore(ip, 0, window_time);
 
-        const number_of_request = await redisClient.zCard(ip);
+        const number_of_request = await redisWrapper.zCard(ip);
 
          if(number_of_request>max_Request)
             return res.status(500).send("Rate Limit Exceed , Try again Later.");
 
          const randomNumber = crypto.randomBytes(8).toString("hex");
 
-         await redisClient.zAdd(ip, [{
+         await redisWrapper.zAdd(ip, [{
             score: currentTime,
             value: `${currentTime}:${randomNumber}`
         }]);
 
-        await redisClient.expire(ip, windowsize) ;
+        await redisWrapper.expire(ip, windowsize) ;
 
         next(); 
 

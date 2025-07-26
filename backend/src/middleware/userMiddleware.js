@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const redisClient = require("../config/redis");
+const redisWrapper = require("../config/redis");
 const User = require("../models/user");
 
 const userMiddleware = async (req, res, next) => {
@@ -35,7 +35,7 @@ const userMiddleware = async (req, res, next) => {
         }
 
         // 4. Check if token is blocked in Redis
-        const isBlocked = await redisClient.exists(`token:${token}`);
+        const isBlocked = await redisWrapper.exists(`token:${token}`);
         if (isBlocked) {
             return res.status(401).json({
                 success: false,

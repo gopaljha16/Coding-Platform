@@ -1,5 +1,5 @@
 const { OAuth2Client } = require('google-auth-library');
-const redisClient = require("../config/redis");
+const redisWrapper = require("../config/redis");
 const validate = require("../utils/validator");
 const bcrypt = require('bcrypt');
 const User = require("../models/user");
@@ -86,10 +86,10 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
     try {
         const { token } = req.cookies;
-        await redisClient.set(`token:${token}`, "Blocked");
+        await redisWrapper.set(`token:${token}`, "Blocked");
 
         const payload = jwt.decode(token);
-        await redisClient.expireAt(`token:${token}`, payload.exp);
+        await redisWrapper.expireAt(`token:${token}`, payload.exp);
 
         res.cookie("token", null, { expires: new Date(Date.now()) });
         res.status(200).send("User Logged Out Successfully");

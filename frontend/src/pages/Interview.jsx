@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 // Import your API functions
-import { useInterviewAPI, handleAPIError , createInterviewSession  } from "../utils/Ai/interviewAPI";
+import { useInterviewAPI, handleAPIError, createInterviewSession } from "../utils/Ai/interviewAPI";
 
 const Interview = () => {
   const [stage, setStage] = useState("upload");
@@ -59,6 +59,7 @@ const Interview = () => {
     endInterview,
     getSessionStatus,
     getFeedback,
+    generateFeedback,
   } = useInterviewAPI();
 
   // Timer management
@@ -89,14 +90,34 @@ const Interview = () => {
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
+      recognitionRef.current.continuous = true; // Enable continuous listening
+      recognitionRef.current.interimResults = true; // Enable interim results for real-time feedback
       recognitionRef.current.lang = "en-US";
 
+      // Store the complete transcript from all final results
+      let finalTranscript = '';
+      
       recognitionRef.current.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setTextInput(transcript);
-        setIsRecording(false);
+        let interimTranscript = '';
+        
+        // Process all results, both final and interim
+        for (let i = 0; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript + ' ';
+          } else {
+            interimTranscript += result[0].transcript;
+          }
+        }
+        
+        // Update the text input with both final and interim transcripts
+        // Final transcript contains all completed sentences
+        // Interim transcript contains the current in-progress speech
+        setTextInput(finalTranscript + interimTranscript);
+        
+        // For debugging
+        console.log('Final transcript:', finalTranscript);
+        console.log('Interim transcript:', interimTranscript);
       };
 
       recognitionRef.current.onerror = (event) => {
@@ -104,6 +125,7 @@ const Interview = () => {
         setIsRecording(false);
       };
 
+      // Only set isRecording to false when recognition actually ends
       recognitionRef.current.onend = () => {
         setIsRecording(false);
       };
@@ -256,10 +278,58 @@ const Interview = () => {
       // Get detailed feedback
       const feedbackResponse = await getFeedback(sessionId);
 
-      setResult(feedbackResponse.feedback || endResponse.feedback);
-      setSessionStats(
-        feedbackResponse.sessionStats || endResponse.sessionStats
-      );
+      // Check if feedback response was successful and contains data
+      if (feedbackResponse.success && feedbackResponse.data) {
+        // Extract feedback and sessionStats from the response
+        const feedbackData = feedbackResponse.data;
+        
+        // Check if feedback is nested inside a feedback property or directly in the data
+        if (feedbackData.feedback) {
+          // New structure: { feedback: {...}, sessionStats: {...} }
+          setResult(feedbackData.feedback);
+          setSessionStats(feedbackData.sessionStats);
+        } else {
+          // Old structure or direct data object
+          setResult(feedbackData);
+          setSessionStats(feedbackData.sessionStats);
+        }
+      } else {
+        // Use feedback from endResponse if available
+        if (endResponse && endResponse.data) {
+          const endData = endResponse.data;
+          if (endData.feedback) {
+            setResult(endData.feedback);
+            setSessionStats(endData.sessionStats);
+          } else {
+            setResult(endData);
+            setSessionStats(endData.sessionStats);
+          }
+        } else {
+          // Fallback to default feedback if nothing is available
+          setResult({
+            overallScore: 65,
+            technicalScore: 60,
+            communicationScore: 70,
+            strengths: ["Completed the interview", "Showed engagement"],
+            weaknesses: ["Could provide more detailed responses", "Technical depth needs improvement"],
+            improvements: [
+              "Practice explaining technical concepts with examples",
+              "Prepare STAR method responses",
+              "Study fundamental concepts more deeply"
+            ],
+            detailedAnalysis: "Good participation in the interview. Focus on providing more specific examples and deeper technical explanations."
+          });
+          
+          // Set default session stats
+          setSessionStats({
+            duration: 0,
+            questionsAnswered: 0,
+            averageResponseTime: 0,
+            completionRate: 0,
+            keySkillsEvaluated: keySkills
+          });
+        }
+      }
       setStage("result");
     } catch (error) {
       console.error("Error ending interview:", error);
@@ -287,6 +357,36 @@ const Interview = () => {
 
   const startRecording = () => {
     if (recognitionRef.current) {
+      // Reset the text input when starting a new recording
+      setTextInput('');
+      
+      // Reset the finalTranscript in the recognition handler
+      if (typeof recognitionRef.current.onresult === 'function') {
+        const originalOnResult = recognitionRef.current.onresult;
+        recognitionRef.current.onresult = function(event) {
+          // Create a new closure with a fresh finalTranscript
+          let finalTranscript = '';
+          
+          // Process all results, both final and interim
+          let interimTranscript = '';
+          for (let i = 0; i < event.results.length; i++) {
+            const result = event.results[i];
+            if (result.isFinal) {
+              finalTranscript += result[0].transcript + ' ';
+            } else {
+              interimTranscript += result[0].transcript;
+            }
+          }
+          
+          // Update the text input with both final and interim transcripts
+          setTextInput(finalTranscript + interimTranscript);
+          
+          // For debugging
+          console.log('Final transcript:', finalTranscript);
+          console.log('Interim transcript:', interimTranscript);
+        };
+      }
+      
       setIsRecording(true);
       recognitionRef.current.start();
     }
@@ -335,6 +435,10 @@ const Interview = () => {
 
   const handleSubmit = () => {
     if (textInput.trim()) {
+      // Stop recording if it's active before submitting
+      if (isRecording) {
+        stopRecording();
+      }
       handleUserAnswer(textInput);
     }
   };
@@ -634,7 +738,7 @@ const Interview = () => {
               {isRecording && (
                 <div className="flex items-center justify-center mt-3 text-red-400 text-sm font-medium">
                   <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                  Recording... Speak clearly into your microphone
+                  Recording... Speak clearly into your microphone. Click the microphone button again or the send button when finished.
                 </div>
               )}
             </div>
@@ -647,7 +751,7 @@ const Interview = () => {
   // Results Stage
   if (stage === "result") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+      <div id="results-section" className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
         <div className="max-w-6xl mx-auto p-6">
           {/* Header */}
           <div className="text-center mb-8">
@@ -674,7 +778,7 @@ const Interview = () => {
           ) : (
             <div className="space-y-8">
               {/* Score Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 shadow-2xl">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
@@ -728,7 +832,55 @@ const Interview = () => {
                     ></div>
                   </div>
                 </div>
+
+                <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 shadow-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <FileText className="w-6 h-6 text-purple-500" />
+                      <h3 className="font-semibold text-lg">ATS Score</h3>
+                    </div>
+                    <div className="text-3xl font-bold text-purple-400">
+                      {result?.atsScore || 0}%
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-1000"
+                      style={{ width: `${result?.atsScore || 0}%` }}
+                    ></div>
+                  </div>
+                </div>
               </div>
+
+              {/* Hiring Recommendation */}
+              {result?.hiringRecommendation && (
+                <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 shadow-2xl">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <Award className="w-6 h-6 text-amber-500" />
+                    <h3 className="font-semibold text-lg">Hiring Recommendation</h3>
+                  </div>
+                  <div className="prose prose-invert max-w-none">
+                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {result.hiringRecommendation}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Career Advice */}
+              {result?.careerAdvice && (
+                <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 shadow-2xl">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <TrendingUp className="w-6 h-6 text-emerald-500" />
+                    <h3 className="font-semibold text-lg">Career Development Advice</h3>
+                  </div>
+                  <div className="prose prose-invert max-w-none">
+                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {result.careerAdvice}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Session Statistics */}
               {sessionStats && (
@@ -886,8 +1038,24 @@ const Interview = () => {
                 </div>
               )}
 
+              {/* Feedback Status Message */}
+              {error && (
+                <div className="mb-6 bg-red-500/20 border border-red-500/50 rounded-xl p-4 text-center">
+                  <div className="flex items-center justify-center space-x-2 mb-2">
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                    <span className="font-medium text-red-400">{error}</span>
+                  </div>
+                  <button 
+                    onClick={dismissError}
+                    className="text-xs text-gray-400 hover:text-white transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+              
               {/* Action Buttons */}
-              <div className="flex justify-center space-x-4">
+                <div className="flex justify-center space-x-4 flex-wrap gap-4">
                 <button
                   onClick={resetInterview}
                   className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2 font-medium"
@@ -903,6 +1071,54 @@ const Interview = () => {
                   <FileText className="w-5 h-5" />
                   <span>Save Results</span>
                 </button>
+                
+                {/* Regenerate Feedback Button */}
+                {!result || Object.keys(result).length === 0 ? (
+                  <button
+                    onClick={async () => {
+                      setLoading(true);
+                      setError(""); // Clear any previous errors
+                      try {
+                        const feedbackResponse = await generateFeedback(sessionId);
+                        if (feedbackResponse.success && feedbackResponse.data) {
+                          const feedbackData = feedbackResponse.data;
+                          
+                          if (feedbackData.feedback) {
+                            setResult(feedbackData.feedback);
+                            setSessionStats(feedbackData.sessionStats);
+                          } else {
+                            setResult(feedbackData);
+                            setSessionStats(feedbackData.sessionStats);
+                          }
+                          
+                          // Scroll to top of results section
+                          document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
+                        } else {
+                          setError(feedbackResponse.error || "Failed to generate feedback. Please try again.");
+                        }
+                      } catch (error) {
+                        console.error("Error generating feedback:", error);
+                        setError("Failed to generate feedback. Please try again.");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2 font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-5 h-5" />
+                        <span>Generate Feedback</span>
+                      </>
+                    )}
+                  </button>
+                ) : null}
               </div>
             </div>
           )}

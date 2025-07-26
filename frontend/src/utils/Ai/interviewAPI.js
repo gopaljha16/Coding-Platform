@@ -54,12 +54,27 @@ export const createInterviewSession = async (file, candidateInfo) => {
     // First upload the resume
     const uploadResult = await interviewAPI.uploadResume(file);
     
-    if (!uploadResult.success) {
-      throw new Error(uploadResult.error);
+    // Backend returns {success: true, data: {...}} directly now
+    if (!uploadResult || !uploadResult.success) {
+      throw new Error(uploadResult?.error || 'Resume upload failed');
     }
     
     // Get the extracted text from the upload response
-    const resumeText = uploadResult.data.text;
+    // Check if text property exists in the response
+    // The backend returns a nested structure: {success: true, data: {text: "...", ...}}
+    if (!uploadResult.data) {
+      console.error('Invalid upload response:', uploadResult);
+      throw new Error('Resume text extraction failed. Please try a different file.');
+    }
+    
+    // Handle nested data structure
+    const resumeData = uploadResult.data;
+    if (!resumeData.text) {
+      console.error('No text found in upload response:', resumeData);
+      throw new Error('Resume text extraction failed. Please try a different file.');
+    }
+    
+    const resumeText = resumeData.text;
     
     // DEBUG: Log extracted text
     console.log('Extracted Resume Text:', resumeText.substring(0, 100) + '...');
@@ -67,7 +82,7 @@ export const createInterviewSession = async (file, candidateInfo) => {
     
     // Then create session with the uploaded resume data
     const sessionResult = await interviewAPI.createSession({
-      resumeText, // Make sure this key matches backend expectation
+      resumeText, // This is the key expected by createSession
       fileName: file.name,
       fileSize: file.size,
       candidate: {
@@ -123,18 +138,27 @@ export const interviewAPI = {
   // Create new interview session
   createSession: async (resumeData) => {
     try {
+      // Validate resumeData
+      if (!resumeData.resumeText || resumeData.resumeText.length < 10) {
+        console.error('Invalid resume data:', resumeData);
+        return {
+          success: false,
+          error: 'Resume text is required and must be at least 10 characters'
+        };
+      }
+
       const response = await fetch('http://localhost:3000/api/ai/create-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          resumeText: resumeData.text,
+          resumeText: resumeData.resumeText, // Using the property name from createInterviewSession
           fileName: resumeData.fileName,
           fileSize: resumeData.fileSize,
-          candidate: {
-            name: resumeData.candidateName,
-            email: resumeData.candidateEmail,
+          candidate: resumeData.candidate || {
+            name: 'Anonymous',
+            email: ''
           }
         })
       });
@@ -160,8 +184,28 @@ export const interviewAPI = {
   },
 
   // Continue interview with user answer
-  continueInterview: async (sessionId, userAnswer) => {
+  continueInterview: async (sessionId, answerData) => {
     try {
+      // Validate answerData
+      if (!answerData) {
+        return {
+          success: false,
+          error: 'Answer data is required'
+        };
+      }
+
+      // Extract the answer text, ensuring it's a string
+      const userAnswerText = typeof answerData.text === 'string' 
+        ? answerData.text.trim() 
+        : (typeof answerData === 'string' ? answerData.trim() : '');
+      
+      if (!userAnswerText) {
+        return {
+          success: false,
+          error: 'Answer text is required'
+        };
+      }
+
       const response = await fetch('http://localhost:3000/api/ai/continue', {
         method: 'POST',
         headers: {
@@ -169,7 +213,8 @@ export const interviewAPI = {
         },
         body: JSON.stringify({
           sessionId,
-          userAnswer: userAnswer.trim(),
+          userAnswer: userAnswerText,
+          responseTime: answerData.responseTime,
           timestamp: new Date().toISOString()
         })
       });
@@ -245,10 +290,9 @@ export const interviewAPI = {
         }
       });
 
-      return {
-        success: true,
-        data: response.data
-      };
+      // The backend returns {success: true, data: {text: "...", ...}}
+      // We want to preserve this structure for proper handling in createInterviewSession
+      return response.data;
     } catch (error) {
       return {
         success: false,
@@ -262,14 +306,53 @@ export const interviewAPI = {
     try {
       const response = await apiClient.get(`/ai/feedback/${sessionId}`);
 
-      return {
-        success: true,
-        data: response.data
-      };
+      // Check if the response contains the expected data structure
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          data: response.data.data // Extract the nested data object
+        };
+      } else {
+        // Handle case where response is successful but doesn't have expected structure
+        console.warn('Feedback response missing expected data structure:', response.data);
+        return {
+          success: true,
+          data: response.data // Return whatever data is available
+        };
+      }
     } catch (error) {
+      console.error('Error fetching feedback:', error.response || error);
       return {
         success: false,
-        error: error.response?.data?.message || 'Failed to get feedback'
+        error: error.response?.data?.message || 'Failed to get feedback',
+        status: error.response?.status
+      };
+    }
+  },
+  
+  // Generate feedback for a session (useful if feedback wasn't generated automatically)
+  generateFeedback: async (sessionId) => {
+    try {
+      const response = await apiClient.post(`/ai/generate-feedback/${sessionId}`);
+      
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          data: response.data.data
+        };
+      } else {
+        console.warn('Feedback generation response missing expected data structure:', response.data);
+        return {
+          success: true,
+          data: response.data
+        };
+      }
+    } catch (error) {
+      console.error('Error generating feedback:', error.response || error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to generate feedback',
+        status: error.response?.status
       };
     }
   },
@@ -331,12 +414,22 @@ export const useInterviewAPI = () => {
       // First upload the resume
       const uploadResult = await interviewAPI.uploadResume(resumeFile);
 
-      if (!uploadResult.success) {
-        throw new Error(uploadResult.error);
+      // Backend returns {success: true, data: {...}} directly now
+      if (!uploadResult || !uploadResult.success) {
+        throw new Error(uploadResult?.error || 'Resume upload failed');
       }
 
       // Then create session with the uploaded resume data
-      const sessionResult = await interviewAPI.createSession(uploadResult.data);
+      // Convert the data structure to match what createSession expects
+      const sessionResult = await interviewAPI.createSession({
+        resumeText: uploadResult.data.text,
+        fileName: uploadResult.data.fileName,
+        fileSize: uploadResult.data.fileSize,
+        candidate: {
+          name: uploadResult.data.candidateName,
+          email: uploadResult.data.candidateEmail
+        }
+      });
 
       if (!sessionResult.success) {
         throw new Error(sessionResult.error);
@@ -351,10 +444,12 @@ export const useInterviewAPI = () => {
 
   const continueInterview = async (sessionId, userAnswer, responseTime) => {
     try {
-      const result = await interviewAPI.continueInterview(sessionId, {
-        ...userAnswer,
-        responseTime
-      });
+      // Check if userAnswer is a string or an object
+      const answerData = typeof userAnswer === 'string' 
+        ? { text: userAnswer, responseTime } 
+        : { ...userAnswer, responseTime };
+      
+      const result = await interviewAPI.continueInterview(sessionId, answerData);
 
       if (!result.success) {
         throw new Error(result.error);
@@ -382,12 +477,29 @@ export const useInterviewAPI = () => {
     }
   };
 
+  // Generate feedback manually (useful for debugging or if automatic generation fails)
+  const generateFeedback = async (sessionId) => {
+    try {
+      const result = await interviewAPI.generateFeedback(sessionId);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Generate feedback error:', error);
+      throw error;
+    }
+  };
+
   return {
     createSession,
     continueInterview,
     endInterview,
     getSessionStatus: interviewAPI.getSessionStatus,
     getFeedback: interviewAPI.getFeedback,
+    generateFeedback,
     saveRecording: interviewAPI.saveRecording
   };
 };

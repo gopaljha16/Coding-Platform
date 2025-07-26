@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const User = require('../models/user');
 const nodemailer = require('nodemailer');
-const redisClient = require('../config/redis');
+const redisWrapper = require('../config/redis');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
 
@@ -51,7 +51,7 @@ const requestEmailVerificationOTP = async (req, res) => {
 
         // Check rate limiting
         const rateLimitKey = `rate_limit:otp:${email}`;
-        const currentCount = await redisClient.get(rateLimitKey) || 0;
+        const currentCount = await redisWrapper.get(rateLimitKey) || 0;
         
         if (currentCount >= OTP_RATE_LIMIT.max) {
             return res.status(429).json({ 
@@ -71,11 +71,13 @@ const requestEmailVerificationOTP = async (req, res) => {
         const otp = generateOTP();
         
         // Store OTP and increment rate limit counter
-        await redisClient.multi()
-            .set(`otp:${email.toLowerCase()}`, otp, 'EX', 600)
-            .incr(rateLimitKey)
-            .expire(rateLimitKey, OTP_RATE_LIMIT.windowMs / 1000)
-            .exec();
+        // Since we're using a wrapper, we need to handle these operations individually
+        await redisWrapper.set(`otp:${email.toLowerCase()}`, otp, 'EX', 600);
+        
+        // Increment rate limit counter
+        const newCount = parseInt(await redisWrapper.get(rateLimitKey) || '0') + 1;
+        await redisWrapper.set(rateLimitKey, newCount);
+        await redisWrapper.expire(rateLimitKey, OTP_RATE_LIMIT.windowMs / 1000);
 
         await sendOTPEmail(email, otp);
 
@@ -119,7 +121,7 @@ const verifyEmailOTP = async (req, res) => {
             });
         }
 
-        const storedOTP = await redisClient.get(`otp:${email.toLowerCase()}`);
+        const storedOTP = await redisWrapper.get(`otp:${email.toLowerCase()}`);
         if (!storedOTP) {
             return res.status(400).json({ 
                 success: false, 
@@ -154,7 +156,7 @@ const verifyEmailOTP = async (req, res) => {
         await user.save();
 
         // Delete OTP from Redis
-        await redisClient.del(`otp:${email.toLowerCase()}`);
+        await redisWrapper.del(`otp:${email.toLowerCase()}`);
 
         res.status(200).json({ 
             success: true, 
@@ -205,7 +207,7 @@ const requestPasswordResetOTP = async (req, res) => {
 
         // Check rate limiting
         const rateLimitKey = `rate_limit:reset_otp:${email.toLowerCase()}`;
-        const currentCount = await redisClient.get(rateLimitKey) || 0;
+        const currentCount = await redisWrapper.get(rateLimitKey) || 0;
         
         if (currentCount >= OTP_RATE_LIMIT.max) {
             return res.status(429).json({ 
@@ -225,11 +227,13 @@ const requestPasswordResetOTP = async (req, res) => {
         const otp = generateOTP();
         
         // Store OTP and increment rate limit counter
-        await redisClient.multi()
-            .set(`resetotp:${email.toLowerCase()}`, otp, 'EX', 600)
-            .incr(rateLimitKey)
-            .expire(rateLimitKey, OTP_RATE_LIMIT.windowMs / 1000)
-            .exec();
+        // Since we're using a wrapper, we need to handle these operations individually
+        await redisWrapper.set(`resetotp:${email.toLowerCase()}`, otp, 'EX', 600);
+        
+        // Increment rate limit counter
+        const newCount = parseInt(await redisWrapper.get(rateLimitKey) || '0') + 1;
+        await redisWrapper.set(rateLimitKey, newCount);
+        await redisWrapper.expire(rateLimitKey, OTP_RATE_LIMIT.windowMs / 1000);
 
         const mailOptions = {
             from: process.env.EMAIL_USER,
@@ -286,7 +290,7 @@ const resetPassword = async (req, res) => {
             });
         }
 
-        const storedOTP = await redisClient.get(`resetotp:${email.toLowerCase()}`);
+        const storedOTP = await redisWrapper.get(`resetotp:${email.toLowerCase()}`);
         if (!storedOTP) {
             return res.status(400).json({ 
                 success: false, 
@@ -322,7 +326,7 @@ const resetPassword = async (req, res) => {
         await user.save();
 
         // Delete OTP from Redis
-        await redisClient.del(`resetotp:${email.toLowerCase()}`);
+        await redisWrapper.del(`resetotp:${email.toLowerCase()}`);
 
         res.status(200).json({ 
             success: true, 

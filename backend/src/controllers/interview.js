@@ -34,7 +34,7 @@ const extractKeySkills = (resume) => {
 
 // Helper function to generate context-aware questions
 const generateQuestionPrompt = (session, questionNumber) => {
-  const { conversation, keySkills } = session;
+  const { conversation, keySkills, resumeSnippet } = session;
 
   // Get last 2 exchanges to maintain context while saving tokens
   const recentContext = conversation.slice(-4);
@@ -43,25 +43,45 @@ const generateQuestionPrompt = (session, questionNumber) => {
   const difficulty = questionNumber <= 2 ? 'basic' : questionNumber <= 4 ? 'intermediate' : 'advanced';
   const focusSkill = keySkills[Math.min(questionNumber - 1, keySkills.length - 1)] || 'problem-solving';
 
-  const basePrompt = `You are a technical interviewer. Based on the candidate's skills: ${keySkills.join(', ')}.
+  const basePrompt = `You are an expert technical interviewer conducting a job interview.
 
-${contextText ? `Previous conversation:\n${contextText}\n` : ''}
+RESUME INFORMATION:
+${resumeSnippet || 'Not available'}
 
-Question ${questionNumber}/5 - Ask a ${difficulty} question about ${focusSkill}.
+CANDIDATE SKILLS: ${keySkills.join(', ')}
 
-Rules:
-- ONE question only
-- 15 words maximum
-- Be specific and technical
-- No greetings or explanations
-- Focus on practical application`;
+PREVIOUS CONVERSATION:
+${contextText ? contextText : 'No previous conversation'}
+
+CURRENT PROGRESS: Question ${questionNumber}/5 (Difficulty: ${difficulty})
+
+INSTRUCTIONS:
+1. Analyze the candidate's previous responses carefully
+2. Ask a follow-up ${difficulty} question that builds on their previous answers
+3. Focus on the skill: ${focusSkill}
+4. Make the question challenging but appropriate for an interview
+
+Your question must:
+- Be directly related to their resume or previous answers
+- Be specific and technical (not generic)
+- Be 15-20 words maximum
+- Contain no greetings or explanations
+- Test both knowledge and practical application
+- Progressively increase in difficulty
+
+Ask the next technical question now.`;
 
   return basePrompt;
 };
 
 // Helper function to generate feedback prompt
 const generateFeedbackPrompt = (session) => {
-  const { keySkills, conversation } = session;
+  const { keySkills, conversation, resumeSnippet, candidateInfo } = session;
+
+  // Extract full conversation for context
+  const fullConversation = conversation
+    .map(msg => `${msg.role.toUpperCase()}: ${msg.content}`)
+    .join('\n');
 
   // Extract only user responses for evaluation
   const userResponses = conversation
@@ -69,20 +89,44 @@ const generateFeedbackPrompt = (session) => {
     .map((msg, index) => `Q${index + 1}: ${msg.content}`)
     .join('\n');
 
-  return `Evaluate this technical interview for skills: ${keySkills.join(', ')}.
+  return `You are an expert hiring manager and technical interviewer evaluating a candidate's interview performance.
 
-Candidate Responses:
+RESUME INFORMATION:
+${resumeSnippet || 'Not available'}
+
+CANDIDATE INFORMATION:
+Name: ${candidateInfo?.name || 'Anonymous'}
+Key Skills: ${keySkills.join(', ')}
+
+FULL INTERVIEW TRANSCRIPT:
+${fullConversation}
+
+CANDIDATE RESPONSES ONLY:
 ${userResponses}
+
+EVALUATION INSTRUCTIONS:
+1. Carefully analyze the candidate's responses against their resume and the questions asked
+2. Evaluate technical knowledge, communication skills, problem-solving ability, and overall fit
+3. Provide an ATS (Applicant Tracking System) score that reflects how well their responses match job requirements
+4. Be thorough, specific, and actionable in your feedback
 
 Provide detailed feedback in JSON format only:
 {
   "overallScore": 0-100,
   "technicalScore": 0-100,
   "communicationScore": 0-100,
-  "strengths": ["strength1", "strength2"],
-  "weaknesses": ["area1", "area2"],
-  "improvements": ["tip1", "tip2", "tip3"],
-  "detailedAnalysis": "Brief analysis in 50-100 words"
+  "atsScore": 0-100,
+  "strengths": ["strength1", "strength2", "strength3"],
+  "weaknesses": ["area1", "area2", "area3"],
+  "improvements": ["tip1", "tip2", "tip3", "tip4"],
+  "skillsAssessment": {
+    "skill1": 0-100,
+    "skill2": 0-100,
+    "skill3": 0-100
+  },
+  "hiringRecommendation": "Strong hire/Consider hiring/Not recommended",
+  "detailedAnalysis": "Comprehensive analysis in 100-150 words",
+  "careerAdvice": "Specific career development advice in 50-75 words"
 }`;
 };
 
@@ -139,7 +183,7 @@ const uploadResume = async (req, res) => {
           if (!extractedText || extractedText.trim().length < 10) {
             console.warn('PDF parsing returned insufficient text, using fallback');
             // Simple text extraction as fallback
-            const fallbackText = extractTextFromPDFBuffer(dataBuffer);
+            const fallbackText = await extractTextFromPDFBuffer(dataBuffer);
             if (fallbackText && fallbackText.length > extractedText.length) {
               extractedText = fallbackText;
             }
@@ -147,7 +191,7 @@ const uploadResume = async (req, res) => {
         } catch (parseError) {
           console.error('PDF parsing error:', parseError);
           // Simple fallback extraction
-          extractedText = extractTextFromPDFBuffer(fs.readFileSync(filePath));
+          extractedText = await extractTextFromPDFBuffer(fs.readFileSync(filePath));
         }
       }
       else {
@@ -201,14 +245,14 @@ const uploadResume = async (req, res) => {
   }
 };
 
-// Add this helper function
-function extractTextFromPDFBuffer(buffer) {
-  // Simple text extraction from PDF buffer
+// Helper function to properly extract text from PDF buffer using pdf-parse library
+async function extractTextFromPDFBuffer(buffer) {
   try {
-    const text = buffer.toString('utf8', 0, 10000);
-    return text.replace(/[^a-zA-Z0-9\s]/g, ' '); // Basic cleanup
+    // Use the pdf-parse library to extract text from the PDF buffer
+    const data = await pdf(buffer);
+    return data.text || "No text content found in PDF";
   } catch (e) {
-    console.error('Fallback text extraction failed:', e);
+    console.error('PDF text extraction failed:', e);
     return "PDF content extraction failed. Please try a different file.";
   }
 }
@@ -225,13 +269,27 @@ const getFeedback = async (req, res) => {
       });
     }
 
-    // Check if session exists in memory (for recent sessions)
+    // Initialize feedback storage if it doesn't exist
+    if (!global.interviewFeedback) {
+      global.interviewFeedback = new Map();
+    }
+
+    // First check if feedback is stored in our persistent storage
+    if (global.interviewFeedback.has(sessionId)) {
+      const storedFeedback = global.interviewFeedback.get(sessionId);
+      return res.json({
+        success: true,
+        data: storedFeedback
+      });
+    }
+
+    // If not in persistent storage, check if session exists in memory (for active sessions)
     const session = interviewSessions.get(sessionId);
 
     if (!session) {
       return res.status(404).json({
         success: false,
-        message: 'Session not found or feedback already retrieved'
+        message: 'Session not found or feedback not available'
       });
     }
 
@@ -283,7 +341,7 @@ const getFeedback = async (req, res) => {
     const interviewDuration = Math.floor((Date.now() - session.startTime) / 1000);
 
     const detailedFeedback = {
-      ...feedback,
+      feedback,
       sessionStats: {
         duration: interviewDuration,
         questionsAnswered: userResponseCount,
@@ -295,8 +353,12 @@ const getFeedback = async (req, res) => {
         role: msg.role,
         content: msg.content,
         timestamp: msg.timestamp
-      }))
+      })),
+      generatedAt: new Date().toISOString()
     };
+
+    // Store the feedback for future retrieval
+    global.interviewFeedback.set(sessionId, detailedFeedback);
 
     res.json({
       success: true,
@@ -453,13 +515,28 @@ const createSession = async (req, res) => {
         keySkills.push('problem-solving', 'communication', 'teamwork');
       }
 
-      const prompt = `You are a technical interviewer. The candidate has skills in: ${keySkills.join(', ')}.
+      const prompt = `You are an expert technical interviewer conducting a job interview. 
 
-Resume snippet: ${resumeText.substring(0, 300)}...
+RESUME INFORMATION:
+${resumeText.substring(0, 500)}...
 
-Ask the first technical question about their strongest skill: ${keySkills[0]}. 
-Keep it simple, practical, and under 15 words.
-Don't include any greetings or explanations.`;
+CANDIDATE SKILLS: ${keySkills.join(', ')}
+
+INSTRUCTIONS:
+1. Carefully analyze the resume content above
+2. Identify the most relevant experience or skill from the resume
+3. Ask a specific, targeted technical question about that experience or skill
+4. Make the question challenging but appropriate for an interview setting
+5. Focus on practical application of their skills
+
+Your question must:
+- Be directly related to something mentioned in their resume
+- Be specific and technical (not generic)
+- Be 15-20 words maximum
+- Contain no greetings or explanations
+- Test both knowledge and practical application
+
+Ask the first technical question now.`;
 
       const result = await model.generateContent(prompt);
       const question = result.response.text().trim();
@@ -649,7 +726,31 @@ const endInterview = async (req, res) => {
     const userResponseCount = session.conversation.filter(msg => msg.role === 'user').length;
     const avgResponseTime = userResponseCount > 0 ? interviewDuration / userResponseCount : 0;
 
-    // Clean up session
+    // Store feedback in a persistent way
+    // Create a map to store feedback if it doesn't exist
+    if (!global.interviewFeedback) {
+      global.interviewFeedback = new Map();
+    }
+    
+    // Store the feedback with the session ID as the key
+    global.interviewFeedback.set(sessionId, {
+      feedback,
+      sessionStats: {
+        duration: interviewDuration,
+        questionsAnswered: userResponseCount,
+        averageResponseTime: Math.round(avgResponseTime),
+        completionRate: Math.round((userResponseCount / 5) * 100),
+        keySkillsEvaluated: session.keySkills
+      },
+      interviewHistory: session.conversation.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp
+      })),
+      generatedAt: new Date().toISOString()
+    });
+    
+    // Clean up session from memory
     interviewSessions.delete(sessionId);
 
     res.json({

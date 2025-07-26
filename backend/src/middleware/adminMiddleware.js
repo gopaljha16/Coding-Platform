@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const redisClient = require("../config/redis");
+const redisWrapper = require("../config/redis");
 const User = require("../models/user");
 
 
@@ -29,7 +29,7 @@ const adminMiddleware = async (req , res , next) =>{
             throw new Error(" User Doesn't Exists");
 
         //  redis blocking 
-        const isBlocked = await redisClient.exists(`token:${token}`);
+        const isBlocked = await redisWrapper.exists(`token:${token}`);
 
         if(isBlocked)
             throw new Error(" Invalid Token");
