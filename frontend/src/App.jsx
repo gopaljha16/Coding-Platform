@@ -21,6 +21,7 @@ import Explore from "./pages/Explore";
 import AdminContest from "./components/Admin/contest/AdminContest";
 import ContestPage  from "../src/pages/ContestPage"
 import ContestDetail from "./components/Admin/contest/ContestDetail";
+import PlaylistDetail from "./components/common/PlaylistDetail";
 
 
 const App = () => {
@@ -53,6 +54,16 @@ const App = () => {
             element={
               isAuthenticated ? (
                 <Problem></Problem>
+              ) : (
+                <Navigate to="/login"></Navigate>
+              )
+            }
+          />
+             <Route
+            path="/playlists/:id"
+            element={
+              isAuthenticated ? (
+                <PlaylistDetail/>
               ) : (
                 <Navigate to="/login"></Navigate>
               )

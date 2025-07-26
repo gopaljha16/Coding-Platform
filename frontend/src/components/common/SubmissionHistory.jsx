@@ -45,30 +45,30 @@ const SubmissionHistory = ({ problemId }) => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'accepted': return <FiCheckCircle className="text-green-400" />;
-      case 'wrong': return <FiXCircle className="text-red-400" />;
-      case 'error': return <FiAlertCircle className="text-yellow-400" />;
-      case 'pending': return <FiLoader className="text-blue-400 animate-spin" />;
+      case 'Accepted': return <FiCheckCircle className="text-green-400" />;
+      case 'Wrong': return <FiXCircle className="text-red-400" />;
+      case 'Error': return <FiAlertCircle className="text-yellow-400" />;
+      case 'Pending': return <FiLoader className="text-blue-400 animate-spin" />;
       default: return <FiAlertCircle className="text-gray-400" />;
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'accepted': return 'bg-green-900/20 text-green-400';
-      case 'wrong': return 'bg-red-900/20 text-red-400';
-      case 'error': return 'bg-yellow-900/20 text-yellow-400';
-      case 'pending': return 'bg-blue-900/20 text-blue-400';
+      case 'Accepted': return 'bg-green-900/20 text-green-400';
+      case 'Wrong': return 'bg-red-900/20 text-red-400';
+      case 'Error': return 'bg-yellow-900/20 text-yellow-400';
+      case 'Pending': return 'bg-blue-900/20 text-blue-400';
       default: return 'bg-gray-900/20 text-gray-400';
     }
   };
 
   const getStatusBorderColor = (status) => {
     switch (status) {
-      case 'accepted': return 'border-green-400/30';
-      case 'wrong': return 'border-red-400/30';
-      case 'error': return 'border-yellow-400/30';
-      case 'pending': return 'border-blue-400/30';
+      case 'Accepted': return 'border-green-400/30';
+      case 'Wrong': return 'border-red-400/30';
+      case 'Error': return 'border-yellow-400/30';
+      case 'Pending': return 'border-blue-400/30';
       default: return 'border-gray-400/30';
     }
   };
@@ -254,12 +254,7 @@ const SubmissionHistory = ({ problemId }) => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => setSelectedSubmission(sub)}
-                            className="text-orange-400 hover:text-orange-300 text-sm px-3 py-1.5 rounded-md hover:bg-gray-700 transition-colors flex items-center"
-                          >
-                            <FiExternalLink className="mr-1" /> View
-                          </button>
+                
                           <button
                             onClick={() => toggleRowExpand(sub._id)}
                             className="text-gray-400 hover:text-gray-300 p-1.5 rounded-md hover:bg-gray-700 transition-colors"
