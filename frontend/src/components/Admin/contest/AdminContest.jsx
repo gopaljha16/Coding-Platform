@@ -16,7 +16,7 @@ import {
 import {
   getAllContests,
   deleteContest,
-  updateConstest as updateContest,
+  updateContest,
 } from "../../../utils/apis/contestApi/contest";
 import CreateContestForm from "./CreateContestForm";
 

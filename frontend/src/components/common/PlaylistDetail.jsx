@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router';
+import { useParams, useLocation } from 'react-router-dom';
 import { 
   Folder, List, ChevronLeft, Play, BookOpen, X 
 } from 'lucide-react';
-import { NavLink } from 'react-router';
+import { NavLink } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axiosClient from '../../utils/axiosClient';

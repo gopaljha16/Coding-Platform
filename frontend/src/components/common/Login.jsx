@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, NavLink, useNavigate } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useSelector, useDispatch } from "react-redux";
 import { loginUser, getProfile, googleLoginUser } from "../../slice/authSlice";

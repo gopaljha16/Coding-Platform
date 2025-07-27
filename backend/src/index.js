@@ -1,9 +1,12 @@
 require("dotenv").config();
 const express = require("express");
 const app = express();
+const http = require("http");
+const server = http.createServer(app);
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
 const redisWrapper = require("./config/redis");
+const { initializeSocket } = require("./config/socket");
 const authRouter = require("./routes/userAuth");
 const problemRouter = require("../src/routes/problemRoutes");
 const rateLimiter = require("./middleware/rateLimiter");
@@ -13,17 +16,16 @@ const aiRouter = require("./routes/AiChat");
 const videoRouter = require("./routes/Video");
 const payRoute = require("./routes/payment");
 const interviewRouter = require("./routes/aiInterview");
-const contestRouter = require("./routes/contetsRoute");
+const contestRouter = require("./routes/contestRoute");
 const playlistRouter = require("./routes/playlistRoute");
-
-
+const discussionRouter = require("./routes/discussionRoute");
 
 
 const PORT_NO = process.env.PORT_NO;
 
 app.use(cors({
     origin: 'http://localhost:5173',
-    credentials: true
+    credentials: true,
 }))
 
 
@@ -41,6 +43,7 @@ app.use("/api/payments", payRoute);
 app.use("/api", interviewRouter);
 app.use("/contest", contestRouter)
 app.use('/playlists', playlistRouter);
+app.use('/discussions', discussionRouter);
 
 const initialConnection = async () => {
     try {
@@ -48,9 +51,13 @@ const initialConnection = async () => {
         await database();
         console.log("MongoDB Connected");
         
+        // Initialize Socket.IO
+        const io = initializeSocket(server);
+        
         // Start the server regardless of Redis connection status
-        app.listen(PORT_NO, () => {
+        server.listen(PORT_NO, () => {
             console.log(`Server is Listening on port no ${PORT_NO}`);
+            console.log(`Socket.IO initialized`);
         });
         
         // Try to connect to Redis, but don't block server startup

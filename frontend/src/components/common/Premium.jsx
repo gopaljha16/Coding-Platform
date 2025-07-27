@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import axiosClient from "../../utils/axiosClient";
-import { useNavigate } from "react-router";
-import { NavLink } from "react-router";
+import { useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import Success from "./Success";
 
 const Premium = () => {

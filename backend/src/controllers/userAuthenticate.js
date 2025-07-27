@@ -51,7 +51,7 @@ const register = async (req, res) => {
             _id: user._id,
         };
 
-        res.cookie("token", token, { maxAge: 60 * 60 * 1000 });
+        res.cookie("token", token, { maxAge: 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
         res.status(201).json({ user: reply, message: "User Registered Successfully" });
     } catch (err) {
         res.status(401).send("Error :- " + err);
@@ -68,7 +68,7 @@ const login = async (req, res) => {
         if (!match) throw new Error("Invalid Credentials");
 
         const token = jwt.sign({ _id: user._id, emailId: user.emailId, role: user.role }, process.env.JWT_SECRET, { expiresIn: 60 * 60 });
-        res.cookie("token", token, { maxAge: 60 * 60 * 1000 });
+        res.cookie("token", token, { maxAge: 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
 
         const reply = {
             firstName: user.firstName,
@@ -91,7 +91,7 @@ const logout = async (req, res) => {
         const payload = jwt.decode(token);
         await redisWrapper.expireAt(`token:${token}`, payload.exp);
 
-        res.cookie("token", null, { expires: new Date(Date.now()) });
+        res.cookie("token", null, { expires: new Date(Date.now()), httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
         res.status(200).send("User Logged Out Successfully");
     } catch (err) {
         res.status(401).send("Error : " + err);
@@ -248,7 +248,7 @@ const googleLogin = async (req, res) => {
             { expiresIn: 60 * 60 }
         );
 
-        res.cookie("token", jwtToken, { maxAge: 60 * 60 * 1000 });
+        res.cookie("token", jwtToken, { maxAge: 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
 
         res.status(200).json({
             user: {

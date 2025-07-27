@@ -20,7 +20,7 @@ const adminRegister = async (req , res) =>{
         // created account login directy by using that token 
         const token = jwt.sign({ _id: user._id, emailId: user.emailId , role:user.role}, process.env.JWT_SECRET, { expiresIn: 60 * 60 });
 
-        res.cookie("token", token, { maxAge: 60 * 60 * 1000 });
+        res.cookie("token", token, { maxAge: 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
 
         res.status(201).send("User Registered Successfully");
 

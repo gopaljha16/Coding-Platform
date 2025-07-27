@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import Editor from "@monaco-editor/react";
-import { useParams, NavLink } from "react-router";
+import { useParams, NavLink } from "react-router-dom";
 import codexalogo from "../utils/logo/Codexa .png";
 
 import {

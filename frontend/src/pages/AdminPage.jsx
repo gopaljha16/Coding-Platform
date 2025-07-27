@@ -13,7 +13,7 @@ import {
   Eye,
   ArrowLeft,
 } from "lucide-react";
-import { NavLink } from "react-router";
+import { NavLink } from "react-router-dom";
 import axiosClient from "../utils/axiosClient";
 
 function AdminPage() {

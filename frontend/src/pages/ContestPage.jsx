@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Trophy, 
@@ -17,6 +17,7 @@ import {
   Flame
 } from "lucide-react";
 import axiosClient from "../utils/axiosClient";
+import LoadingSpinner from "../components/common/LoadingSpinner";
 
 const ContestPage = () => {
   const [contests, setContests] = useState([]);
@@ -24,34 +25,67 @@ const ContestPage = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    axiosClient
-      .get("/contest/today")
-      .then((res) => {
-        setContests(res.data);
+    const controller = new AbortController();
+    
+    const fetchTodayContest = async () => {
+      try {
+        const res = await axiosClient.get("/contest/today", {
+          signal: controller.signal
+        });
+        
+        if (res.data && !res.data.error) {
+          setContests(res.data);
+        } else {
+          console.log("No contest found for today or error:", res.data?.error);
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.log("Error fetching today's contest:", err);
+        }
+      } finally {
         setIsLoading(false);
-      })
-      .catch((err) => {
-        console.log(err);
-        setIsLoading(false);
-      });
+      }
+    };
+    
+    fetchTodayContest();
+    
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   useEffect(() => {
-    if (!contests || !contests.endTime) return;
+    // Check if contests is an object with endTime property
+    if (!contests || typeof contests !== 'object' || !contests.endTime) {
+      return;
+    }
 
     const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const end = new Date(contests.endTime).getTime();
-      const distance = end - now;
+      try {
+        const now = new Date().getTime();
+        const end = new Date(contests.endTime).getTime();
+        
+        // Validate that end is a valid number
+        if (isNaN(end)) {
+          console.error('Invalid endTime format:', contests.endTime);
+          clearInterval(timer);
+          return;
+        }
+        
+        const distance = end - now;
 
-      if (distance > 0) {
-        setTimeLeft({
-          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((distance % (1000 * 60)) / 1000)
-        });
-      } else {
-        setTimeLeft({ expired: true });
+        if (distance > 0) {
+          setTimeLeft({
+            hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+            minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+            seconds: Math.floor((distance % (1000 * 60)) / 1000)
+          });
+        } else {
+          setTimeLeft({ expired: true });
+        }
+      } catch (error) {
+        console.error('Error in timer calculation:', error);
+        clearInterval(timer);
       }
     }, 1000);
 
@@ -92,11 +126,7 @@ const ContestPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full"
-        />
+        <LoadingSpinner size="lg" color="orange-primary" />
       </div>
     );
   }

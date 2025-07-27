@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Route, Routes, Navigate } from "react-router";
+import { Route, Routes, Navigate } from "react-router-dom";
 import Homepage from "./pages/Homepage";
 import Login from "./components/common/Login";
 import Signup from "./components/common/Signup";
 import { useDispatch, useSelector } from "react-redux";
-import { checkAuth } from "./slice/authSlice";
+import { checkAuth, getProfile } from "./slice/authSlice";
 import Problem from "./pages/Problem";
 import ProblemSolve from "./pages/ProblemSolve";
 import AdminPage from "./pages/AdminPage";
@@ -21,9 +21,13 @@ import Explore from "./pages/Explore";
 import AdminContest from "./components/Admin/contest/AdminContest";
 import ContestPage  from "../src/pages/ContestPage"
 import ContestDetail from "./components/Admin/contest/ContestDetail";
+import ContestDetails from "./components/contest/ContestDetails";
+import ContestProblemSolve from "./components/contest/ContestProblemSolve";
 import PlaylistDetail from "./components/common/PlaylistDetail";
 import DashboardPage from "./components/Dashboards/DashboardPage";
 import UserProfile from "./pages/UserProfile";
+import DiscussPage from "./pages/DiscussPage";
+import DiscussionDetail from "./pages/DiscussionDetail";
 
 const App = () => {
 
@@ -187,9 +191,19 @@ const App = () => {
             }
           ></Route>
             <Route
-            path="/contest/:id"
+            path="/contest/:contestId"
             element={
               isAuthenticated ?  (
+                <ContestDetails />
+              ) : (
+                <Navigate to="/login"></Navigate>
+              )
+            }
+          ></Route>
+          <Route
+            path="/admin/contest/:id"
+            element={
+              isAuthenticated && user?.role === "admin" ?  (
                 <ContestDetail />
               ) : (
                 <Navigate to="/login"></Navigate>
@@ -197,10 +211,10 @@ const App = () => {
             }
           ></Route>
            <Route
-            path="/contest/:id/:problemId"
+            path="/contest/:contestId/:problemId"
             element={
               isAuthenticated ?  (
-                <ProblemSolve />
+                <ContestProblemSolve />
               ) : (
                 <Navigate to="/login"></Navigate>
               )
@@ -223,6 +237,18 @@ const App = () => {
             }
           ></Route>
           <Route path="/profile" element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" />} />
+          <Route
+            path="/discuss"
+            element={
+              isAuthenticated ? <DiscussPage /> : <Navigate to="/login" />
+            }
+          />
+          <Route
+            path="/discuss/:discussionId"
+            element={
+              isAuthenticated ? <DiscussionDetail /> : <Navigate to="/login" />
+            }
+          />
         </Routes>
       </div>
     </>

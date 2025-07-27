@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, Video, Clock, FileText, CheckCircle, AlertCircle, X, Play, Pause } from 'lucide-react';
 import axios from 'axios';
 import axiosClient from '../../utils/axiosClient';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 

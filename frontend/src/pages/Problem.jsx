@@ -47,7 +47,7 @@ import {
   GitBranch,
   Calculator,
 } from "lucide-react";
-import { NavLink } from "react-router";
+import { NavLink } from "react-router-dom";
 import axiosClient from "../utils/axiosClient";
 
 const Problem = () => {

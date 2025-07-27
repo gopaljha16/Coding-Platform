@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import axiosClient from "../../utils/axiosClient";
 import { toast } from "react-toastify";
-import { NavLink } from "react-router";
+import { NavLink } from "react-router-dom";
 
 const DeleteProblem = () => {
   const [problems, setProblems] = useState([]);

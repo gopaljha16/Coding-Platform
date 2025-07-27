@@ -13,7 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import axiosClient from "../../utils/axiosClient";
-import { NavLink } from "react-router";
+import { NavLink } from "react-router-dom";
 
 const UpdateProblem = () => {
   const [problems, setProblems] = useState([]);

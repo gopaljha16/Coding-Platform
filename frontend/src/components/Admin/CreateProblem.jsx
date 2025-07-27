@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import axiosClient from '../../utils/axiosClient';
 import { toast } from 'react-toastify';
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink, useNavigate } from 'react-router-dom';
 NavLink
 
 

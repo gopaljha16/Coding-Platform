@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { logutUser } from "../../slice/authSlice";
-import { useNavigate, Link, NavLink } from "react-router";
+import { useNavigate, Link, NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import {
