@@ -19,6 +19,7 @@ import { useSelector } from 'react-redux';
 import Comment from "../components/discuss/Comment"
 import Loader from '../components/common/LoadingSpinner.jsx';
 import { getSocket, joinDiscussion, leaveDiscussion, emitTyping, emitStopTyping } from '../utils/socket';
+import Chat from '../components/discuss/Chat';
 
 const DiscussionDetail = () => {
   const { discussionId } = useParams();
@@ -600,6 +601,12 @@ const DiscussionDetail = () => {
           </div>
         )}
         
+        {/* Chat Section */}
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">Live Chat</h2>
+          <Chat discussionId={discussionId} />
+        </div>
+
         {/* Comments Section */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Comments ({comments.length})</h2>

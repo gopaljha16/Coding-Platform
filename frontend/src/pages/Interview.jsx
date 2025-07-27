@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import Navbar from "../components/common/Navbar";
 import {
   Upload,
   Mic,
@@ -24,11 +25,17 @@ import {
   Brain,
   Users,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Import your API functions
-import { useInterviewAPI, handleAPIError, createInterviewSession } from "../utils/Ai/interviewAPI";
+import {
+  useInterviewAPI,
+  handleAPIError,
+  createInterviewSession,
+} from "../utils/Ai/interviewAPI";
 
 const Interview = () => {
+  const navigate = useNavigate();
   const [stage, setStage] = useState("upload");
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -95,29 +102,29 @@ const Interview = () => {
       recognitionRef.current.lang = "en-US";
 
       // Store the complete transcript from all final results
-      let finalTranscript = '';
-      
+      let finalTranscript = "";
+
       recognitionRef.current.onresult = (event) => {
-        let interimTranscript = '';
-        
+        let interimTranscript = "";
+
         // Process all results, both final and interim
         for (let i = 0; i < event.results.length; i++) {
           const result = event.results[i];
           if (result.isFinal) {
-            finalTranscript += result[0].transcript + ' ';
+            finalTranscript += result[0].transcript + " ";
           } else {
             interimTranscript += result[0].transcript;
           }
         }
-        
+
         // Update the text input with both final and interim transcripts
         // Final transcript contains all completed sentences
         // Interim transcript contains the current in-progress speech
         setTextInput(finalTranscript + interimTranscript);
-        
+
         // For debugging
-        console.log('Final transcript:', finalTranscript);
-        console.log('Interim transcript:', interimTranscript);
+        console.log("Final transcript:", finalTranscript);
+        console.log("Interim transcript:", interimTranscript);
       };
 
       recognitionRef.current.onerror = (event) => {
@@ -139,69 +146,69 @@ const Interview = () => {
     }
   }, [currentQuestion]);
 
- const handleFileUpload = async (event) => {
-  const file = event.target.files[0];
-  if (!file) {
-    setError('Please select a file');
-    return;
-  }
-
-  // Validate file type
-  const validTypes = ['application/pdf', 'text/plain'];
-  if (!validTypes.includes(file.type)) {
-    setError('Please upload a PDF or TEXT file');
-    return;
-  }
-
-  setLoading(true);
-  setError(null);
-
-  try {
-    // Get candidate info (you should have these from form inputs)
-    const candidateInfo = {
-      name: "Candidate Name", // Replace with actual input
-      email: "candidate@example.com" // Replace with actual input
-    };
-
-    // Use the corrected createInterviewSession function
-    const sessionData = await createInterviewSession(file, candidateInfo);
-    
-    // DEBUG: Log session data
-    console.log('Session created:', sessionData);
-    
-    setSessionId(sessionData.sessionId);
-    setCurrentQuestion(sessionData.question);
-    setKeySkills(sessionData.keySkills || []);
-    
-    const firstMessage = { 
-      role: 'ai', 
-      content: sessionData.question, 
-      timestamp: Date.now() 
-    };
-    setMessages([firstMessage]);
-    
-    setStage('interview');
-    setIsInterviewActive(true);
-    setQuestionCount(1);
-    setTimeLeft(sessionData.timeLimit || 120);
-    
-    speakText(sessionData.question);
-  } catch (error) {
-    console.error('Error creating session:', error);
-    
-    // More user-friendly error messages
-    let errorMessage = error.message || 'Failed to create interview session';
-    
-    if (error.message.includes('Resume text')) {
-      errorMessage = 'Failed to extract text from your resume. Please try a different file format.';
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) {
+      setError("Please select a file");
+      return;
     }
-    
-    setError(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
 
+    // Validate file type
+    const validTypes = ["application/pdf", "text/plain"];
+    if (!validTypes.includes(file.type)) {
+      setError("Please upload a PDF or TEXT file");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Get candidate info (you should have these from form inputs)
+      const candidateInfo = {
+        name: "Candidate Name", // Replace with actual input
+        email: "candidate@example.com", // Replace with actual input
+      };
+
+      // Use the corrected createInterviewSession function
+      const sessionData = await createInterviewSession(file, candidateInfo);
+
+      // DEBUG: Log session data
+      console.log("Session created:", sessionData);
+
+      setSessionId(sessionData.sessionId);
+      setCurrentQuestion(sessionData.question);
+      setKeySkills(sessionData.keySkills || []);
+
+      const firstMessage = {
+        role: "ai",
+        content: sessionData.question,
+        timestamp: Date.now(),
+      };
+      setMessages([firstMessage]);
+
+      setStage("interview");
+      setIsInterviewActive(true);
+      setQuestionCount(1);
+      setTimeLeft(sessionData.timeLimit || 120);
+
+      speakText(sessionData.question);
+    } catch (error) {
+      console.error("Error creating session:", error);
+
+      // More user-friendly error messages
+      let errorMessage = error.message || "Failed to create interview session";
+
+      if (error.message.includes("Resume text")) {
+        errorMessage =
+          "Failed to extract text from your resume. Please try a different file format.";
+      }
+
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleUserAnswer = async (answer) => {
     if (!answer.trim() || answer.trim().length < 5) {
@@ -282,7 +289,7 @@ const Interview = () => {
       if (feedbackResponse.success && feedbackResponse.data) {
         // Extract feedback and sessionStats from the response
         const feedbackData = feedbackResponse.data;
-        
+
         // Check if feedback is nested inside a feedback property or directly in the data
         if (feedbackData.feedback) {
           // New structure: { feedback: {...}, sessionStats: {...} }
@@ -311,22 +318,26 @@ const Interview = () => {
             technicalScore: 60,
             communicationScore: 70,
             strengths: ["Completed the interview", "Showed engagement"],
-            weaknesses: ["Could provide more detailed responses", "Technical depth needs improvement"],
+            weaknesses: [
+              "Could provide more detailed responses",
+              "Technical depth needs improvement",
+            ],
             improvements: [
               "Practice explaining technical concepts with examples",
               "Prepare STAR method responses",
-              "Study fundamental concepts more deeply"
+              "Study fundamental concepts more deeply",
             ],
-            detailedAnalysis: "Good participation in the interview. Focus on providing more specific examples and deeper technical explanations."
+            detailedAnalysis:
+              "Good participation in the interview. Focus on providing more specific examples and deeper technical explanations.",
           });
-          
+
           // Set default session stats
           setSessionStats({
             duration: 0,
             questionsAnswered: 0,
             averageResponseTime: 0,
             completionRate: 0,
-            keySkillsEvaluated: keySkills
+            keySkillsEvaluated: keySkills,
           });
         }
       }
@@ -358,35 +369,35 @@ const Interview = () => {
   const startRecording = () => {
     if (recognitionRef.current) {
       // Reset the text input when starting a new recording
-      setTextInput('');
-      
+      setTextInput("");
+
       // Reset the finalTranscript in the recognition handler
-      if (typeof recognitionRef.current.onresult === 'function') {
+      if (typeof recognitionRef.current.onresult === "function") {
         const originalOnResult = recognitionRef.current.onresult;
-        recognitionRef.current.onresult = function(event) {
+        recognitionRef.current.onresult = function (event) {
           // Create a new closure with a fresh finalTranscript
-          let finalTranscript = '';
-          
+          let finalTranscript = "";
+
           // Process all results, both final and interim
-          let interimTranscript = '';
+          let interimTranscript = "";
           for (let i = 0; i < event.results.length; i++) {
             const result = event.results[i];
             if (result.isFinal) {
-              finalTranscript += result[0].transcript + ' ';
+              finalTranscript += result[0].transcript + " ";
             } else {
               interimTranscript += result[0].transcript;
             }
           }
-          
+
           // Update the text input with both final and interim transcripts
           setTextInput(finalTranscript + interimTranscript);
-          
+
           // For debugging
-          console.log('Final transcript:', finalTranscript);
-          console.log('Interim transcript:', interimTranscript);
+          console.log("Final transcript:", finalTranscript);
+          console.log("Interim transcript:", interimTranscript);
         };
       }
-      
+
       setIsRecording(true);
       recognitionRef.current.start();
     }
@@ -470,90 +481,93 @@ const Interview = () => {
   // Upload Stage
   if (stage === "upload") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-        <div className="flex items-center justify-center min-h-screen p-4">
-          <div className="max-w-md w-full">
-            <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-gray-700/50">
-              <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                  <Brain className="w-10 h-10 text-white" />
-                </div>
-                <h1 className="text-3xl font-bold mb-3 bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
-                  AI Interview Assistant
-                </h1>
-                <p className="text-gray-300 text-lg">
-                  Upload your resume to begin your personalized interview
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                {error && (
-                  <ErrorDisplay message={error} onDismiss={dismissError} />
-                )}
-
-                <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center hover:border-orange-500 transition-all duration-300 hover:bg-gray-700/20">
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-300 mb-2 font-medium">
-                    Upload Resume
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+          <Navbar />
+          <div className="max-w-7xl mx-auto px-6 flex items-center justify-center min-h-screen p-4">
+            <div className="max-w-md w-full">
+              <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-gray-700/50">
+                <div className="text-center mb-8">
+                  <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                    <Brain className="w-10 h-10 text-white" />
+                  </div>
+                  <h1 className="text-3xl font-bold mb-3 bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+                    AI Interview Assistant
+                  </h1>
+                  <p className="text-gray-300 text-lg">
+                    Upload your resume to begin your personalized interview
                   </p>
-                  <p className="text-gray-500 text-sm mb-4">
-                    PDF format, max 5MB
-                  </p>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="resume-upload"
-                    disabled={loading}
-                  />
-                  <label
-                    htmlFor="resume-upload"
-                    className={`bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg cursor-pointer hover:from-orange-600 hover:to-red-600 transition-all duration-300 inline-flex items-center space-x-2 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
-                      loading ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    <FileText className="w-5 h-5" />
-                    <span>Choose File</span>
-                  </label>
                 </div>
 
-                {loading && (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="w-6 h-6 animate-spin text-orange-500 mr-3" />
-                    <span className="text-gray-300">
-                      Analyzing your resume...
-                    </span>
-                  </div>
-                )}
+                <div className="space-y-6">
+                  {error && (
+                    <ErrorDisplay message={error} onDismiss={dismissError} />
+                  )}
 
-                <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <Zap className="w-5 h-5 text-orange-500" />
-                    <h3 className="font-semibold text-gray-200">
-                      What to Expect
-                    </h3>
+                  <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center hover:border-orange-500 transition-all duration-300 hover:bg-gray-700/20">
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-300 mb-2 font-medium">
+                      Upload Resume
+                    </p>
+                    <p className="text-gray-500 text-sm mb-4">
+                      PDF format, max 5MB
+                    </p>
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="resume-upload"
+                      disabled={loading}
+                    />
+                    <label
+                      htmlFor="resume-upload"
+                      className={`bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg cursor-pointer hover:from-orange-600 hover:to-red-600 transition-all duration-300 inline-flex items-center space-x-2 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
+                        loading ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      <FileText className="w-5 h-5" />
+                      <span>Choose File</span>
+                    </label>
                   </div>
-                  <ul className="space-y-2 text-sm text-gray-400">
-                    <li className="flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
-                      <span>Personalized technical questions</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
-                      <span>Timed interview session</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
-                      <span>Detailed feedback and scoring</span>
-                    </li>
-                  </ul>
+
+                  {loading && (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="w-6 h-6 animate-spin text-orange-500 mr-3" />
+                      <span className="text-gray-300">
+                        Analyzing your resume...
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <Zap className="w-5 h-5 text-orange-500" />
+                      <h3 className="font-semibold text-gray-200">
+                        What to Expect
+                      </h3>
+                    </div>
+                    <ul className="space-y-2 text-sm text-gray-400">
+                      <li className="flex items-center space-x-2">
+                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                        <span>Personalized technical questions</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                        <span>Timed interview session</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                        <span>Detailed feedback and scoring</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -592,6 +606,33 @@ const Interview = () => {
                     {formatTime(timeLeft)}
                   </span>
                 </div>
+                <button
+                  onClick={() => navigate("/")}
+                  className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2"
+                  disabled={loading}
+                  title="Back to Home"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13 19h6"
+                    />
+                  </svg>
+                  <span>Home</span>
+                </button>
                 <button
                   onClick={handleEndInterview}
                   className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -738,7 +779,8 @@ const Interview = () => {
               {isRecording && (
                 <div className="flex items-center justify-center mt-3 text-red-400 text-sm font-medium">
                   <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                  Recording... Speak clearly into your microphone. Click the microphone button again or the send button when finished.
+                  Recording... Speak clearly into your microphone. Click the
+                  microphone button again or the send button when finished.
                 </div>
               )}
             </div>
@@ -751,7 +793,10 @@ const Interview = () => {
   // Results Stage
   if (stage === "result") {
     return (
-      <div id="results-section" className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+      <div
+        id="results-section"
+        className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white"
+      >
         <div className="max-w-6xl mx-auto p-6">
           {/* Header */}
           <div className="text-center mb-8">
@@ -857,7 +902,9 @@ const Interview = () => {
                 <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 shadow-2xl">
                   <div className="flex items-center space-x-3 mb-6">
                     <Award className="w-6 h-6 text-amber-500" />
-                    <h3 className="font-semibold text-lg">Hiring Recommendation</h3>
+                    <h3 className="font-semibold text-lg">
+                      Hiring Recommendation
+                    </h3>
                   </div>
                   <div className="prose prose-invert max-w-none">
                     <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
@@ -872,7 +919,9 @@ const Interview = () => {
                 <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 shadow-2xl">
                   <div className="flex items-center space-x-3 mb-6">
                     <TrendingUp className="w-6 h-6 text-emerald-500" />
-                    <h3 className="font-semibold text-lg">Career Development Advice</h3>
+                    <h3 className="font-semibold text-lg">
+                      Career Development Advice
+                    </h3>
                   </div>
                   <div className="prose prose-invert max-w-none">
                     <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
@@ -1045,7 +1094,7 @@ const Interview = () => {
                     <AlertCircle className="w-5 h-5 text-red-500" />
                     <span className="font-medium text-red-400">{error}</span>
                   </div>
-                  <button 
+                  <button
                     onClick={dismissError}
                     className="text-xs text-gray-400 hover:text-white transition-colors"
                   >
@@ -1053,9 +1102,9 @@ const Interview = () => {
                   </button>
                 </div>
               )}
-              
+
               {/* Action Buttons */}
-                <div className="flex justify-center space-x-4 flex-wrap gap-4">
+              <div className="flex justify-center space-x-4 flex-wrap gap-4">
                 <button
                   onClick={resetInterview}
                   className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2 font-medium"
@@ -1071,7 +1120,7 @@ const Interview = () => {
                   <FileText className="w-5 h-5" />
                   <span>Save Results</span>
                 </button>
-                
+
                 {/* Regenerate Feedback Button */}
                 {!result || Object.keys(result).length === 0 ? (
                   <button
@@ -1079,10 +1128,12 @@ const Interview = () => {
                       setLoading(true);
                       setError(""); // Clear any previous errors
                       try {
-                        const feedbackResponse = await generateFeedback(sessionId);
+                        const feedbackResponse = await generateFeedback(
+                          sessionId
+                        );
                         if (feedbackResponse.success && feedbackResponse.data) {
                           const feedbackData = feedbackResponse.data;
-                          
+
                           if (feedbackData.feedback) {
                             setResult(feedbackData.feedback);
                             setSessionStats(feedbackData.sessionStats);
@@ -1090,15 +1141,22 @@ const Interview = () => {
                             setResult(feedbackData);
                             setSessionStats(feedbackData.sessionStats);
                           }
-                          
+
                           // Scroll to top of results section
-                          document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
+                          document
+                            .getElementById("results-section")
+                            ?.scrollIntoView({ behavior: "smooth" });
                         } else {
-                          setError(feedbackResponse.error || "Failed to generate feedback. Please try again.");
+                          setError(
+                            feedbackResponse.error ||
+                              "Failed to generate feedback. Please try again."
+                          );
                         }
                       } catch (error) {
                         console.error("Error generating feedback:", error);
-                        setError("Failed to generate feedback. Please try again.");
+                        setError(
+                          "Failed to generate feedback. Please try again."
+                        );
                       } finally {
                         setLoading(false);
                       }

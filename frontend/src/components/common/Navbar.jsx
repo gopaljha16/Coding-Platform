@@ -83,8 +83,8 @@ const Navbar = () => {
   return (
     <>
       {/* Navbar Spacer - ensures content doesn't get hidden under navbar */}
-      <div className="h-20"></div>
-
+      <div className="h-24"></div>
+          
       {/* Main Navbar */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out ${
@@ -100,7 +100,7 @@ const Navbar = () => {
               : "mt-2 bg-slate-900/95 backdrop-blur-sm border border-slate-700/30"
           } rounded-2xl mx-4`}
         >
-          <div className="flex items-center justify-between py-2.5 px-6">
+          <div className="flex items-center justify-between py-3 px-6">
             {/* Logo Section */}
             <div className="flex-shrink-0">
               <NavLink

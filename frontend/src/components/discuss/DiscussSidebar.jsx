@@ -8,7 +8,8 @@ import {
   TrendingUp,
   Clock,
   ThumbsUp,
-  Users
+  Users,
+  MessageCircleMore 
 } from 'lucide-react';
 
 const DiscussSidebar = ({ selectedCommunity, onCommunityChange, selectedSort, onSortChange }) => {
@@ -19,7 +20,8 @@ const DiscussSidebar = ({ selectedCommunity, onCommunityChange, selectedSort, on
     { id: 'dsa', name: 'DSA Community', icon: Code },
     { id: 'india', name: 'India', icon: MapPin },
     { id: 'global', name: 'Global', icon: Globe },
-    { id: 'other', name: 'Other', icon: MessageSquare }
+    { id: 'other', name: 'Other', icon: MessageSquare },
+    { id: 'Live Chat', name: 'Real Time Chat', icon: MessageCircleMore }
   ];
 
   const sortOptions = [

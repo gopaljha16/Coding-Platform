@@ -38,7 +38,9 @@ const Login = () => {
   const onSubmit = async (data) => {
     try {
       const res = await dispatch(loginUser(data));
+      console.log('Login dispatch result:', res);
       if (res?.meta?.requestStatus === "fulfilled") {
+        console.log('Login successful, token:', res.payload.token);
         toast.success("Logged In Successfully");
         await dispatch(getProfile());
       } else {

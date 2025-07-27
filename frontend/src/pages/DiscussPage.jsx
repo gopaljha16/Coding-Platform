@@ -5,6 +5,8 @@ import { useToast } from '../hooks/useToast';
 import { useSelector } from 'react-redux';
 import { initializeSocket, getSocket } from '../utils/socket';
 
+import Chat from '../components/discuss/Chat';
+
 // Components
 import DiscussHeader from '../components/discuss/DiscussHeader';
 import DiscussionCard from '../components/discuss/DiscussionCard';
@@ -32,12 +34,33 @@ const DiscussPage = () => {
   // State for create discussion modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // New state for selected discussion
+  const [selectedDiscussion, setSelectedDiscussion] = useState(null);
+
   // Initialize socket connection
+  const [socketConnected, setSocketConnected] = React.useState(false);
+
   useEffect(() => {
+    console.log('Initializing socket with token:', token, 'isAuthenticated:', isAuthenticated);
     if (isAuthenticated && token) {
-      initializeSocket(token);
+      const socket = initializeSocket(token);
+      socket.on('connect', () => {
+        console.log('Socket connected in DiscussPage');
+        setSocketConnected(true);
+      });
+      socket.on('disconnect', () => {
+        console.log('Socket disconnected in DiscussPage');
+        setSocketConnected(false);
+      });
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection error in DiscussPage:', error);
+        setSocketConnected(false);
+      });
+      socket.on('error', (error) => {
+        console.error('Socket general error in DiscussPage:', error);
+      });
     }
-  }, [token]);
+  }, [token, isAuthenticated]);
 
   // Socket event handlers
   useEffect(() => {
@@ -310,6 +333,12 @@ const DiscussPage = () => {
           
           {/* Main content */}
           <div className="md:w-3/4 lg:w-4/5">
+            <button
+              onClick={() => navigate('/')}
+              className="mb-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white"
+            >
+              Back to Home
+            </button>
             <DiscussHeader 
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
@@ -327,61 +356,74 @@ const DiscussPage = () => {
             />
             
             {/* Discussions list */}
-            {loading && page === 1 ? (
-              <div className="flex justify-center items-center h-64">
-                <Loader />
-              </div>
-            ) : error ? (
-              <div className="bg-red-500/20 border border-red-500/50 text-red-300 p-4 rounded-md">
-                {error}
-              </div>
-            ) : discussions.length === 0 ? (
-              <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-8 text-center">
-                <h3 className="text-xl font-semibold mb-2">No discussions found</h3>
-                <p className="text-gray-400 mb-4">
-                  {searchQuery 
-                    ? 'No discussions match your search criteria.'
-                    : selectedCommunity !== 'all'
-                      ? `Be the first to start a discussion in the ${selectedCommunity} community!`
-                      : 'Be the first to start a discussion!'}
-                </p>
-                <button
-                  onClick={() => {
-                    if (!isAuthenticated) {
-                      showToast('Please log in to create a discussion', 'warning');
-                      navigate('/login');
-                      return;
-                    }
-                    setIsCreateModalOpen(true);
-                  }}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors"
-                >
-                  Start a Discussion
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {discussions.map(discussion => (
+            {selectedCommunity !== 'Live Chat' && (
+              <>
+                {loading && page === 1 ? (
+                  <div className="flex justify-center items-center h-64">
+                    <Loader />
+                  </div>
+                ) : error ? (
+                  <div className="bg-red-500/20 border border-red-500/50 text-red-300 p-4 rounded-md">
+                    {error}
+                  </div>
+                ) : discussions.length === 0 ? (
+                  <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-8 text-center">
+                    <h3 className="text-xl font-semibold mb-2">No discussions found</h3>
+                    <p className="text-gray-400 mb-4">
+                      {searchQuery 
+                        ? 'No discussions match your search criteria.'
+                        : selectedCommunity !== 'all'
+                          ? `Be the first to start a discussion in the ${selectedCommunity} community!`
+                          : 'Be the first to start a discussion!'}
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          showToast('Please log in to create a discussion', 'warning');
+                          navigate('/login');
+                          return;
+                        }
+                        setIsCreateModalOpen(true);
+                      }}
+                      className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors"
+                    >
+                      Start a Discussion
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {discussions.map(discussion => (
                   <DiscussionCard 
                     key={discussion._id} 
                     discussion={discussion} 
                     currentUserId={user?._id} 
                     onDelete={handleDeleteDiscussion} 
+                    onSelect={() => setSelectedDiscussion(discussion)}
+                    isSelected={selectedDiscussion?._id === discussion._id}
                   />
-                ))}
-                
-                {/* Load more button */}
-                {hasMore && (
-                  <div className="flex justify-center mt-6">
-                    <button
-                      onClick={handleLoadMore}
-                      disabled={loading}
-                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? 'Loading...' : 'Load More'}
-                    </button>
+                    ))}
+                    
+                    {/* Load more button */}
+                    {hasMore && (
+                      <div className="flex justify-center mt-6">
+                        <button
+                          onClick={handleLoadMore}
+                          disabled={loading}
+                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loading ? 'Loading...' : 'Load More'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
+              </>
+            )}
+            {/* Real-time Chat Section */}
+            {selectedCommunity === 'Live Chat' && (
+              <div className="mt-8">
+                <h2 className="text-xl font-semibold mb-4 text-white">Real-time Chat</h2>
+                <Chat discussionId={selectedCommunity} socketConnected={socketConnected} />
               </div>
             )}
           </div>

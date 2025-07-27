@@ -1,5 +1,5 @@
-import  { useState } from 'react';
-import { Link } from 'react-router-dom';
+
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   MessageSquare, 
@@ -11,7 +11,7 @@ import {
   Trash
 } from 'lucide-react';
 
-const DiscussionCard = ({ discussion, currentUserId, onDelete }) => {
+const DiscussionCard = ({ discussion, currentUserId, onDelete, onSelect, isSelected }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [community, setCommunity] = useState(discussion.community);
 
@@ -40,11 +40,12 @@ const DiscussionCard = ({ discussion, currentUserId, onDelete }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-gray-800/50 border border-gray-700/50 hover:border-gray-600 rounded-xl p-5 transition-all"
+      className={`bg-gray-800/50 border border-gray-700/50 rounded-xl p-5 transition-all cursor-pointer ${isSelected ? 'border-orange-500' : 'hover:border-gray-600'}`}
+      onClick={() => onSelect && onSelect(discussion)}
     >
-      <Link to={`/discuss/${discussion._id}`} className="block">
+      <div>
         <div className="flex items-start justify-between mb-3">
-          <h3 className="text-xl font-semibold text-white hover:text-orange-400 transition-colors">
+          <h3 className="text-xl font-semibold text-white">
             {discussion.title}
           </h3>
           <div className="px-2 py-1 bg-gray-700/50 rounded-md text-xs font-medium text-gray-300">
@@ -100,12 +101,12 @@ const DiscussionCard = ({ discussion, currentUserId, onDelete }) => {
             <span>{formatDate(discussion.createdAt)}</span>
           </div>
         </div>
-      </Link>
+      </div>
       {isAuthor && (
         <>
           <button
             onClick={(e) => {
-              e.preventDefault();
+              e.stopPropagation();
               onDelete(discussion._id);
             }}
             className="mt-2 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm mr-2"
@@ -114,7 +115,7 @@ const DiscussionCard = ({ discussion, currentUserId, onDelete }) => {
           </button>
           <button
             onClick={(e) => {
-              e.preventDefault();
+              e.stopPropagation();
               setIsEditing(true);
             }}
             className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm"
