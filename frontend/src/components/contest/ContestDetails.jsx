@@ -19,6 +19,7 @@ import axiosClient from '../../utils/axiosClient';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../context/AuthContext.jsx';
 import ContestLeaderboard from './ContestLeaderboard';
+import { registerForContest } from '../../utils/apis/contestApi/contest';
 
 const ContestDetails = () => {
   const { contestId } = useParams();
@@ -32,6 +33,8 @@ const ContestDetails = () => {
   const [contestStatus, setContestStatus] = useState('upcoming'); // 'upcoming', 'active', 'ended'
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [activeTab, setActiveTab] = useState('problems');
+  const [participants, setParticipants] = useState([]);
+  const [hasEntered, setHasEntered] = useState(false);
 
   // Fetch contest details
   useEffect(() => {
@@ -39,11 +42,13 @@ const ContestDetails = () => {
       try {
         setIsLoading(true);
         const response = await axiosClient.get(`/contest/${contestId}`);
-        setContest(response.data.contest);
+        setContest(response.data);
+        setParticipants(response.data.participants || []);
+        setHasEntered(response.data.participants?.includes(user._id));
 
         // Fetch problems for this contest
         const problemsResponse = await axiosClient.get(`/contest/${contestId}/problems`);
-        setProblems(problemsResponse.data.problems);
+        setProblems(problemsResponse.data.problems || problemsResponse.data);
 
         setIsLoading(false);
       } catch (error) {
@@ -54,7 +59,7 @@ const ContestDetails = () => {
     };
 
     fetchContestDetails();
-  }, [contestId]);
+  }, [contestId, user]);
 
   // Update contest status and time remaining
   useEffect(() => {
@@ -231,7 +236,17 @@ const ContestDetails = () => {
 
               {contestStatus === 'active' && (
                 <button
-                  onClick={() => navigate(`/contest/${contestId}/problems`)}
+                  onClick={async () => {
+                    try {
+                      // Call registration API
+                      await registerForContest(contestId);
+                      // Navigate to contest problems page after registration
+                      navigate(`/contest/${contestId}`);
+                    } catch (error) {
+                      console.error("Error registering for contest:", error);
+                      showToast("Failed to register for contest", "error");
+                    }
+                  }}
                   className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-md text-white font-medium transition-colors flex items-center"
                 >
                   Enter Contest
@@ -328,7 +343,7 @@ const ContestDetails = () => {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button
-                            onClick={() => navigate(`/contest/${contestId}/problem/${problem._id}`)}
+                            onClick={() => navigate(`/contest/${contestId}/${problem._id}`)}
                             disabled={contestStatus !== 'active'}
                             className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center mx-auto ${contestStatus === 'active' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
                           >

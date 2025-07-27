@@ -1,0 +1,69 @@
+{
+  "info": {
+    "name": "Contest API Examples",
+    "_postman_id": "12345678-abcd-efgh-ijkl-1234567890ab",
+    "description": "Example Postman requests for Contest API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Contest",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer YOUR_JWT_TOKEN",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Sample Contest\",\n  \"description\": \"This is a sample contest\",\n  \"problems\": [\"60f7f9a2b4d1c72f9c8b4567\", \"60f7f9a2b4d1c72f9c8b4568\"],\n  \"startTime\": \"2024-07-01T10:00:00Z\",\n  \"endTime\": \"2024-07-01T12:00:00Z\",\n  \"isPublic\": true\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/contest/create",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "contest",
+            "create"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get All Problems (Admin Only)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer YOUR_JWT_TOKEN",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:3000/contest/problems",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "contest",
+            "problems"
+          ]
+        }
+      }
+    }
+  ]
+}

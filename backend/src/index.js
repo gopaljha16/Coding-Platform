@@ -20,6 +20,9 @@ const contestRouter = require("./routes/contestRoute");
 const playlistRouter = require("./routes/playlistRoute");
 const discussionRouter = require("./routes/discussionRoute");
 
+const { autoFinalizeContestRankings } = require("./controllers/leaderboardController");
+const cron = require("node-cron");
+
 
 const PORT_NO = process.env.PORT_NO;
 
@@ -53,6 +56,12 @@ const initialConnection = async () => {
         
         // Initialize Socket.IO
         const io = initializeSocket(server);
+
+        // Schedule leaderboard auto-finalization every 5 minutes
+        cron.schedule('*/5 * * * *', () => {
+            console.log('Running scheduled task: autoFinalizeContestRankings');
+            autoFinalizeContestRankings();
+        });
         
         // Start the server regardless of Redis connection status
         server.listen(PORT_NO, () => {

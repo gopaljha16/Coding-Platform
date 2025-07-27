@@ -18,9 +18,11 @@ const adminRegister = async (req , res) =>{
         
         console.log("Registered user role:", user.role);
         // created account login directy by using that token 
-        const token = jwt.sign({ _id: user._id, emailId: user.emailId , role:user.role}, process.env.JWT_SECRET, { expiresIn: 60 * 60 });
+        // Increase token expiration to 7 days (604800 seconds)
+        const token = jwt.sign({ _id: user._id, emailId: user.emailId , role:user.role}, process.env.JWT_SECRET, { expiresIn: 604800 });
 
-        res.cookie("token", token, { maxAge: 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+        // Increase cookie maxAge to 7 days (604800000 milliseconds)
+        res.cookie("token", token, { maxAge: 604800000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
 
         res.status(201).send("User Registered Successfully");
 

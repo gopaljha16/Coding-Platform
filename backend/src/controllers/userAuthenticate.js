@@ -43,7 +43,8 @@ const register = async (req, res) => {
         req.body.role = "user";
 
         const user = await User.create(req.body);
-        const token = jwt.sign({ _id: user._id, emailId: user.emailId, role: "user" }, process.env.JWT_SECRET, { expiresIn: 60 * 60 });
+        // Increase token expiration to 7 days (604800 seconds)
+        const token = jwt.sign({ _id: user._id, emailId: user.emailId, role: "user" }, process.env.JWT_SECRET, { expiresIn: 604800 });
 
         const reply = {
             firstName: user.firstName,
@@ -51,7 +52,8 @@ const register = async (req, res) => {
             _id: user._id,
         };
 
-        res.cookie("token", token, { maxAge: 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+        // Increase cookie maxAge to 7 days (604800000 milliseconds)
+        res.cookie("token", token, { maxAge: 604800000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
         res.status(201).json({ user: reply, message: "User Registered Successfully" });
     } catch (err) {
         res.status(401).send("Error :- " + err);
@@ -67,8 +69,10 @@ const login = async (req, res) => {
         const match = await bcrypt.compare(password, user.password);
         if (!match) throw new Error("Invalid Credentials");
 
-        const token = jwt.sign({ _id: user._id, emailId: user.emailId, role: user.role }, process.env.JWT_SECRET, { expiresIn: 60 * 60 });
-        res.cookie("token", token, { maxAge: 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+        // Increase token expiration to 7 days (604800 seconds)
+        const token = jwt.sign({ _id: user._id, emailId: user.emailId, role: user.role }, process.env.JWT_SECRET, { expiresIn: 604800 });
+        // Increase cookie maxAge to 7 days (604800000 milliseconds)
+        res.cookie("token", token, { maxAge: 604800000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
 
         const reply = {
             firstName: user.firstName,
@@ -245,10 +249,11 @@ const googleLogin = async (req, res) => {
         const jwtToken = jwt.sign(
             { _id: user._id, emailId: user.emailId, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: 60 * 60 }
+            { expiresIn: 604800 } // Increase token expiration to 7 days (604800 seconds)
         );
 
-        res.cookie("token", jwtToken, { maxAge: 60 * 60 * 1000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+        // Increase cookie maxAge to 7 days (604800000 milliseconds)
+        res.cookie("token", jwtToken, { maxAge: 604800000, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
 
         res.status(200).json({
             user: {

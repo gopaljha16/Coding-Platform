@@ -1,13 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Clock, Medal, Award, Zap, User, ArrowUp, ArrowDown, Minus, Shield, Star } from 'lucide-react';
+import { Trophy, Clock, Medal, Award, Zap, User, ArrowUp, ArrowDown, Minus, Shield, Star, Info, CheckCircle } from 'lucide-react';
 import axiosClient from '../../utils/axiosClient';
+import { getSocket, initializeSocket } from '../../utils/socket';
 
 const ContestLeaderboard = ({ contestId, isContestActive }) => {
   const [leaderboard, setLeaderboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(null);
+  const [socket, setSocket] = React.useState(null);
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('token'); // or get token from context/auth
+    const sock = initializeSocket(token);
+    setSocket(sock);
+
+    return () => {
+      if (sock) {
+        sock.disconnect();
+      }
+    };
+  }, []);
 
   // Fetch leaderboard data
   const fetchLeaderboard = async () => {
@@ -40,6 +54,23 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
       }
     };
   }, [contestId, isContestActive]);
+
+  // Setup socket listener for real-time leaderboard updates
+  React.useEffect(() => {
+    if (!socket) return;
+
+    const handleLeaderboardUpdate = (updatedLeaderboard) => {
+      if (updatedLeaderboard.contestId === contestId) {
+        setLeaderboard(updatedLeaderboard.leaderboard);
+      }
+    };
+
+    socket.on('leaderboardUpdate', handleLeaderboardUpdate);
+
+    return () => {
+      socket.off('leaderboardUpdate', handleLeaderboardUpdate);
+    };
+  }, [socket, contestId]);
 
   // Get medal for top 3 ranks
   const getMedal = (rank) => {

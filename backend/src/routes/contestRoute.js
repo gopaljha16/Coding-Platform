@@ -1,48 +1,36 @@
 const express = require("express");
-const {
-  createContest,
-  getAllContests,
-  getContestById,
-  updateContest,
-  deleteContest,
-  getAllProblems,
-  getTodayContest
-} = require("../controllers/contestController");
-const {
-  getContestLeaderboard,
-  finalizeContestRankings,
-  getUserContestHistory
-} = require("../controllers/leaderboardController");
-const {
-  submitContestCode,
-  runContestCode,
-  getUserContestSubmissions
-} = require("../controllers/contestSubmissionController");
+const contestController = require("../controllers/contestController");
+const leaderboardController = require("../controllers/leaderboardController");
+const contestSubmissionController = require("../controllers/contestSubmissionController");
 const adminMiddleware = require("../middleware/adminMiddleware");
 const userMiddleware = require("../middleware/userMiddleware");
 const contestRouter = express.Router();
 
 // Today's contest
-contestRouter.get("/today", getTodayContest);
+contestRouter.get("/today", contestController.getTodayContest);
 
-// CRUD operations
-contestRouter.post("/create", adminMiddleware, createContest);
-contestRouter.get("/", getAllContests);
-contestRouter.get("/:id", getContestById);
-contestRouter.put("/update/:id", adminMiddleware, updateContest);
-contestRouter.delete("/delete/:id", adminMiddleware, deleteContest);
+contestRouter.post("/create", adminMiddleware, contestController.createContest);
+contestRouter.get("/problems", adminMiddleware, contestController.getAllProblems);
+contestRouter.get("/", contestController.getAllContests);
+contestRouter.get("/:id", contestController.getContestById);
+contestRouter.put("/update/:id", adminMiddleware, contestController.updateContest);
+contestRouter.delete("/delete/:id", adminMiddleware, contestController.deleteContest);
 
 // Problem selection
-contestRouter.get("/problems", adminMiddleware, getAllProblems);
+contestRouter.get("/:contestId/problems", contestController.getContestProblems);
+contestRouter.get("/:contestId/problem/:problemId", contestController.getContestProblem);
+
+// New route for contest registration
+contestRouter.post("/:contestId/register", userMiddleware, contestController.registerForContest);
 
 // Leaderboard routes
-contestRouter.get("/:contestId/leaderboard", getContestLeaderboard);
-contestRouter.post("/:contestId/finalize", adminMiddleware, finalizeContestRankings);
-contestRouter.get("/user/history", userMiddleware, getUserContestHistory);
+contestRouter.get("/:contestId/leaderboard", leaderboardController.getContestLeaderboard);
+contestRouter.post("/:contestId/finalize", adminMiddleware, leaderboardController.finalizeContestRankings);
+contestRouter.get("/user/history", userMiddleware, leaderboardController.getUserContestHistory);
 
 // Contest submission routes
-contestRouter.post("/:contestId/problem/:problemId/submit", userMiddleware, submitContestCode);
-contestRouter.post("/:contestId/problem/:problemId/run", userMiddleware, runContestCode);
-contestRouter.get("/:contestId/problem/:problemId/submissions", userMiddleware, getUserContestSubmissions);
+contestRouter.post("/:contestId/problem/:problemId/submit", userMiddleware, contestSubmissionController.submitContestCode);
+contestRouter.post("/:contestId/problem/:problemId/run", userMiddleware, contestSubmissionController.runContestCode);
+contestRouter.get("/:contestId/problem/:problemId/submissions", userMiddleware, contestSubmissionController.getUserContestSubmissions);
 
 module.exports = contestRouter;

@@ -2,6 +2,7 @@ const Problem = require("../models/problem");
 const Contest = require("../models/contest");
 const ContestSubmission = require("../models/contestSubmission");
 const { getLanguageById, submitToken, SubmitBatch } = require("../utils/problemUtility");
+const { getIO } = require("../config/socket");
 
 // Submit code for a contest problem
 exports.submitContestCode = async (req, res) => {
@@ -182,6 +183,50 @@ exports.submitContestCode = async (req, res) => {
         if (!contest.participants.includes(userId)) {
             contest.participants.push(userId);
             await contest.save();
+        }
+
+        // Add problem to user's problemSolved list if accepted and not already present
+        if (status === "Accepted") {
+            const User = require("../models/user");
+            const user = await User.findById(userId);
+            if (user) {
+                const problemIdStr = problemId.toString();
+                const solvedIds = user.problemSolved.map(id => id.toString());
+                if (!solvedIds.includes(problemIdStr)) {
+                    user.problemSolved.push(problemId);
+                    await user.save();
+
+                    // Emit user profile update event
+                    const io = getIO();
+                    io.to(userId.toString()).emit('userProfileUpdate', {
+                        userId: user._id,
+                        problemSolved: user.problemSolved
+                    });
+                }
+            }
+        }
+
+        // Emit leaderboard update via Socket.IO
+        try {
+            const io = getIO();
+            
+            // Create a simplified leaderboard update object
+            const leaderboardUpdate = {
+                contestId,
+                leaderboard: {
+                    contestId,
+                    rankings: [], // Will be populated by frontend on next fetch
+                    isFinalized: false,
+                    lastUpdated: new Date()
+                }
+            };
+            
+            // Emit the update to all connected clients
+            io.emit('leaderboardUpdate', leaderboardUpdate);
+            console.log(`Emitted leaderboardUpdate for contest ${contestId}`);
+        } catch (socketError) {
+            console.error("Socket.IO emission error:", socketError);
+            // Continue with response even if socket emission fails
         }
 
         // Return results to user

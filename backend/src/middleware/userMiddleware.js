@@ -57,7 +57,13 @@ const userMiddleware = async (req, res, next) => {
         console.error("Authentication error:", err);
         
         // Handle specific JWT errors
-        if (err instanceof jwt.JsonWebTokenError) {
+        if (err instanceof jwt.TokenExpiredError) {
+            return res.status(401).json({
+                success: false,
+                message: "Token expired, please login again",
+                error: err.message
+            });
+        } else if (err instanceof jwt.JsonWebTokenError) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid token",

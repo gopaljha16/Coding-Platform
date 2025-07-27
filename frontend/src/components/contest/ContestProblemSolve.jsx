@@ -24,14 +24,17 @@ import {
   Timer,
 } from 'lucide-react';
 import axiosClient from '../../utils/axiosClient';
+
+import { useMemo } from 'react';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { getSocket } from '../../utils/socket';
 
 const ContestProblemSolve = () => {
   const { contestId, problemId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const editorRef = useRef(null);
   const consoleRef = useRef(null);
 
@@ -58,10 +61,18 @@ const ContestProblemSolve = () => {
   // Fetch problem and contest data
   useEffect(() => {
     let isMounted = true;
+
+    if (!contestId || !problemId || problemId === 'problems') {
+      showToast('Invalid contest or problem ID', 'error');
+      navigate(`/contest/${contestId}`);
+      return;
+    }
     
     const fetchData = async () => {
       try {
         setIsLoading(true);
+
+        console.log('Fetching contest:', contestId, 'problem:', problemId);
         
         // Fetch contest details
         const contestResponse = await axiosClient.get(`/contest/${contestId}`);
@@ -71,6 +82,10 @@ const ContestProblemSolve = () => {
           setContest(contestResponse.data.contest);
         } else if (contestResponse.data) {
           setContest(contestResponse.data);
+        } else {
+          showToast('Contest not found', 'error');
+          navigate(`/contest`);
+          return;
         }
         
         // Fetch problem details
@@ -85,11 +100,16 @@ const ContestProblemSolve = () => {
               problemResponse.data.problem.startCode[selectedLanguage]) {
             setCode(problemResponse.data.problem.startCode[selectedLanguage]);
           }
+        } else {
+          showToast('Problem not found', 'error');
+          navigate(`/contest/${contestId}`);
+          return;
         }
       } catch (error) {
         if (!isMounted) return;
         console.error('Error fetching data:', error);
         showToast('Failed to load problem data', 'error');
+        navigate(`/contest/${contestId}`);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -98,11 +118,14 @@ const ContestProblemSolve = () => {
     };
 
     fetchData();
-    
+
+    // Add a cleanup function to cancel any ongoing requests if component unmounts
     return () => {
       isMounted = false;
     };
-  }, [contestId, problemId, selectedLanguage, showToast]);
+  }, [contestId, problemId]);
+
+
 
   // Set up contest timer
   useEffect(() => {
@@ -148,6 +171,7 @@ const ContestProblemSolve = () => {
   // Handle language change
   const handleLanguageChange = (e) => {
     const newLanguage = e.target.value;
+    if (newLanguage === selectedLanguage) return; // Prevent unnecessary re-render
     setSelectedLanguage(newLanguage);
     
     // Update code to the problem's startCode for the new language if available
@@ -181,7 +205,14 @@ const ContestProblemSolve = () => {
         language: selectedLanguage,
       });
 
-      setRunResults(response.data);
+      // Defensive check for response data structure
+      const data = response.data;
+      if (data && data.testCases) {
+        setRunResults(data);
+      } else {
+        setRunResults(null);
+        showToast('Run results not available', 'warning');
+      }
     } catch (error) {
       console.error('Error running code:', error);
       showToast('Failed to run code', 'error');
@@ -207,16 +238,32 @@ const ContestProblemSolve = () => {
         language: selectedLanguage,
       });
 
-      setSubmitResults(response.data);
-      
-      if (response.data.status === 'Accepted') {
-        showToast('Solution accepted! 🎉', 'success');
-        // Navigate to leaderboard after successful submission
-        setTimeout(() => {
-          navigate(`/contest/${contestId}/leaderboard`);
-        }, 2000);
+      // Defensive check for response data structure
+      const data = response.data;
+      if (data && data.submission) {
+        setSubmitResults(data.submission);
+        
+        if (data.submission.status === 'Accepted') {
+          showToast('Solution accepted! 🎉', 'success');
+          // Navigate to leaderboard after successful submission
+          setTimeout(() => {
+            navigate(`/contest/${contestId}/leaderboard`);
+          }, 2000);
+        } else {
+          showToast(`Submission result: ${data.submission.status}`, 'info');
+        }
       } else {
-        showToast(`Submission result: ${response.data.status}`, 'info');
+        // Fallback if response structure is unexpected
+        setSubmitResults(data);
+        showToast('Submission result received', 'info');
+      }
+
+      // Update problem solved status if accepted
+      if (data && data.submission && data.submission.status === 'Accepted') {
+        setProblem(prevProblem => ({
+          ...prevProblem,
+          solved: true
+        }));
       }
     } catch (error) {
       console.error('Error submitting code:', error);

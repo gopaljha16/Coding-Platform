@@ -16,4 +16,22 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor to handle token expiration
+axiosClient.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response) {
+      const { status, data } = error.response;
+      if (status === 401 && data.message === "Token expired, please login again") {
+        // Clear user session and localStorage
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        // Optionally reload or redirect to login page
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default axiosClient;

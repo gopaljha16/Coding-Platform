@@ -30,7 +30,16 @@ const CreateContestForm = ({ onSuccess }) => {
 
   useEffect(() => {
     getAllProblems()
-      .then((res) => setProblems(res.data || []))
+      .then((res) => {
+        // Defensive check: ensure res.data.problems is an array
+        const problemsData = res.data?.problems;
+        if (Array.isArray(problemsData)) {
+          setProblems(problemsData);
+        } else {
+          setProblems([]);
+          console.error("Error: problems data is not an array", res.data);
+        }
+      })
       .catch((err) => console.error("Error fetching problems", err));
   }, []);
 
@@ -68,9 +77,9 @@ const CreateContestForm = ({ onSuccess }) => {
     }
   };
 
-  const filteredProblems = problems.filter(p => 
+  const filteredProblems = Array.isArray(problems) ? problems.filter(p => 
     p.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) : [];
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },

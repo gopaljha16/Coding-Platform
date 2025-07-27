@@ -45,6 +45,14 @@ const initializeSocket = (server) => {
       next();
     } catch (error) {
       console.log('Authentication error:', error.message);
+      
+      // Provide more specific error messages for different JWT errors
+      if (error instanceof jwt.TokenExpiredError) {
+        return next(new Error('Authentication error: Token expired, please login again'));
+      } else if (error instanceof jwt.JsonWebTokenError) {
+        return next(new Error('Authentication error: Invalid token'));
+      }
+      
       return next(new Error('Authentication error: ' + error.message));
     }
   });
