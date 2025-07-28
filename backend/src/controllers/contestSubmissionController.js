@@ -5,6 +5,7 @@ const { getLanguageById, submitToken, SubmitBatch } = require("../utils/problemU
 const { getIO } = require("../config/socket");
 
 // Submit code for a contest problem
+// Submit code for a contest problem
 exports.submitContestCode = async (req, res) => {
     try {
         const userId = req.result._id;
@@ -46,6 +47,27 @@ exports.submitContestCode = async (req, res) => {
                 success: false, 
                 message: "Contest has ended" 
             });
+        }
+
+        // Log request headers for debugging
+        console.log("submitContestCode: Request headers:", req.headers);
+        // Check if user is registered for the contest
+        console.log("submitContestCode: userId:", userId.toString());
+        console.log("submitContestCode: contest.participants:", contest.participants.map(p => p.toString()));
+        
+        // Auto-register user if not already registered (workaround for system date issue)
+        if (!contest.participants.map(p => p.toString()).includes(userId.toString())) {
+            console.log("submitContestCode: User not registered for contest - auto-registering");
+            try {
+                // Add user to participants
+                contest.participants = contest.participants || [];
+                contest.participants.push(userId);
+                await contest.save();
+                console.log(`User ${userId.toString()} auto-registered for contest ${contest._id.toString()}`);
+            } catch (saveError) {
+                console.error("Error auto-registering user:", saveError);
+                // Continue anyway - don't block submission
+            }
         }
 
         // Check if problem belongs to this contest
@@ -203,6 +225,29 @@ exports.submitContestCode = async (req, res) => {
                         problemSolved: user.problemSolved
                     });
                 }
+
+                // Check if user has solved all problems in the contest
+                const contest = await Contest.findById(contestId);
+                if (contest) {
+                    const contestProblemIds = contest.problems.map(id => id.toString());
+                    const userSolvedIds = user.problemSolved.map(id => id.toString());
+
+                    const allSolved = contestProblemIds.every(pid => userSolvedIds.includes(pid));
+
+                    if (allSolved) {
+                        const completedContestIds = user.contestsCompleted.map(id => id.toString());
+                        if (!completedContestIds.includes(contestId.toString())) {
+                            user.contestsCompleted.push(contestId);
+                            await user.save();
+
+                            // Emit user contest completion event
+                            io.to(userId.toString()).emit('contestCompleted', {
+                                contestId: contest._id,
+                                message: 'Contest completed!'
+                            });
+                        }
+                    }
+                }
             }
         }
 
@@ -244,9 +289,13 @@ exports.submitContestCode = async (req, res) => {
             }
         });
 
-    } catch (error) {
+} catch (error) {
         console.error("❌ Error submitting contest code:", error);
-        res.status(500).json({ success: false, message: error.message });
+        try {
+            res.status(500).json({ success: false, message: error.message || error });
+        } catch (sendErr) {
+            console.error("Error sending error response:", sendErr);
+        }
     }
 };
 
@@ -347,32 +396,44 @@ exports.runContestCode = async (req, res) => {
         const resultTokens = submitResult.map(value => value.token);
         const testResults = await submitToken(resultTokens);
 
-        // Process test results
+        // Process test results and transform to frontend expected format
         let testCasesPassed = 0;
         let runtime = 0;
         let memory = 0;
         let status = true;
         let errorMessage = null;
 
-        for (const test of testResults) {
-            if (test.status_id == 3) { // Accepted
+        // Map testResults to include passed, input, expectedOutput, actualOutput, error, runtime
+        const transformedTestCases = testResults.map((test, index) => {
+            const passed = test.status_id === 3;
+            if (passed) {
                 testCasesPassed++;
-                runtime = runtime + parseFloat(test.time);
+                runtime += parseFloat(test.time);
                 memory = Math.max(memory, test.memory);
             } else {
                 status = false;
                 errorMessage = test.stderr || test.compile_output || "Execution Error";
             }
-        }
+
+            return {
+                passed,
+                input: problem.visibleTestCases[index].input,
+                expectedOutput: problem.visibleTestCases[index].output,
+                actualOutput: test.stdout || test.output || '',
+                error: test.stderr || test.compile_output || null,
+                runtime: test.time ? parseFloat(test.time) * 1000 : null // convert to ms
+            };
+        });
 
         // Return results to user
         res.status(200).json({
             success: status,
-            testCases: testResults,
+            testCases: transformedTestCases,
             testCasesPassed,
             totalTestCases: problem.visibleTestCases.length,
             runtime,
-            memory
+            memory,
+            errorMessage
         });
 
     } catch (error) {

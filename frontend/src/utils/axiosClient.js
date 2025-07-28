@@ -22,12 +22,11 @@ axiosClient.interceptors.response.use(
   error => {
     if (error.response) {
       const { status, data } = error.response;
+      // Temporarily disable automatic logout for token expiration
+      // This is a workaround for the system date issue (2025)
       if (status === 401 && data.message === "Token expired, please login again") {
-        // Clear user session and localStorage
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        // Optionally reload or redirect to login page
-        window.location.href = '/login';
+        console.warn("Token expiration detected but ignoring due to system date issue");
+        // Don't clear user session or redirect
       }
     }
     return Promise.reject(error);

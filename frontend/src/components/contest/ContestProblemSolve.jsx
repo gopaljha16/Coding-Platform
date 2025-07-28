@@ -29,6 +29,7 @@ import { useMemo } from 'react';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { getSocket } from '../../utils/socket';
+import { useContest } from '../../context/ContestContext';
 
 const ContestProblemSolve = () => {
   const { contestId, problemId } = useParams();
@@ -38,9 +39,11 @@ const ContestProblemSolve = () => {
   const editorRef = useRef(null);
   const consoleRef = useRef(null);
 
+  // Contest context
+  const { contest, setContest, participants, setParticipants, hasEntered, setHasEntered, hasCompleted, setHasCompleted } = useContest();
+
   // State variables
   const [problem, setProblem] = useState(null);
-  const [contest, setContest] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -77,12 +80,13 @@ const ContestProblemSolve = () => {
         // Fetch contest details
         const contestResponse = await axiosClient.get(`/contest/${contestId}`);
         if (!isMounted) return;
+
+        const { contest, userStatus } = contestResponse.data;
+        setContest(contest);
+        setHasEntered(userStatus?.isRegistered || false);
+        setHasCompleted(userStatus?.isCompleted || false);
         
-        if (contestResponse.data && contestResponse.data.contest) {
-          setContest(contestResponse.data.contest);
-        } else if (contestResponse.data) {
-          setContest(contestResponse.data);
-        } else {
+        if (!contest) {
           showToast('Contest not found', 'error');
           navigate(`/contest`);
           return;
@@ -228,6 +232,25 @@ const ContestProblemSolve = () => {
       return;
     }
 
+    // Force registration if not already registered
+    if (!hasEntered) {
+      try {
+        console.log('Attempting auto-registration for contest');
+        await axiosClient.post(`/contest/${contestId}/register`);
+        setHasEntered(true);
+        console.log('Auto-registration successful');
+      } catch (regError) {
+        console.error('Auto-registration failed:', regError);
+        showToast('You must register for the contest before submitting solutions.', 'warning');
+        return;
+      }
+    }
+
+    if (hasCompleted) {
+      showToast('You have already completed this contest.', 'info');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setShowConsole(true);
@@ -245,6 +268,13 @@ const ContestProblemSolve = () => {
         
         if (data.submission.status === 'Accepted') {
           showToast('Solution accepted! 🎉', 'success');
+          // Refetch contest details to update registration/completion status
+          const contestResponse = await axiosClient.get(`/contest/${contestId}`);
+          const { contest, userStatus } = contestResponse.data;
+          setContest(contest);
+          setParticipants(contest.participants || []);
+          setHasEntered(userStatus?.isRegistered || true);
+          setHasCompleted(userStatus?.isCompleted || false);
           // Navigate to leaderboard after successful submission
           setTimeout(() => {
             navigate(`/contest/${contestId}/leaderboard`);

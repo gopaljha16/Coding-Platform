@@ -38,6 +38,7 @@ const SubmitBatch = async(submissions) =>{
                return response.data;
           } catch (error) {
               console.log(error)
+              throw error;
           }
       }
       
@@ -66,11 +67,29 @@ const options = {
 };
 
 async function fetchData() {
-	try {
-		const response = await axios.request(options);
-		return response.data;
-	} catch (error) {
-		console.error(error);
+	let retryCount = 0;
+	const maxRetries = 5;
+	const baseDelay = 1000; // 1 second
+
+	while (true) {
+		try {
+			const response = await axios.request(options);
+			return response.data;
+		} catch (error) {
+			if (error.response && error.response.status === 429) {
+				// Too Many Requests - implement exponential backoff
+				if (retryCount >= maxRetries) {
+					throw new Error('Exceeded maximum retries due to rate limiting');
+				}
+				const delay = baseDelay * Math.pow(2, retryCount);
+				console.warn(`Rate limited by Judge0 API. Retrying after ${delay} ms...`);
+				await waiting(delay);
+				retryCount++;
+			} else {
+				console.error(error);
+				throw error;
+			}
+		}
 	}
 }
 

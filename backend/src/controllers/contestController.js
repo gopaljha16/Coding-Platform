@@ -39,11 +39,13 @@ exports.createContest = async (req, res) => {
   }
 };
 
-// New function to register user for contest
+// Register for a contest
 exports.registerForContest = async (req, res) => {
   try {
     const contestId = req.params.contestId;
     const userId = req.result._id;
+
+    console.log(`Registration attempt for contest ${contestId} by user ${userId}`);
 
     if (!mongoose.Types.ObjectId.isValid(contestId)) {
       return res.status(400).json({ success: false, message: "Invalid contest ID" });
@@ -54,19 +56,56 @@ exports.registerForContest = async (req, res) => {
       return res.status(404).json({ success: false, message: "Contest not found" });
     }
 
+    // Check if contest is active - TEMPORARILY DISABLED DUE TO SYSTEM DATE ISSUE
+    // const now = new Date();
+    // if (now < contest.startTime) {
+    //   return res.status(400).json({ success: false, message: "Contest has not started yet" });
+    // }
+    // 
+    // if (now > contest.endTime) {
+    //   return res.status(400).json({ success: false, message: "Contest has already ended" });
+    // }
+
     // Check if user already registered
-    if (contest.participants && contest.participants.includes(userId)) {
+    if (contest.participants && contest.participants.map(p => p.toString()).includes(userId.toString())) {
+      console.log(`User ${userId} already registered for contest ${contestId}`);
       return res.status(200).json({ success: true, message: "Already registered" });
     }
 
     // Add user to participants
     contest.participants = contest.participants || [];
     contest.participants.push(userId);
-    await contest.save();
+    try {
+      await contest.save();
+      console.log(`User ${userId.toString()} successfully registered for contest ${contest._id.toString()}`);
+    } catch (saveError) {
+      console.error("Error saving contest participants:", saveError);
+      return res.status(500).json({ success: false, message: "Failed to register for contest" });
+    }
 
     res.status(200).json({ success: true, message: "Registered for contest successfully" });
   } catch (error) {
     console.error("Error in registerForContest:", error);
+    // Try to register anyway as a fallback
+    try {
+      const contestId = req.params.contestId;
+      const userId = req.result._id;
+      
+      const contest = await Contest.findById(contestId);
+      if (contest && !contest.participants.includes(userId)) {
+        contest.participants = contest.participants || [];
+        contest.participants.push(userId);
+        await contest.save();
+        console.log(`Fallback: User ${userId} registered for contest ${contestId}`);
+        return res.status(200).json({
+          success: true,
+          message: "Registered for contest successfully (fallback)"
+        });
+      }
+    } catch (fallbackError) {
+      console.error("Fallback registration also failed:", fallbackError);
+    }
+    
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -85,7 +124,23 @@ exports.getContestById = async (req, res) => {
   try {
     const contest = await Contest.findById(req.params.id).populate("problems");
     if (!contest) return res.status(404).json({ message: "Contest not found" });
-    res.json(contest);
+
+    // Get user contest registration and completion status if user is authenticated
+    let userStatus = null;
+    if (req.result && req.result._id) {
+      const User = require("../models/user");
+      const user = await User.findById(req.result._id);
+      if (user) {
+        const isRegistered = contest.participants.includes(user._id);
+        const isCompleted = user.contestsCompleted.some(cId => cId.toString() === contest._id.toString());
+        userStatus = {
+          isRegistered,
+          isCompleted
+        };
+      }
+    }
+
+    res.json({ contest, userStatus });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

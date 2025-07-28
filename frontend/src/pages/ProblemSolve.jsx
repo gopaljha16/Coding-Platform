@@ -191,6 +191,14 @@ const ProblemPage = () => {
       setSubmitResult(response.data);
       setLoading(false);
       setActiveRightTab("result");
+
+      // Update problem solved status if submission accepted
+      if (response.data && response.data.accepted) {
+        setProblem(prevProblem => ({
+          ...prevProblem,
+          solved: true
+        }));
+      }
     } catch (error) {
       console.error("Error submitting code:", error);
       setSubmitResult({

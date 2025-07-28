@@ -49,6 +49,17 @@ const userScehma = Schema({
             },
         ]
     },
+    contestsCompleted: {
+        type: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "contest",
+                unique: true,
+                completedAt: { type: Date, default: Date.now }
+            }
+        ],
+        default: []
+    },
     isPremium: {
         type: Boolean,
         default: false,

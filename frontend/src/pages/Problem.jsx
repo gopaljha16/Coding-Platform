@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchSolvedProblems } from "../slice/problemSlice";
 import {
   Search,
   Filter,
@@ -51,9 +52,10 @@ import { NavLink } from "react-router-dom";
 import axiosClient from "../utils/axiosClient";
 
 const Problem = () => {
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const solvedProblems = useSelector((state) => state.problems.solvedProblems);
   const [problems, setProblems] = useState([]);
-  const [solvedProblems, setSolvedProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     difficulty: "all",
@@ -83,11 +85,8 @@ const Problem = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [problemsRes, solvedRes, playlistsRes] = await Promise.all([
+        const [problemsRes, playlistsRes] = await Promise.all([
           axiosClient.get("/problem/getAllProblems"),
-          user
-            ? axiosClient.get("/problem/problemsSolvedByUser")
-            : Promise.resolve({ data: [] }),
           user
             ? axiosClient.get("/playlists/user")
             : Promise.resolve({ data: [] }),
@@ -95,14 +94,14 @@ const Problem = () => {
 
         setProblems(problemsRes.data);
         if (user) {
-          setSolvedProblems(solvedRes.data);
           setPlaylists(playlistsRes.data?.data || playlistsRes.data || []);
+          dispatch(fetchSolvedProblems());
         }
 
         // Calculate stats
         const newStats = {
           total: problemsRes.data.length,
-          solved: user ? solvedRes.data.length : 0,
+          solved: user ? solvedProblems.length : 0,
           easy: problemsRes.data.filter((p) => p.difficulty === "easy").length,
           medium: problemsRes.data.filter((p) => p.difficulty === "medium").length,
           hard: problemsRes.data.filter((p) => p.difficulty === "hard").length,
@@ -117,7 +116,8 @@ const Problem = () => {
     };
 
     fetchData();
-  }, [user]);
+  }, [user, dispatch, solvedProblems.length]);
+
 
   const filteredProblems = problems.filter((problem) => {
     const difficultyMatch =

@@ -66,8 +66,15 @@ const login = async (req, res) => {
         if (!emailId || !password) throw new Error("Credentials Missing");
 
         const user = await User.findOne({ emailId });
+        if (!user) {
+            console.error("Login failed: User not found for emailId:", emailId);
+            return res.status(403).send("Error Invalid Credentials");
+        }
         const match = await bcrypt.compare(password, user.password);
-        if (!match) throw new Error("Invalid Credentials");
+        if (!match) {
+            console.error("Login failed: Password mismatch for emailId:", emailId);
+            return res.status(403).send("Error Invalid Credentials");
+        }
 
         // Increase token expiration to 7 days (604800 seconds)
         const token = jwt.sign({ _id: user._id, emailId: user.emailId, role: user.role }, process.env.JWT_SECRET, { expiresIn: 604800 });
@@ -83,6 +90,7 @@ const login = async (req, res) => {
 
         res.status(201).json({ user: reply, token: token, message: "Logged In Successfully" });
     } catch (err) {
+        console.error("Login error:", err);
         res.status(403).send("Error " + err);
     }
 };

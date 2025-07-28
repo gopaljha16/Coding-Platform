@@ -8,23 +8,29 @@ const submitCode = async (req, res) => {
     try {
 
         const userId = req.result._id;
-        console.log(userId)
+        console.log("submitCode: userId:", userId);
 
         const problemId = req.params.id;
-     
+        console.log("submitCode: problemId:", problemId);
 
-        const { code, language } = req.body;
+        let { code, language } = req.body;
+        console.log("submitCode: received code and language");
 
-
-        if (!userId || !problemId || !code || !language)
+        if (!userId || !problemId || !code || !language) {
+            console.log("submitCode: Missing fields");
             return res.status(401).send("Fields Are Missing");
+        }
 
         if (language === 'cpp')
-            language = 'c++'
+            language = 'c++';
 
         //fetch the problem from database
         const problem = await Problem.findById(problemId);
-
+        if (!problem) {
+            console.log("submitCode: Problem not found");
+            return res.status(404).send("Problem not found");
+        }
+        console.log("submitCode: Problem found");
 
         // first saving into the database if there is an issue in the judge0 first it should be saved as an pending
         const submittedResult = await Submission.create({
@@ -34,39 +40,41 @@ const submitCode = async (req, res) => {
             language,
             status: "Pending",
             totalTestCases: problem.hiddenTestCases.length,
-        })
+        });
+        console.log("submitCode: Submission created with pending status");
 
         //now judge0 code submit 
         const languageId = await getLanguageById(language);
-
-        if (!languageId)
+        if (!languageId) {
+            console.log("submitCode: Invalid language id");
             return res.status(404).send(" Invalid Language Id");
+        }
+        console.log("submitCode: Language ID found:", languageId);
 
         const submission = problem.hiddenTestCases.map((testcase) => ({
             source_code: code,
             language_id: languageId,
             stdin: testcase.input,
             expected_output: testcase.output,
-        }))
+        }));
+        console.log("submitCode: Prepared submission batch");
 
         const submitResult = await SubmitBatch(submission);
-
         if (!submitResult || !Array.isArray(submitResult)) {
+            console.log("submitCode: Judge0 submission failed or no result returned");
             return res.status(500).send("Judge0 submission failed or no result returned.");
         }
-
+        console.log("submitCode: Judge0 submission successful");
 
         const resultToken = submitResult.map((value) => value.token);
-
         const testResult = await submitToken(resultToken);
-
+        console.log("submitCode: Received test results");
 
         let testCasesPassed = 0;
         let runtime = 0;
         let memory = 0;
         let errorMessage = null;
         let status = "Accepted";
-
 
         for (const test of testResult) {
             if (test.status_id == 3) {
@@ -76,13 +84,14 @@ const submitCode = async (req, res) => {
             } else {
                 if (test.status_id == 4) {
                     status = "Wrong Answer";
-                    errorMessage = test.stderr
+                    errorMessage = test.stderr;
                 } else {
                     status = "Error";
-                    errorMessage = test.stderr
+                    errorMessage = test.stderr;
                 }
             }
         }
+        console.log("submitCode: Test results processed");
 
         // update to the database submission store into the database which previous stored as pending if it's wrong answer that will also be stored 
         submittedResult.status = status;
@@ -92,28 +101,39 @@ const submitCode = async (req, res) => {
         submittedResult.errorMessage = errorMessage;
 
         await submittedResult.save();
+        console.log("submitCode: Submission updated with results");
 
         // after submission saving it to the problem Id
         if (!req.result.problemSolved.includes(problemId)) {
             req.result.problemSolved.push(problemId);
-            await req.result.save();
+            try {
+                await req.result.save();
+                console.log("submitCode: User problemSolved updated");
+            } catch (userSaveErr) {
+                console.error("submitCode: Error saving user document:", userSaveErr);
+                // Do not fail submission due to user save error
+            }
         }
 
-    
-
-        const accepted = (status == 'Accepted')
+        const accepted = (status == 'Accepted');
         res.status(201).json({
+            success: true,
+            message: accepted ? "Submission accepted" : "Submission processed",
             accepted,
             totalTestCases: submittedResult.totalTestCases,
             passedTestCases: testCasesPassed,
             runtime,
             memory
         });
-        
-       
+        console.log("submitCode: Response sent");
 
     } catch (err) {
-        res.status(500).send("Internal Server Error " + err);
+        console.error("Error in submitCode:", err);
+        try {
+            res.status(500).send("Internal Server Error " + err.message || err);
+        } catch (sendErr) {
+            console.error("Error sending error response:", sendErr);
+        }
     }
 }
 
