@@ -76,6 +76,19 @@ const ProblemSchema = new Schema({
 
     ],
 
+    secureUrl: {
+        type: String,
+        required: false,
+    },
+    thumbnailUrl: {
+        type: String,
+        required: false,
+    },
+    duration: {
+        type: Number,
+        required: false,
+    },
+
     problemCreator: {
         type: Schema.Types.ObjectId,
         ref: "user",

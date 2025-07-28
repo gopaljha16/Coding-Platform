@@ -148,21 +148,42 @@ const deleteProblem = async (req, res) => {
 }
 
 
+const SolutionVideo = require("../models/SolutionVideo");
+
 const getProblemById = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.result._id;
 
     if (!id)
       return res.status(403).send("Id is Missing");
 
     const getProblem = await Problem.findById(id).select(
-      "title description difficulty tags visibleTestCases startCode referenceSolution"
+      "title description difficulty tags visibleTestCases startCode referenceSolution secureUrl thumbnailUrl duration"
     );
 
     if (!getProblem)
       return res.status(403).send("Problem is Missing");
 
-    res.status(200).send(getProblem);
+    // Fetch video metadata for this problem and user
+    const video = await SolutionVideo.findOne({ problemId: id, userId });
+
+    let videoData = null;
+    if (video) {
+      videoData = {
+        secureUrl: video.secureUrl,
+        thumbnailUrl: video.thumbnailUrl,
+        duration: video.duration,
+      };
+    }
+
+    // Combine problem data with video metadata
+    const responseData = {
+      ...getProblem.toObject(),
+      video: videoData,
+    };
+
+    res.status(200).send(responseData);
     
   } catch (err) {
     console.error("Error fetching problem by ID:", err); 

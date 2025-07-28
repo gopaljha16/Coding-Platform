@@ -46,9 +46,10 @@ const generateUploadSignature = async (req, res) => {
   }
 };
 
+
 const saveVideoMetadata = async (req, res) => {
   try {
-    const { problemId, cloudinaryPublicId, secureUrl, duration } = req.body;
+    const { problemId, cloudinaryPublicId, secureUrl, duration, title, description, tags } = req.body;
     const userId = req.result._id;
 
     const cloudinaryResource = await cloudinary.api.resource(cloudinaryPublicId, {
@@ -87,6 +88,16 @@ const saveVideoMetadata = async (req, res) => {
       secureUrl,
       duration: cloudinaryResource.duration || duration,
       thumbnailUrl,
+      title,
+      description,
+      tags,
+    });
+
+    // Update Problem document with video metadata
+    await Problem.findByIdAndUpdate(problemId, {
+      secureUrl,
+      thumbnailUrl,
+      duration: cloudinaryResource.duration || duration,
     });
 
     res.status(201).json({

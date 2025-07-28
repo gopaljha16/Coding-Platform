@@ -240,7 +240,7 @@ const Editorial = ({ secureUrl, thumbnailUrl, duration }) => {
             onClick={togglePlayPause}
             className="bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all duration-300 rounded-full p-8 hover:scale-110 border border-white/30 group"
           >
-            <Play className="w-16 h-16 text-white ml-2 group-hover:scale-110 transition-transform" />
+            <Play className="w-7 h-7 text-white ml-2 group-hover:scale-110 transition-transform" />
           </button>
         </div>
 
@@ -406,16 +406,6 @@ const Editorial = ({ secureUrl, thumbnailUrl, duration }) => {
                 )}
               </div>
 
-              {/* Share */}
-              <button className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-200">
-                <Share2 className="w-5 h-5 text-white" />
-              </button>
-
-              {/* Download */}
-              <button className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-200">
-                <Download className="w-5 h-5 text-white" />
-              </button>
-
               {/* Fullscreen */}
               <button
                 onClick={toggleFullscreen}
@@ -441,8 +431,6 @@ const Editorial = ({ secureUrl, thumbnailUrl, duration }) => {
             <span className="text-gray-400 text-sm">Premium Quality</span>
           </div>
           <div className="flex items-center space-x-2 text-gray-400 text-sm">
-            <span>Views: 1.2K</span>
-            <span>•</span>
             <span>Duration: {formatTime(duration)}</span>
           </div>
         </div>

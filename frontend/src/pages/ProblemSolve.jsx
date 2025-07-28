@@ -104,14 +104,12 @@ const ProblemPage = () => {
 
         const initialCode =
           response.data.startCode.find((sc) => {
-            if (sc.language === "C++" && selectedLanguage === "cpp")
+            const lang = sc.language.toLowerCase();
+            if (lang === "c++" && selectedLanguage === "cpp")
               return true;
-            else if (sc.language === "Java" && selectedLanguage === "java")
+            else if (lang === "java" && selectedLanguage === "java")
               return true;
-            else if (
-              sc.language === "Javascript" &&
-              selectedLanguage === "javascript"
-            )
+            else if (lang === "javascript" && selectedLanguage === "javascript")
               return true;
             return false;
           })?.initialCode || "";
@@ -130,14 +128,18 @@ const ProblemPage = () => {
 
   // Update code when language changes
   useEffect(() => {
-    if (problem) {
+      if (problem) {
       const initialCode =
-        problem.startCode.find(
-          (sc) =>
-            (sc.language === "C++" && selectedLanguage === "cpp") ||
-            (sc.language === "Java" && selectedLanguage === "java") ||
-            (sc.language === "Javascript" && selectedLanguage === "javascript")
-        )?.initialCode || "";
+        problem.startCode.find((sc) => {
+          const lang = sc.language.toLowerCase();
+          if (lang === "c++" && selectedLanguage === "cpp")
+            return true;
+          else if (lang === "java" && selectedLanguage === "java")
+            return true;
+          else if (lang === "javascript" && selectedLanguage === "javascript")
+            return true;
+          return false;
+        })?.initialCode || "";
       setCode(initialCode);
     }
   }, [selectedLanguage, problem]);
@@ -273,12 +275,16 @@ const ProblemPage = () => {
   const resetCode = () => {
     if (problem) {
       const initialCode =
-        problem.startCode.find(
-          (sc) =>
-            (sc.language === "C++" && selectedLanguage === "cpp") ||
-            (sc.language === "Java" && selectedLanguage === "java") ||
-            (sc.language === "Javascript" && selectedLanguage === "javascript")
-        )?.initialCode || "";
+        problem.startCode.find((sc) => {
+          const lang = sc.language.toLowerCase();
+          if (lang === "c++" && selectedLanguage === "cpp")
+            return true;
+          else if (lang === "java" && selectedLanguage === "java")
+            return true;
+          else if (lang === "javascript" && selectedLanguage === "javascript")
+            return true;
+          return false;
+        })?.initialCode || "";
       setCode(initialCode);
     }
   };
