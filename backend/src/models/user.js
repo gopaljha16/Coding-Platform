@@ -44,7 +44,6 @@ const userScehma = Schema({
             {
                 type: Schema.Types.ObjectId,
                 ref: "problem",
-                unique: true,
                 solvedAt: { type: Date, default: Date.now }
             },
         ]
@@ -54,7 +53,6 @@ const userScehma = Schema({
             {
                 type: Schema.Types.ObjectId,
                 ref: "contest",
-                unique: true,
                 completedAt: { type: Date, default: Date.now }
             }
         ],
@@ -93,6 +91,9 @@ userScehma.post("findOneAndDelete", async (userInfo) => {
     if (userInfo)
         await mongoose.model("submission").deleteMany({ userId: userInfo._id });
 })
+
+// No need for a compound index since we're using $addToSet in the controller
+// which already ensures uniqueness of problemIds within the problemSolved array
 
 const User = mongoose.model("user", userScehma);
 module.exports = User;

@@ -47,6 +47,8 @@ import {
   Layers,
   GitBranch,
   Calculator,
+  SlidersHorizontal,
+  Funnel,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import axiosClient from "../utils/axiosClient";
@@ -81,6 +83,21 @@ const Problem = () => {
   const [playlistLoading, setPlaylistLoading] = useState(false);
   const [addingToPlaylist, setAddingToPlaylist] = useState(false);
 
+  // Get unique tags from problems
+  const uniqueTags = React.useMemo(() => {
+    const tagSet = new Set();
+    problems.forEach(problem => {
+      const tags = Array.isArray(problem.tags) 
+        ? problem.tags 
+        : typeof problem.tags === "string" 
+        ? [problem.tags] 
+        : [];
+      tags.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [problems]);
+
+  // Initial data fetch
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -95,18 +112,15 @@ const Problem = () => {
         setProblems(problemsRes.data);
         if (user) {
           setPlaylists(playlistsRes.data?.data || playlistsRes.data || []);
-          dispatch(fetchSolvedProblems());
+          // Fetch solved problems first
+          try {
+            await dispatch(fetchSolvedProblems()).unwrap();
+            console.log("fetchSolvedProblems dispatched successfully");
+          } catch (error) {
+            console.error("Error dispatching fetchSolvedProblems:", error);
+            toast.error("Failed to load solved problems. Please try again.");
+          }
         }
-
-        // Calculate stats
-        const newStats = {
-          total: problemsRes.data.length,
-          solved: user ? solvedProblems.length : 0,
-          easy: problemsRes.data.filter((p) => p.difficulty === "easy").length,
-          medium: problemsRes.data.filter((p) => p.difficulty === "medium").length,
-          hard: problemsRes.data.filter((p) => p.difficulty === "hard").length,
-        };
-        setStats(newStats);
       } catch (err) {
         console.error("Error fetching data:", err);
         toast.error("Failed to load problems. Please try again.");
@@ -116,8 +130,24 @@ const Problem = () => {
     };
 
     fetchData();
-  }, [user, dispatch, solvedProblems.length]);
+  }, [user, dispatch]);
+  
+  // Add error display for solved problems fetch failure
+  const solvedProblemsError = useSelector(state => state.problems.error);
 
+  // Update stats whenever problems or solvedProblems change
+  useEffect(() => {
+    if (problems.length > 0) {
+      const newStats = {
+        total: problems.length,
+        solved: user ? solvedProblems.length : 0,
+        easy: problems.filter((p) => p.difficulty === "easy").length,
+        medium: problems.filter((p) => p.difficulty === "medium").length,
+        hard: problems.filter((p) => p.difficulty === "hard").length,
+      };
+      setStats(newStats);
+    }
+  }, [problems, solvedProblems, user]);
 
   const filteredProblems = problems.filter((problem) => {
     const difficultyMatch =
@@ -138,7 +168,8 @@ const Problem = () => {
         !solvedProblems.some((sp) => sp._id === problem._id));
     const searchMatch =
       filters.search === "" ||
-      problem.title.toLowerCase().includes(filters.search.toLowerCase());
+      problem.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+      (problem.description && problem.description.toLowerCase().includes(filters.search.toLowerCase()));
 
     return difficultyMatch && tagMatch && statusMatch && searchMatch;
   });
@@ -184,7 +215,26 @@ const Problem = () => {
   };
 
   const isProblemSolved = (problemId) => {
-    return solvedProblems.some((sp) => sp._id === problemId);
+    // Add debugging to help identify issues
+    if (!solvedProblems || !Array.isArray(solvedProblems)) {
+      console.warn('isProblemSolved: solvedProblems is not an array:', solvedProblems);
+      return false;
+    }
+    
+    const isSolved = solvedProblems.some((sp) => sp && sp._id === problemId);
+    return isSolved;
+  };
+
+  // Add a function to refresh solved problems
+  const refreshSolvedProblems = async () => {
+    if (user) {
+      try {
+        await dispatch(fetchSolvedProblems()).unwrap();
+        console.log("Solved problems refreshed");
+      } catch (error) {
+        console.error("Error refreshing solved problems:", error);
+      }
+    }
   };
 
   const handleCreatePlaylist = async () => {
@@ -282,6 +332,18 @@ const Problem = () => {
     return tagIcons[tag] || <Code className="w-3 h-3" />;
   };
 
+  const clearAllFilters = () => {
+    setFilters({
+      difficulty: "all",
+      tag: "all",
+      status: "all",
+      search: "",
+    });
+    setShowFilters(false);
+  };
+
+  const hasActiveFilters = filters.difficulty !== "all" || filters.tag !== "all" || filters.status !== "all" || filters.search !== "";
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -339,14 +401,24 @@ const Problem = () => {
 
                 <div className="flex items-center gap-4">
                   {user && (
-                    <button
-                      onClick={() => setShowPlaylistModal(true)}
-                      className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300 transform hover:scale-105"
-                    >
-                      <FolderPlus className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
-                      Create Playlist
-                      <Sparkles className="w-4 h-4 opacity-60" />
-                    </button>
+                    <>
+                      <button
+                        onClick={refreshSolvedProblems}
+                        className="group flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white rounded-xl font-medium border border-slate-600/30 hover:border-slate-500/30 transition-all duration-300"
+                        title="Refresh solved problems"
+                      >
+                        <Activity className="w-4 h-4 group-hover:animate-pulse" />
+                        Refresh
+                      </button>
+                      <button
+                        onClick={() => setShowPlaylistModal(true)}
+                        className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300 transform hover:scale-105"
+                      >
+                        <FolderPlus className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+                        Create Playlist
+                        <Sparkles className="w-4 h-4 opacity-60" />
+                      </button>
+                    </>
                   )}
 
                   <div className="flex items-center gap-2 p-1 bg-slate-700/50 rounded-xl border border-slate-600/30">
@@ -470,8 +542,9 @@ const Problem = () => {
                 </div>
               </div>
 
-              {/* Playlists Section */}
-              {user && playlists.length > 0 && (
+
+               {/* Playlists Section */}
+               {user && playlists.length > 0 && (
                 <div className="mb-8">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30">
@@ -534,6 +607,185 @@ const Problem = () => {
                   </div>
                 </div>
               )}
+
+              {/* Search and Filter Section */}
+              <div className="mb-8">
+                <div className="flex flex-col lg:flex-row gap-4 items-center justify-between mb-6">
+                  {/* Search Bar */}
+                  <div className="relative flex-1 max-w-2xl">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Search className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search problems by title or description..."
+                      value={filters.search}
+                      onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                      className="w-full pl-12 pr-4 py-4 bg-slate-800/80 backdrop-blur-sm border border-slate-600/30 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-300"
+                    />
+                    {filters.search && (
+                      <button
+                        onClick={() => setFilters(prev => ({ ...prev, search: "" }))}
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition-colors"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter Toggle and Sort */}
+                  <div className="flex items-center gap-3">
+                    {/* Filter Toggle Button */}
+                    <button
+                      onClick={() => setShowFilters(!showFilters)}
+                      className={`group flex items-center gap-2 px-6 py-3 rounded-2xl font-medium border transition-all duration-300 ${
+                        hasActiveFilters
+                          ? "bg-orange-500/20 border-orange-500/30 text-orange-400 hover:bg-orange-500/30"
+                          : "bg-slate-700/50 border-slate-600/30 text-slate-300 hover:bg-slate-600/50 hover:text-white"
+                      }`}
+                    >
+                      <SlidersHorizontal className="w-4 h-4" />
+                      Filters
+                      {hasActiveFilters && (
+                        <span className="ml-1 px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full">
+                          {[filters.difficulty !== "all", filters.tag !== "all", filters.status !== "all", filters.search !== ""].filter(Boolean).length}
+                        </span>
+                      )}
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showFilters ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {/* Sort Dropdown */}
+                    <div className="relative">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="appearance-none px-6 py-3 bg-slate-700/50 border border-slate-600/30 rounded-2xl text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-300 pr-12"
+                      >
+                        <option value="title">Sort by Title</option>
+                        <option value="difficulty">Sort by Difficulty</option>
+                        <option value="acceptance">Sort by Acceptance</option>
+                      </select>
+                      <ArrowUpDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter Options Panel */}
+                {showFilters && (
+                  <div className="mb-6 p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-600/30 rounded-2xl">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Difficulty Filter */}
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-3">
+                          <Target className="w-4 h-4 inline mr-2" />
+                          Difficulty
+                        </label>
+                        <div className="space-y-2">
+                          {["all", "easy", "medium", "hard"].map((diff) => (
+                            <label key={diff} className="flex items-center">
+                              <input
+                                type="radio"
+                                name="difficulty"
+                                value={diff}
+                                checked={filters.difficulty === diff}
+                                onChange={(e) => setFilters(prev => ({ ...prev, difficulty: e.target.value }))}
+                                className="sr-only"
+                              />
+                              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all duration-300 ${
+                                filters.difficulty === diff
+                                  ? "bg-orange-500/20 border border-orange-500/30 text-orange-400"
+                                  : "bg-slate-700/30 border border-slate-600/30 text-slate-300 hover:bg-slate-600/30"
+                              }`}>
+                                {diff === "all" && <Funnel className="w-4 h-4" />}
+                                {diff === "easy" && <Target className="w-4 h-4 text-emerald-400" />}
+                                {diff === "medium" && <Zap className="w-4 h-4 text-amber-400" />}
+                                {diff === "hard" && <Brain className="w-4 h-4 text-rose-400" />}
+                                <span className="capitalize font-medium">
+                                  {diff === "all" ? "All Difficulties" : diff}
+                                </span>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Tag Filter */}
+                      <div>
+                        <label className="block text-slate-300 font-medium mb-3">
+                          <Hash className="w-4 h-4 inline mr-2" />
+                          Topic
+                        </label>
+                        <select
+                          value={filters.tag}
+                          onChange={(e) => setFilters(prev => ({ ...prev, tag: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/30 rounded-xl text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-300"
+                        >
+                          <option value="all">All Topics</option>
+                          {uniqueTags.map((tag) => (
+                            <option key={tag} value={tag}>
+                              {tag}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Status Filter */}
+                      {user && (
+                        <div>
+                          <label className="block text-slate-300 font-medium mb-3">
+                            <CheckCircle className="w-4 h-4 inline mr-2" />
+                            Status
+                          </label>
+                          <div className="space-y-2">
+                            {[
+                              { value: "all", label: "All Problems", icon: <Funnel className="w-4 h-4" /> },
+                              { value: "solved", label: "Solved", icon: <CheckCircle className="w-4 h-4 text-emerald-400" /> },
+                              { value: "unsolved", label: "Unsolved", icon: <Circle className="w-4 h-4 text-slate-400" /> }
+                            ].map((status) => (
+                              <label key={status.value} className="flex items-center">
+                                <input
+                                  type="radio"
+                                  name="status"
+                                  value={status.value}
+                                  checked={filters.status === status.value}
+                                  onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                                  className="sr-only"
+                                />
+                                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all duration-300 ${
+                                  filters.status === status.value
+                                    ? "bg-orange-500/20 border border-orange-500/30 text-orange-400"
+                                    : "bg-slate-700/30 border border-slate-600/30 text-slate-300 hover:bg-slate-600/30"
+                                }`}>
+                                  {status.icon}
+                                  <span className="font-medium">{status.label}</span>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Filter Actions */}
+                    {hasActiveFilters && (
+                      <div className="flex justify-between items-center mt-6 pt-6 border-t border-slate-600/30">
+                        <div className="text-sm text-slate-400">
+                          {sortedProblems.length} of {problems.length} problems match your filters
+                        </div>
+                        <button
+                          onClick={clearAllFilters}
+                          className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white rounded-xl font-medium border border-slate-600/30 hover:border-slate-500/30 transition-all duration-300"
+                        >
+                          <X className="w-4 h-4" />
+                          Clear Filters
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+             
             </div>
           </div>
         </div>
@@ -568,7 +820,7 @@ const Problem = () => {
               {sortedProblems.map((problem, index) => (
                 <div
                   key={problem._id}
-                  className="group relative"
+                  className="group relative animate-fadeInUp"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   {user && (
@@ -720,7 +972,7 @@ const Problem = () => {
                     {sortedProblems.map((problem, index) => (
                       <tr
                         key={problem._id}
-                        className="hover:bg-slate-700/30 transition-all duration-300 group"
+                        className="hover:bg-slate-700/30 transition-all duration-300 group animate-fadeInUp"
                         style={{ animationDelay: `${index * 30}ms` }}
                       >
                         <td className="px-8 py-6">
@@ -853,15 +1105,7 @@ const Problem = () => {
                 adjusting your search terms or filter criteria.
               </p>
               <button
-                onClick={() => {
-                  setFilters({
-                    difficulty: "all",
-                    tag: "all",
-                    status: "all",
-                    search: "",
-                  });
-                  setShowFilters(false);
-                }}
+                onClick={clearAllFilters}
                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300 mx-auto"
               >
                 <X className="w-4 h-4" />
@@ -964,8 +1208,7 @@ const Problem = () => {
                     <ListPlus className="w-6 h-6 text-purple-400" />
                   </div>
                   <h3 className="text-2xl font-bold text-white">
-                    Add to Playlist
-                  </h3>
+                    Add to Playlist</h3>
                 </div>
                 <button
                   onClick={() => setShowAddToPlaylistModal(false)}
@@ -974,163 +1217,225 @@ const Problem = () => {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="mb-6 max-h-96 overflow-y-auto custom-scrollbar">
-                {playlists.length > 0 ? (
-                  <ul className="space-y-3">
-                    {playlists.map((playlist) => {
-                      const isProblemInPlaylist = playlist.problems?.some(
-                        (p) => p._id === selectedProblemForPlaylist
-                      );
-                      return (
-                        <li key={playlist._id}>
-                          <button
-                            onClick={() =>
-                              !isProblemInPlaylist &&
-                              handleAddToPlaylist(playlist._id)
-                            }
-                            disabled={isProblemInPlaylist || addingToPlaylist}
-                            className={`w-full text-left p-4 ${
-                              isProblemInPlaylist
-                                ? "bg-emerald-500/10 border-emerald-500/30 cursor-default"
-                                : "bg-slate-700/50 hover:bg-slate-600/50 border-slate-600/30 hover:border-purple-500/30"
-                            } 
-                              border rounded-2xl text-white flex items-center justify-between transition-all duration-300 group`}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div
-                                className={`p-2 rounded-xl ${
-                                  isProblemInPlaylist
-                                    ? "bg-emerald-500/20 border-emerald-500/30"
-                                    : "bg-purple-500/20 border-purple-500/30 group-hover:bg-purple-500/30"
-                                } 
-                                border transition-all duration-300`}
-                              >
-                                <Folder
-                                  className={`w-5 h-5 ${
-                                    isProblemInPlaylist
-                                      ? "text-emerald-400"
-                                      : "text-purple-400"
-                                  }`}
-                                />
-                              </div>
-                              <div>
-                                <div
-                                  className={`font-semibold ${
-                                    isProblemInPlaylist
-                                      ? "text-emerald-400"
-                                      : "text-white group-hover:text-purple-400"
-                                  } transition-colors`}
-                                >
-                                  {playlist.name}
-                                </div>
-                                <div className="text-xs text-slate-400">
-                                  {playlist.problems?.length || 0} problems
-                                  {playlist.problems?.length > 0 && (
-                                    <div className="flex gap-1 mt-1">
-                                      {playlist.problems
-                                        .slice(0, 3)
-                                        .map((p, idx) => (
-                                          <span
-                                            key={idx}
-                                            className={`w-2 h-2 rounded-full ${
-                                              p.difficulty === 'easy'
-                                                ? 'bg-emerald-400'
-                                                : p.difficulty === 'medium'
-                                                ? 'bg-amber-400'
-                                                : 'bg-rose-400'
-                                            }`}
-                                          />
-                                        ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            {isProblemInPlaylist ? (
-                              <CheckCircle className="w-4 h-4 text-emerald-400" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-purple-400 transition-colors" />
-                            )}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="p-4 rounded-full bg-slate-700/50 border border-slate-600/30 w-fit mx-auto mb-4">
-                      <Folder className="w-8 h-8 text-slate-400" />
-                    </div>
-                    <h4 className="text-lg font-semibold text-white mb-2">
-                      No Playlists Yet
-                    </h4>
-                    <p className="text-slate-400 mb-6">
-                      Create your first playlist to organize your problems.
-                    </p>
-                    <button
-                      onClick={() => {
-                        setShowAddToPlaylistModal(false);
-                        setShowPlaylistModal(true);
-                      }}
-                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300 mx-auto"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Create First Playlist
-                    </button>
+              
+              {playlists.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="p-4 rounded-xl bg-slate-700/30 border border-slate-600/30 w-fit mx-auto mb-4">
+                    <Folder className="w-8 h-8 text-slate-400" />
                   </div>
-                )}
+                  <p className="text-slate-400 mb-4">
+                    You don't have any playlists yet.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowAddToPlaylistModal(false);
+                      setShowPlaylistModal(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300 mx-auto"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    Create First Playlist
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {playlists.map((playlist) => (
+                    <button
+                      key={playlist._id}
+                      onClick={() => handleAddToPlaylist(playlist._id)}
+                      disabled={addingToPlaylist}
+                      className="w-full flex items-center justify-between p-4 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/30 hover:border-purple-500/30 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 group-hover:bg-purple-500/20">
+                          <List className="w-4 h-4 text-purple-400" />
+                        </div>
+                        <div className="text-left">
+                          <div className="text-white font-medium group-hover:text-purple-400 transition-colors">
+                            {playlist.name}
+                          </div>
+                          <div className="text-slate-400 text-sm">
+                            {playlist.problems?.length || 0} problems
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-purple-400 transition-colors" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-4 mt-6 pt-6 border-t border-slate-600/30">
+                <button
+                  onClick={() => setShowAddToPlaylistModal(false)}
+                  className="px-6 py-3 bg-slate-700/50 hover:bg-slate-600/50 text-white font-medium rounded-xl border border-slate-600/30 hover:border-slate-500/30 transition-all duration-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddToPlaylistModal(false);
+                    setShowPlaylistModal(true);
+                  }}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300 transform hover:scale-105"
+                >
+                  <FolderPlus className="w-4 h-4" />
+                  New Playlist
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Error Display for Solved Problems */}
+      {solvedProblemsError && (
+        <div className="fixed bottom-6 right-6 p-4 bg-red-500/90 backdrop-blur-sm border border-red-400/30 rounded-xl text-white shadow-lg z-50">
+          <div className="flex items-center gap-2 mb-2">
+            <X className="w-4 h-4" />
+            <span className="font-medium">Error Loading Solved Problems</span>
+          </div>
+          <p className="text-sm text-red-100">{solvedProblemsError}</p>
+          <button
+            onClick={() => dispatch(fetchSolvedProblems())}
+            className="mt-2 px-3 py-1 bg-red-400/20 hover:bg-red-400/30 rounded-lg text-sm transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Toast Container */}
       <ToastContainer
         position="bottom-right"
         autoClose={3000}
         hideProgressBar={false}
-        newestOnTop
+        newestOnTop={false}
         closeOnClick
         rtl={false}
         pauseOnFocusLoss
         draggable
         pauseOnHover
         theme="dark"
-        toastStyle={{
-          backgroundColor: "rgba(51, 65, 85, 0.9)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid rgba(100, 116, 139, 0.3)",
-          borderRadius: "12px",
-          color: "white",
-        }}
+        toastClassName="bg-slate-800 border border-slate-700"
       />
 
+      {/* Custom Styles */}
       <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(51, 65, 85, 0.3);
-          border-radius: 3px;
+
+        .animate-fadeInUp {
+          animation: fadeInUp 0.6s ease-out forwards;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(251, 146, 60, 0.5);
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(251, 146, 60, 0.7);
-        }
+
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
+
         .line-clamp-3 {
           display: -webkit-box;
           -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+
+        /* Custom scrollbar for playlist modal */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: rgba(71, 85, 105, 0.2);
+          border-radius: 3px;
+        }
+
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: rgba(251, 146, 60, 0.5);
+          border-radius: 3px;
+        }
+
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: rgba(251, 146, 60, 0.7);
+        }
+
+        /* Loading animation for buttons */
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* Backdrop blur support */
+        .backdrop-blur-sm {
+          backdrop-filter: blur(4px);
+        }
+
+        .backdrop-blur-xl {
+          backdrop-filter: blur(24px);
+        }
+
+        /* Gradient text support */
+        .bg-clip-text {
+          -webkit-background-clip: text;
+          background-clip: text;
+        }
+
+        /* Shadow effects */
+        .shadow-2xl {
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Transform and transition support */
+        .transform {
+          transform: translateX(0) translateY(0) rotate(0) skewX(0) skewY(0) scaleX(1) scaleY(1);
+        }
+
+        .transition-all {
+          transition-property: all;
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .duration-300 {
+          transition-duration: 300ms;
+        }
+
+        .duration-500 {
+          transition-duration: 500ms;
+        }
+
+        /* Hover effects */
+        .hover\:scale-105:hover {
+          transform: scale(1.05);
+        }
+
+        /* Focus effects */
+        .focus\:ring-2:focus {
+          outline: 2px solid transparent;
+          outline-offset: 2px;
+          box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.5);
+        }
+
+        .focus\:border-orange-500\/50:focus {
+          border-color: rgba(251, 146, 60, 0.5);
         }
       `}</style>
     </>

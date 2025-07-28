@@ -189,15 +189,48 @@ const getAllProblems = async (req ,res) =>{
 const problemsSolvedByUser = async (req , res) =>{
     try{
         const userId = req.result._id;
+        console.log("problemsSolvedByUser: Fetching solved problems for userId:", userId);
+        
+        console.log("problemsSolvedByUser: User ID type:", typeof userId);
+        console.log("problemsSolvedByUser: User ID value:", userId);
+        
+        // First get the user without population to check the raw problemSolved array
+        const rawUser = await User.findById(userId);
+        if (rawUser) {
+            console.log("problemsSolvedByUser: Raw problemSolved array:", 
+                rawUser.problemSolved.map(id => id.toString()));
+        }
+        
+        // Now get the populated user
         const user = await User.findById(userId).populate({
             path:"problemSolved",
             select:"_id title difficulty tags"
-        })
-
-        res.status(201).send(user.problemSolved);
+        });
+        
+        if (user && user.problemSolved) {
+            console.log("problemsSolvedByUser: Populated problemSolved array length:", user.problemSolved.length);
+            console.log("problemsSolvedByUser: First few problems:", 
+                user.problemSolved.slice(0, 3).map(p => ({ id: p._id, title: p.title })));
+        }
+        
+        if (!user) {
+            console.error("problemsSolvedByUser: User not found");
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        
+        console.log(`problemsSolvedByUser: Found ${user.problemSolved.length} solved problems`);
+        res.status(200).json({
+            success: true,
+            problems: user.problemSolved
+        });
 
     }catch(err){
-        res.status(403).send("Error Occured " +err);
+        console.error("problemsSolvedByUser: Error occurred:", err);
+        res.status(500).json({
+            success: false,
+            message: "Error occurred while fetching solved problems",
+            error: err.message
+        });
     }
 }
 

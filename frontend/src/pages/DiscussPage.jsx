@@ -398,7 +398,7 @@ const DiscussPage = () => {
                     discussion={discussion} 
                     currentUserId={user?._id} 
                     onDelete={handleDeleteDiscussion} 
-                    onSelect={() => setSelectedDiscussion(discussion)}
+                    onSelect={() => navigate(`/discuss/${discussion._id}`)}
                     isSelected={selectedDiscussion?._id === discussion._id}
                   />
                     ))}

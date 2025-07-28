@@ -1,5 +1,6 @@
 const Problem = require("../models/problem")
 const Submission = require("../models/submission")
+const User = require("../models/user")
 const { getLanguageById, submitToken, SubmitBatch } = require("../utils/problemUtility")
 
 
@@ -103,15 +104,39 @@ const submitCode = async (req, res) => {
         await submittedResult.save();
         console.log("submitCode: Submission updated with results");
 
-        // after submission saving it to the problem Id
-        if (!req.result.problemSolved.includes(problemId)) {
+        // after submission saving it to the problem Id - only if status is Accepted
+        console.log("submitCode: Checking if problem is already solved. Status:", status);
+        console.log("submitCode: User's problemSolved array:", req.result.problemSolved);
+        console.log("submitCode: Problem ID to check:", problemId);
+        
+        // Check if problemId is already in the problemSolved array
+        const isAlreadySolved = req.result.problemSolved.some(id => 
+            id.toString() === problemId.toString()
+        );
+        console.log("submitCode: Is problem already solved?", isAlreadySolved);
+        
+        if (status === 'Accepted' && !isAlreadySolved) {
+            console.log("submitCode: Adding problem to solved list");
             req.result.problemSolved.push(problemId);
             try {
                 await req.result.save();
                 console.log("submitCode: User problemSolved updated");
             } catch (userSaveErr) {
                 console.error("submitCode: Error saving user document:", userSaveErr);
-                // Do not fail submission due to user save error
+                // Log detailed error for debugging
+                console.error("Error details:", JSON.stringify(userSaveErr));
+                
+                // Try to update using findByIdAndUpdate as a fallback
+                try {
+                    await User.findByIdAndUpdate(
+                        req.result._id,
+                        { $addToSet: { problemSolved: problemId } }
+                    );
+                    console.log("submitCode: User problemSolved updated using findByIdAndUpdate");
+                } catch (fallbackErr) {
+                    console.error("Fallback update also failed:", fallbackErr);
+                    // Still don't fail the submission, but log the error
+                }
             }
         }
 

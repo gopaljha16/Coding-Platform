@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import Chat from '../components/discuss/Chat';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ThumbsUp, 
@@ -19,7 +20,6 @@ import { useSelector } from 'react-redux';
 import Comment from "../components/discuss/Comment"
 import Loader from '../components/common/LoadingSpinner.jsx';
 import { getSocket, joinDiscussion, leaveDiscussion, emitTyping, emitStopTyping } from '../utils/socket';
-import Chat from '../components/discuss/Chat';
 
 const DiscussionDetail = () => {
   const { discussionId } = useParams();
@@ -50,9 +50,57 @@ const DiscussionDetail = () => {
     content: '',
     tags: ''
   });
-  
+
+  // Socket event handlers moved outside useEffect and memoized
+  const handleNewComment = React.useCallback((newComment) => {
+    if (newComment.discussionId === discussionId) {
+      setComments(prev => {
+        if (prev.some(comment => comment._id === newComment._id)) {
+          return prev;
+        }
+        return [...prev, newComment];
+      });
+    }
+  }, [discussionId]);
+
+  const handleUpdateComment = React.useCallback((updatedComment) => {
+    if (updatedComment.discussionId === discussionId) {
+      setComments(prev => 
+        prev.map(comment => 
+          comment._id === updatedComment._id ? updatedComment : comment
+        )
+      );
+    }
+  }, [discussionId]);
+
+  const handleDeleteComment = React.useCallback(({ commentId, discussionId: deletedFromDiscussion }) => {
+    if (deletedFromDiscussion === discussionId) {
+      setComments(prev => prev.filter(comment => comment._id !== commentId));
+    }
+  }, [discussionId]);
+
+  const handleDiscussionUpdateFromSocket = React.useCallback((updatedDiscussion) => {
+    if (updatedDiscussion._id === discussionId) {
+      setDiscussion(updatedDiscussion);
+    }
+  }, [discussionId]);
+
+  const handleDiscussionVoted = React.useCallback(({ discussionId: votedDiscussionId, upvotes, downvotes }) => {
+    if (votedDiscussionId === discussionId) {
+      setDiscussion(prev => prev ? { ...prev, upvotes, downvotes } : prev);
+    }
+  }, [discussionId]);
+
+  const handleCommentVoted = React.useCallback(({ commentId, upvotes, downvotes }) => {
+    setComments(prev => 
+      prev.map(comment => 
+        comment._id === commentId ? { ...comment, upvotes, downvotes } : comment
+      )
+    );
+  }, []);
+
   // Fetch discussion and comments
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchDiscussionDetails = async () => {
       setLoading(true);
       setError(null);
@@ -90,64 +138,11 @@ const DiscussionDetail = () => {
     if (socket) {
       joinDiscussion(discussionId);
       
-      // Listen for new comments
-      const handleNewComment = (newComment) => {
-        if (newComment.discussionId === discussionId) {
-          setComments(prev => {
-            // Avoid duplicates
-            if (prev.some(comment => comment._id === newComment._id)) {
-              return prev;
-            }
-            return [...prev, newComment];
-          });
-        }
-      };
-      
-      // Listen for updated comments
-      const handleUpdateComment = (updatedComment) => {
-        if (updatedComment.discussionId === discussionId) {
-          setComments(prev => 
-            prev.map(comment => 
-              comment._id === updatedComment._id ? updatedComment : comment
-            )
-          );
-        }
-      };
-      
-      // Listen for deleted comments
-      const handleDeleteComment = ({ commentId, discussionId: deletedFromDiscussion }) => {
-        if (deletedFromDiscussion === discussionId) {
-          setComments(prev => prev.filter(comment => comment._id !== commentId));
-        }
-      };
-      
-      // Listen for discussion updates
-      const handleUpdateDiscussion = (updatedDiscussion) => {
-        if (updatedDiscussion._id === discussionId) {
-          setDiscussion(updatedDiscussion);
-        }
-      };
-      
-      // Listen for vote updates
-      const handleDiscussionVoted = ({ discussionId: votedDiscussionId, upvotes, downvotes }) => {
-        if (votedDiscussionId === discussionId) {
-          setDiscussion(prev => prev ? { ...prev, upvotes, downvotes } : prev);
-        }
-      };
-      
-      const handleCommentVoted = ({ commentId, upvotes, downvotes }) => {
-        setComments(prev => 
-          prev.map(comment => 
-            comment._id === commentId ? { ...comment, upvotes, downvotes } : comment
-          )
-        );
-      };
-      
       // Attach event listeners
       socket.on('new-comment', handleNewComment);
       socket.on('update-comment', handleUpdateComment);
       socket.on('delete-comment', handleDeleteComment);
-      socket.on('update-discussion', handleUpdateDiscussion);
+      socket.on('update-discussion', handleDiscussionUpdateFromSocket);
       socket.on('discussion-voted', handleDiscussionVoted);
       socket.on('comment-voted', handleCommentVoted);
       
@@ -183,7 +178,7 @@ const DiscussionDetail = () => {
         socket.off('new-comment', handleNewComment);
         socket.off('update-comment', handleUpdateComment);
         socket.off('delete-comment', handleDeleteComment);
-        socket.off('update-discussion', handleUpdateDiscussion);
+        socket.off('update-discussion', handleDiscussionUpdateFromSocket);
         socket.off('discussion-voted', handleDiscussionVoted);
         socket.off('comment-voted', handleCommentVoted);
         socket.off('user-typing');
@@ -197,7 +192,7 @@ const DiscussionDetail = () => {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [discussionId, user]);
+  }, [discussionId, user, handleNewComment, handleUpdateComment, handleDeleteComment, handleDiscussionUpdateFromSocket, handleDiscussionVoted, handleCommentVoted]);
   
   // Format date for display
   const formatDate = (dateString) => {
