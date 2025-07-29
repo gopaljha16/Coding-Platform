@@ -21,6 +21,7 @@ import {
   Bell,
   Crown,
   Star,
+  ScanEye 
 } from "lucide-react";
 import codexa from "../../utils/logo/codexa-logo.png";
 import { getSocket } from "../../utils/socket"; // Import socket utility
@@ -90,7 +91,7 @@ const Navbar = () => {
     { to: "/contest", label: "Contest", icon: Trophy },
     { to: "/discuss", label: "Discuss", icon: MessageCircle },
     { to: "/interview", label: "Interview", icon: Briefcase },
-    { to: "/store", label: "Store", icon: Store },
+    { to: "/visualizer", label: "Visualizer", icon: ScanEye },
   ];
 
   // Close dropdowns when clicking outside

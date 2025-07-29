@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import Navbar from '../components/common/Navbar'
 import codexa from  "../utils/logo/Codexa .png"
 import {
@@ -259,43 +260,6 @@ const Homepage = () => {
     { user: "Rohit K.", achievement: "Interview AI Master", time: "2 days ago", icon: BrainCircuit }
   ]
   
-  // Learning paths data
-  const learningPaths = [
-    {
-      title: "Complete DSA Mastery",
-      description: "From basics to advanced algorithms",
-      progress: 68,
-      duration: "12 weeks",
-      level: "Beginner to Expert",
-      icon: Database,
-      color: "from-blue-500 to-purple-500",
-      modules: 45,
-      enrolled: 12500
-    },
-    {
-      title: "System Design Expert",
-      description: "Scale applications to millions",
-      progress: 34,
-      duration: "16 weeks",
-      level: "Intermediate to Advanced",
-      icon: Server,
-      color: "from-green-500 to-teal-500",
-      modules: 32,
-      enrolled: 8700
-    },
-    {
-      title: "Interview Preparation Pro",
-      description: "FAANG interview mastery",
-      progress: 82,
-      duration: "8 weeks",
-      level: "All Levels",
-      icon: UserCheck,
-      color: "from-purple-500 to-pink-500",
-      modules: 28,
-      enrolled: 15600
-    }
-  ]
-
   // Popular DSA topics for visualizer
   const dsaTopics = [
     { name: 'Binary Trees', icon: Binary, difficulty: 'Medium', problems: 45 },
@@ -395,6 +359,7 @@ const Homepage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
+            <Link>
             <button 
               onClick={() => setIsAuthenticated(true)}
               className="px-8 py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/30 transition-all duration-300 flex items-center gap-2 group"
@@ -402,6 +367,8 @@ const Homepage = () => {
               {isAuthenticated ? 'Continue Learning' : 'Start Free Journey'}
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
             </button>
+            </Link>
+          
             
             <button className="px-8 py-4 bg-gray-800/80 hover:bg-gray-700/80 backdrop-blur-sm border border-gray-700 text-white font-bold rounded-xl shadow-lg transition-all duration-300 flex items-center gap-2">
               <Play className="w-5 h-5" />
@@ -589,64 +556,7 @@ const Homepage = () => {
             </div>
           </motion.div>
 
-          {/* Learning Paths Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="mb-16"
-          >
-            <h3 className="text-2xl font-bold mb-8 text-center text-white">Structured Learning Paths</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {learningPaths.map((path, index) => (
-                <div key={index} className="bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 hover:scale-105 transition-all duration-300">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${path.color} flex items-center justify-center`}>
-                      <path.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-white">{path.title}</h4>
-                      <p className="text-sm text-gray-400">{path.description}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-400">Progress</span>
-                      <span className="text-orange-400 font-medium">{path.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div 
-                        className={`bg-gradient-to-r ${path.color} h-2 rounded-full transition-all duration-500`}
-                        style={{ width: `${path.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-400 mb-4">
-                    <div>
-                      <span className="block text-white font-medium">{path.modules}</span>
-                      <span>Modules</span>
-                    </div>
-                    <div>
-                      <span className="block text-white font-medium">{path.enrolled.toLocaleString()}</span>
-                      <span>Enrolled</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between text-sm text-gray-400 mb-4">
-                    <span>{path.duration}</span>
-                    <span>{path.level}</span>
-                  </div>
-                  
-                  <button className="w-full py-3 bg-gradient-to-r from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30 text-orange-400 hover:text-orange-300 rounded-lg transition-all duration-300 font-medium">
-                    Continue Learning
-                  </button>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+
         </div>
       </section>
       
@@ -978,11 +888,13 @@ const Homepage = () => {
                   {isAuthenticated ? 'Continue Your Journey' : 'Start Free Today'}
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </button>
-                
+                <Link to="/premium">
                 <button className="w-full sm:w-auto px-8 py-4 bg-gray-700/80 hover:bg-gray-600/80 backdrop-blur-sm border border-gray-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2">
                   <Crown className="w-5 h-5 text-yellow-400" />
                   Upgrade to Premium
                 </button>
+                </Link>
+               
               </div>
               
               {/* Feature highlights */}

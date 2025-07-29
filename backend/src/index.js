@@ -19,6 +19,7 @@ const interviewRouter = require("./routes/aiInterview");
 const contestRouter = require("./routes/contestRoute");
 const playlistRouter = require("./routes/playlistRoute");
 const discussionRouter = require("./routes/discussionRoute");
+const dsaRouter = require("./routes/dsa");
 
 const { autoFinalizeContestRankings } = require("./controllers/leaderboardController");
 const cron = require("node-cron");
@@ -47,6 +48,7 @@ app.use("/api", interviewRouter);
 app.use("/contest", contestRouter)
 app.use('/playlists', playlistRouter);
 app.use('/discussions', discussionRouter);
+app.use("/dsa" , dsaRouter);
 
 const initialConnection = async () => {
     try {
