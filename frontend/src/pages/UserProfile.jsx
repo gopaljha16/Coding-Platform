@@ -7,8 +7,8 @@ import {
   getProfile,
   updateProfile,
   resetUpdateProfileState,
-  requestEmailVerificationOTPThunk,
-  verifyEmailOTPThunk,
+  signupWithVerificationThunk,
+  verifySignupOTPThunk,
   changePasswordThunk,
   resetEmailVerificationState,
   resetChangePasswordState,
@@ -317,7 +317,7 @@ const UserProfile = () => {
       return;
     }
     dispatch(
-      verifyEmailOTPThunk({
+      verifySignupOTPThunk({
         email: emailForVerification,
         otp: verificationOtp,
       })

@@ -40,7 +40,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Logout function
-  const logout = () => {
+  const logout = async () => {
+    try {
+      // Call backend logout API to clear cookie and blacklist token
+      await axiosClient.post('/user/logout');
+    } catch (error) {
+      console.error("Logout API error:", error);
+    }
     setUser(null);
     setToken(null);
     setIsAuthenticated(false);

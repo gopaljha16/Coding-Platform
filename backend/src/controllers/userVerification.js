@@ -94,7 +94,6 @@ const requestEmailVerificationOTP = async (req, res) => {
     }
 };
 
-// Verify OTP for email verification
 const verifyEmailOTP = async (req, res) => {
     try {
         const { email, otp } = req.body;
@@ -136,18 +135,13 @@ const verifyEmailOTP = async (req, res) => {
             });
         }
 
-        // Mark email as verified or create user if not exists
+        // Mark email as verified for existing user only
         let user = await User.findOne({ emailId: email.toLowerCase() });
         
         if (!user) {
-            // Create user with minimal required fields
-            user = new User({ 
-                emailId: email.toLowerCase(), 
-                emailVerified: true,
-                role: 'user',
-                firstName: 'User', // Default first name
-                lastName: 'Account', // Default last name
-                // Add other required fields with default values
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
             });
         } else {
             user.emailVerified = true;

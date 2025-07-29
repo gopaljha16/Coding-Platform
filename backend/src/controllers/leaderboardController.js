@@ -9,6 +9,7 @@ const generateRankings = (submissions) => {
     // Group submissions by user
     const userSubmissions = {};
     submissions.forEach(submission => {
+        if (!submission.userId) return; // Skip if userId is null
         const userId = submission.userId._id.toString();
         if (!userSubmissions[userId]) {
             userSubmissions[userId] = {
@@ -52,6 +53,7 @@ const generateRankings = (submissions) => {
                 .reduce((sum, p) => sum + (p.runtime || 0), 0);
         }
     });
+
 
     // Convert to array and sort
     return Object.values(userSubmissions)
@@ -179,6 +181,7 @@ exports.getContestLeaderboard = async (req, res) => {
         // Group submissions by user
         const userSubmissions = {};
         submissions.forEach(submission => {
+            if (!submission.userId) return; // Skip if userId is null
             const userId = submission.userId._id.toString();
             if (!userSubmissions[userId]) {
                 userSubmissions[userId] = {

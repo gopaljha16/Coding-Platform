@@ -12,12 +12,12 @@ export const googleLogin = (token) => {
   return axiosClient.post('/user/googleLogin', { token });
 };
 
-export const requestEmailVerificationOTP = (email) => {
-  return axiosClient.post('/user/requestEmailVerificationOTP', { email });
+export const signupWithVerification = (data) => {
+  return axiosClient.post('/user/signupWithVerification', data);
 };
 
-export const verifyEmailOTP = (email, otp) => {
-  return axiosClient.post('/user/verifyEmailOTP', { email, otp });
+export const verifySignupOTP = (email, otp) => {
+  return axiosClient.post('/user/verifySignupOTP', { email, otp });
 };
 
 export const requestPasswordResetOTP = (email) => {

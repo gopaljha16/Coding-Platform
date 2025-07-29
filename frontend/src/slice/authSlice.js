@@ -14,7 +14,9 @@ export const registerUser = createAsyncThunk(
             const response = await axiosClient.post("/user/register", userData);//the user data which will be sended to to backend process stores in db and give us an response
             return response.data.user;
         } catch (err) {
-            return rejectWithValue(err);
+            // Extract error message string for serializable payload
+            const message = err.response?.data?.message || err.message || "Registration failed";
+            return rejectWithValue(message);
         }
     }
 )
@@ -39,7 +41,8 @@ export const googleLoginUser = createAsyncThunk(
       const response = await googleLoginApi(token);
       return response.data.user;
     } catch (err) {
-      return rejectWithValue(err);
+      const message = err.response?.data?.message || err.message || "Google login failed";
+      return rejectWithValue(message);
     }
   }
 );
@@ -95,13 +98,13 @@ export const updateProfile = createAsyncThunk(
 
 
 
-import { requestEmailVerificationOTP, verifyEmailOTP, requestPasswordResetOTP, resetPassword, changePassword } from '../utils/apis/userApi';
+import { signupWithVerification, verifySignupOTP, requestPasswordResetOTP, resetPassword, changePassword } from '../utils/apis/userApi';
 
-export const requestEmailVerificationOTPThunk = createAsyncThunk(
-  "auth/requestEmailVerificationOTP",
-  async (email, { rejectWithValue }) => {
+export const signupWithVerificationThunk = createAsyncThunk(
+  "auth/signupWithVerification",
+  async (userData, { rejectWithValue }) => {
     try {
-      const response = await requestEmailVerificationOTP(email);
+      const response = await signupWithVerification(userData);
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -109,12 +112,27 @@ export const requestEmailVerificationOTPThunk = createAsyncThunk(
   }
 );
 
-export const verifyEmailOTPThunk = createAsyncThunk(
-  "auth/verifyEmailOTP",
+// Removed verifyEmailOTPThunk which is not defined anymore
+
+export const verifySignupOTPThunk = createAsyncThunk(
+  "auth/verifySignupOTP",
   async ({ email, otp }, { rejectWithValue }) => {
     try {
-      const response = await verifyEmailOTP(email, otp);
+      const response = await verifySignupOTP(email, otp);
       return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const requestEmailVerificationOTPThunk = createAsyncThunk(
+  "auth/requestEmailVerificationOTP",
+  async (email, { rejectWithValue }) => {
+    try {
+      // This thunk is kept for backward compatibility or other uses
+      // but the API no longer exports requestEmailVerificationOTP
+      return null;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
     }
@@ -364,21 +382,22 @@ const authSlice = createSlice({
         state.requestEmailVerificationOTPSuccess = false;
     })
 
-    // verifyEmailOTP
-    .addCase(verifyEmailOTPThunk.pending, (state) => {
-        state.verifyEmailOTPLoading = true;
-        state.verifyEmailOTPError = null;
-        state.verifyEmailOTPSuccess = false;
-    })
-    .addCase(verifyEmailOTPThunk.fulfilled, (state) => {
-        state.verifyEmailOTPLoading = false;
-        state.verifyEmailOTPSuccess = true;
-    })
-    .addCase(verifyEmailOTPThunk.rejected, (state, action) => {
-        state.verifyEmailOTPLoading = false;
-        state.verifyEmailOTPError = action.payload;
-        state.verifyEmailOTPSuccess = false;
-    })
+            // verifyEmailOTP
+            // Removed verifyEmailOTPThunk which is not defined anymore
+            // .addCase(verifyEmailOTPThunk.pending, (state) => {
+            //     state.verifyEmailOTPLoading = true;
+            //     state.verifyEmailOTPError = null;
+            //     state.verifyEmailOTPSuccess = false;
+            // })
+            // .addCase(verifyEmailOTPThunk.fulfilled, (state) => {
+            //     state.verifyEmailOTPLoading = false;
+            //     state.verifyEmailOTPSuccess = true;
+            // })
+            // .addCase(verifyEmailOTPThunk.rejected, (state, action) => {
+            //     state.verifyEmailOTPLoading = false;
+            //     state.verifyEmailOTPError = action.payload;
+            //     state.verifyEmailOTPSuccess = false;
+            // })
 
     // requestPasswordResetOTP
     .addCase(requestPasswordResetOTPThunk.pending, (state) => {

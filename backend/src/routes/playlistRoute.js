@@ -198,4 +198,31 @@ playlistRouter.delete('/:playlistId/problems/:problemId', userMiddleware, async 
   }
 });
 
+playlistRouter.delete('/:id', userMiddleware, async (req, res) => {
+  try {
+    const playlist = await Playlist.findOneAndDelete({
+      _id: req.params.id,
+      user: req.result._id
+    });
+
+    if (!playlist) {
+      return res.status(404).json({
+        success: false,
+        message: 'Playlist not found or you do not have permission to delete'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Playlist deleted successfully'
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: 'Failed to delete playlist',
+      error: err.message
+    });
+  }
+});
+
 module.exports = playlistRouter;

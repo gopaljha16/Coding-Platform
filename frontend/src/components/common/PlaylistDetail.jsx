@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Folder, List, ChevronLeft, Play, BookOpen, X 
 } from 'lucide-react';
@@ -11,6 +11,7 @@ import axiosClient from '../../utils/axiosClient';
 const PlaylistDetail = () => {
   const { id } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [playlist, setPlaylist] = useState(location.state?.playlist || null);
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +110,26 @@ const PlaylistDetail = () => {
             <ChevronLeft className="w-5 h-5" />
             Back to Problems
           </NavLink>
+          <button
+            onClick={async () => {
+              if (window.confirm('Are you sure you want to delete this playlist? This action cannot be undone.')) {
+                try {
+                  await axiosClient.delete(`/playlists/${id}`);
+                  toast.success('Playlist deleted successfully');
+                  // Redirect to playlists or problems page after deletion
+                  // Use react-router navigation instead of window.location.href for SPA behavior
+                  navigate('/problems');
+                } catch (error) {
+                  console.error('Failed to delete playlist:', error);
+                  toast.error('Failed to delete playlist');
+                }
+              }
+            }}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+            title="Delete Playlist"
+          >
+            Delete Playlist
+          </button>
         </div>
 
         <div className="bg-gradient-to-br from-slate-800/80 to-slate-700/80 backdrop-blur-sm rounded-3xl p-8 border border-slate-600/30 mb-8">
