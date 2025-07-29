@@ -232,41 +232,24 @@ const ContestProblemSolve = () => {
       return;
     }
 
-    // Force registration if not already registered
-    if (!hasEntered) {
-      try {
-        console.log('Attempting auto-registration for contest');
-        await axiosClient.post(`/contest/${contestId}/register`);
-        setHasEntered(true);
-        console.log('Auto-registration successful');
-      } catch (regError) {
-        console.error('Auto-registration failed:', regError);
-        showToast('You must register for the contest before submitting solutions.', 'warning');
-        return;
-      }
-    }
-
-    if (hasCompleted) {
-      showToast('You have already completed this contest.', 'info');
-      return;
-    }
-
     try {
       setIsSubmitting(true);
       setShowConsole(true);
       setSubmitResults(null);
 
-      const response = await axiosClient.post(`/contest/${contestId}/problem/${problemId}/submit`, {
-        code,
-        language: selectedLanguage,
-      });
+      const response = await axiosClient.post(
+        `/contest/${contestId}/problem/${problemId}/submit`,
+        {
+          code,
+          language: selectedLanguage
+        }
+      );
 
-      // Defensive check for response data structure
-      const data = response.data;
-      if (data && data.submission) {
-        setSubmitResults(data.submission);
-        
-        if (data.submission.status === 'Accepted') {
+      if (response.data?.success) {
+        const { submission } = response.data;
+        setSubmitResults(submission);
+
+        if (submission.status === 'Accepted') {
           showToast('Solution accepted! 🎉', 'success');
           // Refetch contest details to update registration/completion status
           const contestResponse = await axiosClient.get(`/contest/${contestId}`);
@@ -280,24 +263,18 @@ const ContestProblemSolve = () => {
             navigate(`/contest/${contestId}/leaderboard`);
           }, 2000);
         } else {
-          showToast(`Submission result: ${data.submission.status}`, 'info');
+          showToast(`Submission status: ${submission.status}`, 'warning');
         }
       } else {
-        // Fallback if response structure is unexpected
-        setSubmitResults(data);
-        showToast('Submission result received', 'info');
-      }
-
-      // Update problem solved status if accepted
-      if (data && data.submission && data.submission.status === 'Accepted') {
-        setProblem(prevProblem => ({
-          ...prevProblem,
-          solved: true
-        }));
+        throw new Error(response.data?.message || 'Submission failed');
       }
     } catch (error) {
       console.error('Error submitting code:', error);
-      showToast('Failed to submit code', 'error');
+      setSubmitResults({
+        status: 'Error',
+        errorMessage: error.response?.data?.message || error.message || 'Failed to submit code'
+      });
+      showToast(error.response?.data?.message || 'Failed to submit code', 'error');
     } finally {
       setIsSubmitting(false);
     }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import { verifySignupOTP } from "../../utils/apis/userApi";
+import { verifyEmailOTPThunk, requestEmailVerificationOTPThunk } from "../../slice/authSlice";
 import { ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 
 const EmailVerification = ({ email, onVerified }) => {
@@ -44,19 +44,19 @@ const EmailVerification = ({ email, onVerified }) => {
     
     try {
       console.log("Verifying code:", { email, otp });
-      const response = await verifySignupOTP(email, otp);
-      console.log("Verification response:", response);
+      const resultAction = await dispatch(verifyEmailOTPThunk({ email, otp }));
       
-      if (response.success) {
+      if (resultAction.meta.requestStatus === 'fulfilled') {
         toast.success("Email verified successfully");
         onVerified(otp);
+      } else if (resultAction.payload) {
+        toast.error(resultAction.payload.message || "Verification failed");
       } else {
-        toast.error(response.message || "Verification failed");
+        toast.error("Verification failed");
       }
     } catch (error) {
       console.error("Verification error:", error);
-      const errorMessage = error.response?.data?.message || "Verification failed";
-      toast.error(errorMessage);
+      toast.error("Verification failed");
       
       // If multiple failed attempts, suggest resending
       if (verificationAttempts >= 2 && !resendDisabled) {
@@ -76,20 +76,20 @@ const EmailVerification = ({ email, onVerified }) => {
     
     try {
       console.log("Resending verification code to:", email);
-      const response = await requestEmailVerificationOTP(email);
-      console.log("Resend verification code response:", response);
+      const resultAction = await dispatch(requestEmailVerificationOTPThunk(email));
       
-      if (response.success) {
+      if (resultAction.meta.requestStatus === 'fulfilled') {
         toast.success("New verification code sent to your email");
         setOtp(""); // Clear the input field for new code
         setVerificationAttempts(0); // Reset attempts counter
+      } else if (resultAction.payload) {
+        toast.error(resultAction.payload.message || "Failed to send new verification code");
       } else {
-        toast.error(response.message || "Failed to send new verification code");
+        toast.error("Failed to send new verification code");
       }
     } catch (error) {
       console.error("Resend verification code error:", error);
-      const errorMessage = error.response?.data?.message || "Failed to send new verification code";
-      toast.error(errorMessage);
+      toast.error("Failed to send new verification code");
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Clock,
   Calendar,
@@ -14,13 +14,13 @@ import {
   Trophy,
   ArrowRight,
   Zap,
-} from 'lucide-react';
-import axiosClient from '../../utils/axiosClient';
-import { useToast } from '../../hooks/useToast';
-import { useAuth } from '../../context/AuthContext.jsx';
-import ContestLeaderboard from './ContestLeaderboard';
-import { registerForContest } from '../../utils/apis/contestApi/contest';
-import { useContest } from '../../context/ContestContext';
+} from "lucide-react";
+import axiosClient from "../../utils/axiosClient";
+import { useToast } from "../../hooks/useToast";
+import { useAuth } from "../../context/AuthContext.jsx";
+import ContestLeaderboard from "./ContestLeaderboard";
+import { registerForContest } from "../../utils/apis/contestApi/contest";
+import { useContest } from "../../context/ContestContext";
 
 const ContestDetails = () => {
   const { contestId } = useParams();
@@ -28,38 +28,51 @@ const ContestDetails = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
 
-  const { contest, setContest, participants, setParticipants, hasEntered, setHasEntered, hasCompleted, setHasCompleted } = useContest();
+  const {
+    contest,
+    setContest,
+    participants,
+    setParticipants,
+    hasEntered,
+    setHasEntered,
+    hasCompleted,
+    setHasCompleted,
+  } = useContest();
 
   const [problems, setProblems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [contestStatus, setContestStatus] = useState('upcoming'); // 'upcoming', 'active', 'ended'
+  const [contestStatus, setContestStatus] = useState("upcoming"); // 'upcoming', 'active', 'ended'
   const [timeRemaining, setTimeRemaining] = useState(null);
-  const [activeTab, setActiveTab] = useState('problems');
+  const [activeTab, setActiveTab] = useState("problems");
 
   // Fetch contest details
-  useEffect(() => {
-    const fetchContestDetails = async () => {
-      try {
-        setIsLoading(true);
-        const response = await axiosClient.get(`/contest/${contestId}`);
-        const { contest, userStatus } = response.data;
-        setContest(contest);
-        setParticipants(contest.participants || []);
+  const fetchContestDetails = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosClient.get(`/contest/${contestId}`);
+      const { contest: fetchedContest, userStatus } = response.data;
+
+      if (fetchedContest) {
+        setContest(fetchedContest);
+        setParticipants(fetchedContest.participants || []);
         setHasEntered(userStatus?.isRegistered || false);
         setHasCompleted(userStatus?.isCompleted || false);
 
         // Fetch problems for this contest
-        const problemsResponse = await axiosClient.get(`/contest/${contestId}/problems`);
-        setProblems(problemsResponse.data.problems || problemsResponse.data);
-
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching contest details:', error);
-        showToast('Failed to load contest details', 'error');
-        setIsLoading(false);
+        const problemsResponse = await axiosClient.get(
+          `/contest/${contestId}/problems`
+        );
+        setProblems(problemsResponse.data.problems || []);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching contest details:", error);
+      showToast("Failed to load contest details", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchContestDetails();
   }, [contestId, user]);
 
@@ -73,10 +86,12 @@ const ContestDetails = () => {
       const endTime = new Date(contest.endTime);
 
       if (now < startTime) {
-        setContestStatus('upcoming');
+        setContestStatus("upcoming");
         const timeLeft = startTime - now;
         const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const hours = Math.floor(
+          (timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+        );
         const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
@@ -86,15 +101,15 @@ const ContestDetails = () => {
           setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
         }
       } else if (now >= startTime && now <= endTime) {
-        setContestStatus('active');
+        setContestStatus("active");
         const timeLeft = endTime - now;
         const hours = Math.floor(timeLeft / (1000 * 60 * 60));
         const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
         setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
       } else {
-        setContestStatus('ended');
-        setTimeRemaining('Contest Ended');
+        setContestStatus("ended");
+        setTimeRemaining("Contest Ended");
       }
     };
 
@@ -107,21 +122,21 @@ const ContestDetails = () => {
   // Get status badge
   const getStatusBadge = () => {
     switch (contestStatus) {
-      case 'upcoming':
+      case "upcoming":
         return (
           <div className="flex items-center px-3 py-1 bg-blue-500/10 border border-blue-500/30 rounded-full text-blue-400 text-xs font-medium">
             <Clock className="w-3.5 h-3.5 mr-1" />
             Upcoming
           </div>
         );
-      case 'active':
+      case "active":
         return (
           <div className="flex items-center px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-full text-green-400 text-xs font-medium">
             <Zap className="w-3.5 h-3.5 mr-1" />
             Active
           </div>
         );
-      case 'ended':
+      case "ended":
         return (
           <div className="flex items-center px-3 py-1 bg-gray-500/10 border border-gray-500/30 rounded-full text-gray-400 text-xs font-medium">
             <CheckCircle className="w-3.5 h-3.5 mr-1" />
@@ -136,27 +151,30 @@ const ContestDetails = () => {
   // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   // Get difficulty badge
   const getDifficultyBadge = (difficulty) => {
     const colors = {
-      easy: 'bg-green-500/10 border-green-500/30 text-green-400',
-      medium: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400',
-      hard: 'bg-red-500/10 border-red-500/30 text-red-400',
+      easy: "bg-green-500/10 border-green-500/30 text-green-400",
+      medium: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400",
+      hard: "bg-red-500/10 border-red-500/30 text-red-400",
     };
 
     return (
       <div
-        className={`px-2 py-0.5 rounded-md border text-xs font-medium ${colors[difficulty.toLowerCase()] || 'bg-gray-500/10 border-gray-500/30 text-gray-400'}`}
+        className={`px-2 py-0.5 rounded-md border text-xs font-medium ${
+          colors[difficulty.toLowerCase()] ||
+          "bg-gray-500/10 border-gray-500/30 text-gray-400"
+        }`}
       >
         {difficulty}
       </div>
@@ -176,9 +194,12 @@ const ContestDetails = () => {
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
         <AlertTriangle className="w-16 h-16 text-red-400 mb-4" />
         <h2 className="text-xl font-bold text-white mb-2">Contest Not Found</h2>
-        <p className="text-gray-400 mb-6 text-center">The contest you're looking for doesn't exist or you don't have access to it.</p>
+        <p className="text-gray-400 mb-6 text-center">
+          The contest you're looking for doesn't exist or you don't have access
+          to it.
+        </p>
         <button
-          onClick={() => navigate('/contests')}
+          onClick={() => navigate("/contests")}
           className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-md text-white font-medium transition-colors"
         >
           Back to Contests
@@ -194,7 +215,9 @@ const ContestDetails = () => {
         <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl overflow-hidden mb-6">
           <div className="p-6 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 md:mb-0">{contest.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 md:mb-0">
+                {contest.name}
+              </h1>
               {getStatusBadge()}
             </div>
 
@@ -205,44 +228,50 @@ const ContestDetails = () => {
                 <Calendar className="w-5 h-5 text-orange-400 mr-3" />
                 <div>
                   <div className="text-xs text-gray-400 mb-1">Start Time</div>
-                  <div className="text-sm text-white">{formatDate(contest.startTime)}</div>
+                  <div className="text-sm text-white">
+                    {formatDate(contest.startTime)}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center">
                 <Calendar className="w-5 h-5 text-orange-400 mr-3" />
                 <div>
                   <div className="text-xs text-gray-400 mb-1">End Time</div>
-                  <div className="text-sm text-white">{formatDate(contest.endTime)}</div>
+                  <div className="text-sm text-white">
+                    {formatDate(contest.endTime)}
+                  </div>
                 </div>
               </div>
-            <div className="flex items-center">
-              <Users className="w-5 h-5 text-orange-400 mr-3" />
-              <div>
-                <div className="text-xs text-gray-400 mb-1">Participants</div>
-                <div className="text-sm text-white">{contest.participants?.length || 0}</div>
-              </div>
-            </div>
-            <div className="flex items-center ml-6">
-              {hasEntered ? (
-                hasCompleted ? (
-                  <div className="flex items-center px-3 py-1 bg-green-500/20 border border-green-500/50 rounded-full text-green-400 text-xs font-medium">
-                    <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                    Contest Completed
+              <div className="flex items-center">
+                <Users className="w-5 h-5 text-orange-400 mr-3" />
+                <div>
+                  <div className="text-xs text-gray-400 mb-1">Participants</div>
+                  <div className="text-sm text-white">
+                    {contest.participants?.length || 0}
                   </div>
+                </div>
+              </div>
+              <div className="flex items-center ml-6">
+                {hasEntered ? (
+                  hasCompleted ? (
+                    <div className="flex items-center px-3 py-1 bg-green-500/20 border border-green-500/50 rounded-full text-green-400 text-xs font-medium">
+                      <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                      Contest Completed
+                    </div>
+                  ) : (
+                    <div className="flex items-center px-3 py-1 bg-blue-500/20 border border-blue-500/50 rounded-full text-blue-400 text-xs font-medium">
+                      <Users className="w-3.5 h-3.5 mr-1" />
+                      Registered
+                    </div>
+                  )
                 ) : (
-                  <div className="flex items-center px-3 py-1 bg-blue-500/20 border border-blue-500/50 rounded-full text-blue-400 text-xs font-medium">
+                  <div className="flex items-center px-3 py-1 bg-gray-500/20 border border-gray-500/50 rounded-full text-gray-400 text-xs font-medium">
                     <Users className="w-3.5 h-3.5 mr-1" />
-                    Registered
+                    Not Registered
                   </div>
-                )
-              ) : (
-                <div className="flex items-center px-3 py-1 bg-gray-500/20 border border-gray-500/50 rounded-full text-gray-400 text-xs font-medium">
-                  <Users className="w-3.5 h-3.5 mr-1" />
-                  Not Registered
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
 
             {/* Contest Timer */}
             <div className="bg-gray-900/50 border border-gray-700/50 rounded-lg p-4 flex items-center justify-between">
@@ -250,13 +279,19 @@ const ContestDetails = () => {
                 <Timer className="w-6 h-6 text-orange-400 mr-3" />
                 <div>
                   <div className="text-xs text-gray-400 mb-1">
-                    {contestStatus === 'upcoming' ? 'Starts In' : contestStatus === 'active' ? 'Ends In' : 'Status'}
+                    {contestStatus === "upcoming"
+                      ? "Starts In"
+                      : contestStatus === "active"
+                      ? "Ends In"
+                      : "Status"}
                   </div>
-                  <div className="text-lg font-mono font-semibold text-white">{timeRemaining}</div>
+                  <div className="text-lg font-mono font-semibold text-white">
+                    {timeRemaining}
+                  </div>
                 </div>
               </div>
 
-              {contestStatus === 'active' && (
+              {contestStatus === "active" && (
                 <button
                   onClick={async () => {
                     try {
@@ -264,24 +299,37 @@ const ContestDetails = () => {
                       await registerForContest(contestId);
                       // Update local state to reflect registration
                       setHasEntered(true);
-                      showToast("Registered for contest successfully", "success");
-                      
+                      showToast(
+                        "Registered for contest successfully",
+                        "success"
+                      );
+
                       // Refetch contest details to update UI fully
                       try {
-                        const response = await axiosClient.get(`/contest/${contestId}`);
+                        const response = await axiosClient.get(
+                          `/contest/${contestId}`
+                        );
                         const { contest, userStatus } = response.data;
                         setContest(contest);
                         setParticipants(contest.participants || []);
                         setHasCompleted(userStatus?.isCompleted || false);
-                        
+
                         // Navigate to the first problem in the contest
                         if (contest.problems && contest.problems.length > 0) {
                           // Make sure we're using the problem ID, not the entire problem object
-                          const firstProblemId = typeof contest.problems[0] === 'object' ? contest.problems[0]._id : contest.problems[0];
-                          navigate(`/contest/${contestId}/problem/${firstProblemId}`);
+                          const firstProblemId =
+                            typeof contest.problems[0] === "object"
+                              ? contest.problems[0]._id
+                              : contest.problems[0];
+                          navigate(
+                            `/contest/${contestId}/problem/${firstProblemId}`
+                          );
                         }
                       } catch (fetchError) {
-                        console.error("Error fetching updated contest details:", fetchError);
+                        console.error(
+                          "Error fetching updated contest details:",
+                          fetchError
+                        );
                         // Still navigate to contest even if refresh fails
                         navigate(`/contest/${contestId}`);
                       }
@@ -300,16 +348,16 @@ const ContestDetails = () => {
                 </button>
               )}
 
-              {contestStatus === 'upcoming' && (
+              {contestStatus === "upcoming" && (
                 <div className="px-4 py-2 bg-gray-800 rounded-md text-gray-300 font-medium flex items-center">
                   <Clock className="w-4 h-4 mr-2" />
                   Not Started Yet
                 </div>
               )}
 
-              {contestStatus === 'ended' && (
+              {contestStatus === "ended" && (
                 <button
-                  onClick={() => setActiveTab('leaderboard')}
+                  onClick={() => setActiveTab("leaderboard")}
                   className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white font-medium transition-colors flex items-center"
                 >
                   View Results
@@ -324,14 +372,22 @@ const ContestDetails = () => {
         <div className="mb-6">
           <div className="flex border-b border-gray-700/50">
             <button
-              onClick={() => setActiveTab('problems')}
-              className={`px-4 py-3 text-sm font-medium ${activeTab === 'problems' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-400 hover:text-white'}`}
+              onClick={() => setActiveTab("problems")}
+              className={`px-4 py-3 text-sm font-medium ${
+                activeTab === "problems"
+                  ? "text-orange-400 border-b-2 border-orange-400"
+                  : "text-gray-400 hover:text-white"
+              }`}
             >
               Problems
             </button>
             <button
-              onClick={() => setActiveTab('leaderboard')}
-              className={`px-4 py-3 text-sm font-medium ${activeTab === 'leaderboard' ? 'text-orange-400 border-b-2 border-orange-400' : 'text-gray-400 hover:text-white'}`}
+              onClick={() => setActiveTab("leaderboard")}
+              className={`px-4 py-3 text-sm font-medium ${
+                activeTab === "leaderboard"
+                  ? "text-orange-400 border-b-2 border-orange-400"
+                  : "text-gray-400 hover:text-white"
+              }`}
             >
               Leaderboard
             </button>
@@ -339,22 +395,28 @@ const ContestDetails = () => {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'problems' && (
+        {activeTab === "problems" && (
           <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl overflow-hidden">
             <div className="p-4 border-b border-gray-700/50 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-white flex items-center">
                 <Code className="w-5 h-5 text-orange-400 mr-2" />
                 Contest Problems
               </h3>
-              <div className="text-sm text-gray-400">{problems.length} Problems</div>
+              <div className="text-sm text-gray-400">
+                {problems.length} Problems
+              </div>
             </div>
 
             {problems.length === 0 ? (
               <div className="p-8 text-center">
                 <Code className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-300 mb-2">No Problems Available</h3>
+                <h3 className="text-xl font-semibold text-gray-300 mb-2">
+                  No Problems Available
+                </h3>
                 <p className="text-gray-400">
-                  {contestStatus === 'upcoming' ? 'Problems will be revealed when the contest starts.' : 'No problems have been added to this contest yet.'}
+                  {contestStatus === "upcoming"
+                    ? "Problems will be revealed when the contest starts."
+                    : "No problems have been added to this contest yet."}
                 </p>
               </div>
             ) : (
@@ -378,29 +440,60 @@ const ContestDetails = () => {
                         className="border-b border-gray-800/30 hover:bg-gray-800/20 transition-colors"
                       >
                         <td className="px-4 py-3">
-                          <div className="font-medium text-white">{problem.title}</div>
+                          <div className="font-medium text-white">
+                            {problem.title}
+                          </div>
                           <div className="text-xs text-gray-400 mt-1 line-clamp-1">
-                            {problem.description.replace(/<[^>]*>/g, '').substring(0, 80)}...
+                            {problem.description
+                              .replace(/<[^>]*>/g, "")
+                              .substring(0, 80)}
+                            ...
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center">{getDifficultyBadge(problem.difficulty)}</td>
                         <td className="px-4 py-3 text-center">
-                          <div className="text-sm text-gray-300">{problem.solvedBy || 0}</div>
+                          {getDifficultyBadge(problem.difficulty)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="text-sm text-gray-300">
+                            {problem.solvedBy || 0}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button
-                            onClick={() => navigate(`/contest/${contestId}/problem/${problem._id}`)}
-                            disabled={contestStatus !== 'active' || !hasEntered || hasCompleted}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center mx-auto ${(contestStatus === 'active' && hasEntered && !hasCompleted) ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
+                            onClick={() =>
+                              navigate(
+                                `/contest/${contestId}/problem/${problem._id}`
+                              )
+                            }
+                            disabled={
+                              contestStatus !== "active" ||
+                              !hasEntered ||
+                              hasCompleted
+                            }
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center mx-auto ${
+                              contestStatus === "active" &&
+                              hasEntered &&
+                              !hasCompleted
+                                ? "bg-orange-500 hover:bg-orange-600 text-white"
+                                : "bg-gray-700 text-gray-400 cursor-not-allowed"
+                            }`}
                           >
-                            {(contestStatus === 'active' && hasEntered && !hasCompleted) ? (
+                            {contestStatus === "active" &&
+                            hasEntered &&
+                            !hasCompleted ? (
                               <>
                                 Solve
                                 <ChevronRight className="w-3.5 h-3.5 ml-1" />
                               </>
                             ) : (
                               <>
-                                {hasCompleted ? 'Contest Completed' : contestStatus === 'upcoming' ? 'Not Started' : !hasEntered ? 'Not Registered' : 'Contest Ended'}
+                                {hasCompleted
+                                  ? "Contest Completed"
+                                  : contestStatus === "upcoming"
+                                  ? "Not Started"
+                                  : !hasEntered
+                                  ? "Not Registered"
+                                  : "Contest Ended"}
                               </>
                             )}
                           </button>
@@ -414,10 +507,10 @@ const ContestDetails = () => {
           </div>
         )}
 
-        {activeTab === 'leaderboard' && (
-          <ContestLeaderboard 
-            contestId={contestId} 
-            isContestActive={contestStatus === 'active'} 
+        {activeTab === "leaderboard" && (
+          <ContestLeaderboard
+            contestId={contestId}
+            isContestActive={contestStatus === "active"}
           />
         )}
       </div>

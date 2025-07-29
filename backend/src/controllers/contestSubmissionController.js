@@ -1,10 +1,10 @@
 const Problem = require("../models/problem");
 const Contest = require("../models/contest");
 const ContestSubmission = require("../models/contestSubmission");
+const User = require("../models/user");
 const { getLanguageById, submitToken, SubmitBatch } = require("../utils/problemUtility");
 const { getIO } = require("../config/socket");
 
-// Submit code for a contest problem
 // Submit code for a contest problem
 exports.submitContestCode = async (req, res) => {
     try {
@@ -12,88 +12,46 @@ exports.submitContestCode = async (req, res) => {
         const { contestId, problemId } = req.params;
         const { code, language } = req.body;
 
-        // Validate required fields
-        if (!userId || !contestId || !problemId || !code || !language) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Missing required fields" 
+        // Validate input
+        if (!code?.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Code is required"
             });
         }
 
-        // Check if contest exists and is active
-        const contest = await Contest.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Contest not found" 
-            });
-        }
-
-        const now = new Date();
-        const startTime = new Date(contest.startTime);
-        const endTime = new Date(contest.endTime);
-
-        // Check if contest has started
-        if (now < startTime) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Contest has not started yet" 
-            });
-        }
-
-        // Check if contest has ended
-        if (now > endTime) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Contest has ended" 
-            });
-        }
-
-        // Log request headers for debugging
-        console.log("submitContestCode: Request headers:", req.headers);
-        // Check if user is registered for the contest
-        console.log("submitContestCode: userId:", userId.toString());
-        console.log("submitContestCode: contest.participants:", contest.participants.map(p => p.toString()));
-        
-        // Auto-register user if not already registered (workaround for system date issue)
-        if (!contest.participants.map(p => p.toString()).includes(userId.toString())) {
-            console.log("submitContestCode: User not registered for contest - auto-registering");
-            try {
-                // Add user to participants
-                contest.participants = contest.participants || [];
-                contest.participants.push(userId);
-                await contest.save();
-                console.log(`User ${userId.toString()} auto-registered for contest ${contest._id.toString()}`);
-            } catch (saveError) {
-                console.error("Error auto-registering user:", saveError);
-                // Continue anyway - don't block submission
-            }
-        }
-
-        // Check if problem belongs to this contest
-        if (!contest.problems.includes(problemId)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Problem is not part of this contest" 
-            });
-        }
-
-        // Fetch the problem
-        const problem = await Problem.findById(problemId);
-        if (!problem) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Problem not found" 
-            });
-        }
-
-        // Normalize language
-        let normalizedLanguage = language;
-        if (language === 'cpp') {
+        // Normalize language before processing
+        let normalizedLanguage = language?.toLowerCase();
+        if (normalizedLanguage === 'cpp') {
             normalizedLanguage = 'c++';
         }
 
-        // Create submission record with pending status
+        if (!normalizedLanguage) {
+            return res.status(400).json({
+                success: false,
+                message: "Language is required"
+            });
+        }
+
+        // Check if contest exists
+        const contest = await Contest.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({
+                success: false,
+                message: "Contest not found"
+            });
+        }
+
+        // Check if problem exists and belongs to contest
+        const problem = await Problem.findById(problemId);
+        if (!problem || !contest.problems.includes(problemId)) {
+            return res.status(404).json({
+                success: false,
+                message: "Problem not found in this contest"
+            });
+        }
+
+        // Create submission record first
         const submission = await ContestSubmission.create({
             userId,
             contestId,
@@ -101,20 +59,23 @@ exports.submitContestCode = async (req, res) => {
             code,
             language: normalizedLanguage,
             status: "Pending",
-            totalTestCases: problem.hiddenTestCases.length,
-            submissionTime: now
+            totalTestCases: problem.hiddenTestCases?.length || 0,
+            submissionTime: new Date()
         });
 
         // Get language ID for Judge0
         const languageId = getLanguageById(normalizedLanguage);
         if (!languageId) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Invalid language" 
+            submission.status = "Error";
+            submission.errorMessage = "Unsupported language";
+            await submission.save();
+            return res.status(400).json({
+                success: false,
+                message: "Unsupported programming language"
             });
         }
 
-        // Prepare test cases for Judge0
+        // Prepare test cases
         const testCases = problem.hiddenTestCases.map(testcase => ({
             source_code: code,
             language_id: languageId,
@@ -123,179 +84,131 @@ exports.submitContestCode = async (req, res) => {
         }));
 
         // Submit to Judge0
-        const submitResult = await SubmitBatch(testCases);
-        if (!submitResult || !Array.isArray(submitResult)) {
-            return res.status(500).json({ 
-                success: false, 
-                message: "Code evaluation failed" 
+        let submitResult;
+        try {
+            submitResult = await SubmitBatch(testCases);
+        } catch (err) {
+            console.error("Error submitting batch to Judge0:", err);
+            submission.status = "Error";
+            submission.errorMessage = "Judge0 submission failed";
+            await submission.save();
+            return res.status(500).json({
+                success: false,
+                message: "Judge0 submission failed"
             });
+        }
+        if (!submitResult?.length) {
+            throw new Error("Failed to submit to judge");
         }
 
         // Get tokens and fetch results
-        const resultTokens = submitResult.map(value => value.token);
-        const testResults = await submitToken(resultTokens);
+        let testResults;
+        try {
+            const resultTokens = submitResult.map(value => value.token);
+            testResults = await submitToken(resultTokens);
+        } catch (err) {
+            console.error("Error fetching results from Judge0:", err);
+            submission.status = "Error";
+            submission.errorMessage = "Judge0 result fetching failed";
+            await submission.save();
+            return res.status(500).json({
+                success: false,
+                message: "Judge0 result fetching failed"
+            });
+        }
 
-        // Process test results
+        // Process results
         let testCasesPassed = 0;
         let runtime = 0;
         let memory = 0;
-        let errorMessage = null;
         let status = "Accepted";
+        let errorMessage = null;
 
-        for (const test of testResults) {
-            if (test.status_id == 3) { // Accepted
+        for (const result of testResults) {
+            if (result.status.id === 3) { // Accepted
                 testCasesPassed++;
-                runtime = runtime + parseFloat(test.time);
-                memory = Math.max(memory, test.memory);
+                runtime += parseFloat(result.time || 0);
+                memory = Math.max(memory, parseInt(result.memory || 0));
             } else {
-                if (test.status_id == 4) { // Wrong Answer
-                    status = "Wrong Answer";
-                    errorMessage = test.stderr || "Wrong Answer";
-                } else { // Other errors
-                    status = "Compiler Error";
-                    errorMessage = test.stderr || test.compile_output || "Execution Error";
-                }
+                status = "Wrong Answer";
+                errorMessage = result.compile_output || result.stderr || "Test case failed";
+                break;
             }
         }
 
-        // Calculate score based on test cases passed and runtime
-        const passRatio = testCasesPassed / problem.hiddenTestCases.length;
-        let score = 0;
-        
-        if (status === "Accepted") {
-            // Base score for difficulty
-            const difficultyScore = {
-                "easy": 100,
-                "medium": 200,
-                "hard": 300
-            }[problem.difficulty] || 100;
-            
-            // Time bonus (faster solutions get more points)
-            // Calculate time elapsed since contest start (in minutes)
-            const contestDuration = (endTime - startTime) / (1000 * 60); // in minutes
-            const timeElapsed = (now - startTime) / (1000 * 60); // in minutes
-            const timeRatio = 1 - (timeElapsed / contestDuration); // 1 at start, 0 at end
-            
-            // Time bonus decreases as contest progresses
-            const timeBonus = Math.round(difficultyScore * 0.5 * timeRatio);
-            
-            score = difficultyScore + timeBonus;
-        } else if (passRatio > 0) {
-            // Partial credit for some test cases passed
-            const difficultyScore = {
-                "easy": 50,
-                "medium": 100,
-                "hard": 150
-            }[problem.difficulty] || 50;
-            
-            score = Math.round(difficultyScore * passRatio);
-        }
-
-        // Update submission with results
+        // Update submission
         submission.status = status;
+        submission.testCasesPassed = testCasesPassed;
         submission.runtime = runtime;
         submission.memory = memory;
-        submission.testCasesPassed = testCasesPassed;
         submission.errorMessage = errorMessage;
-        submission.score = score;
-        
         await submission.save();
 
-        // Add user to contest participants if not already added
-        if (!contest.participants.includes(userId)) {
-            contest.participants.push(userId);
-            await contest.save();
-        }
+        // Update submission
+        submission.status = status;
+        submission.testCasesPassed = testCasesPassed;
+        submission.runtime = runtime;
+        submission.memory = memory;
+        submission.errorMessage = errorMessage;
+        await submission.save();
 
-        // Add problem to user's problemSolved list if accepted and not already present
+        // Update user points and streak if accepted
         if (status === "Accepted") {
-            const User = require("../models/user");
-            const user = await User.findById(userId);
-            if (user) {
-                const problemIdStr = problemId.toString();
-                const solvedIds = user.problemSolved.map(id => id.toString());
-                if (!solvedIds.includes(problemIdStr)) {
-                    user.problemSolved.push(problemId);
+            try {
+                const user = await User.findById(userId);
+                if (user) {
+                    // Increment points by submission score or fixed value (e.g., 10)
+                    user.points = (user.points || 0) + (submission.score || 10);
+
+                    // Update streak logic: increment if last submission was recent, else reset
+                    const lastSubmission = await ContestSubmission.findOne({ userId: user._id })
+                        .sort({ submissionTime: -1 });
+                    if (lastSubmission) {
+                        const diff = new Date(submission.submissionTime) - new Date(lastSubmission.submissionTime);
+                        const oneDay = 24 * 60 * 60 * 1000;
+                        if (diff <= oneDay) {
+                            user.streak = (user.streak || 0) + 1;
+                        } else {
+                            user.streak = 1;
+                        }
+                    } else {
+                        user.streak = 1;
+                    }
+
                     await user.save();
 
-                    // Emit user profile update event
+                    // Emit socket event for updated user stats
                     const io = getIO();
-                    io.to(userId.toString()).emit('userProfileUpdate', {
-                        userId: user._id,
-                        problemSolved: user.problemSolved
+                    io.to(user._id.toString()).emit('userStatsUpdate', {
+                        points: user.points,
+                        streak: user.streak
                     });
                 }
-
-                // Check if user has solved all problems in the contest
-                const contest = await Contest.findById(contestId);
-                if (contest) {
-                    const contestProblemIds = contest.problems.map(id => id.toString());
-                    const userSolvedIds = user.problemSolved.map(id => id.toString());
-
-                    const allSolved = contestProblemIds.every(pid => userSolvedIds.includes(pid));
-
-                    if (allSolved) {
-                        const completedContestIds = user.contestsCompleted.map(id => id.toString());
-                        if (!completedContestIds.includes(contestId.toString())) {
-                            user.contestsCompleted.push(contestId);
-                            await user.save();
-
-                            // Emit user contest completion event
-                            io.to(userId.toString()).emit('contestCompleted', {
-                                contestId: contest._id,
-                                message: 'Contest completed!'
-                            });
-                        }
-                    }
-                }
+            } catch (err) {
+                console.error("Error updating user points and streak:", err);
             }
         }
 
-        // Emit leaderboard update via Socket.IO
-        try {
-            const io = getIO();
-            
-            // Create a simplified leaderboard update object
-            const leaderboardUpdate = {
-                contestId,
-                leaderboard: {
-                    contestId,
-                    rankings: [], // Will be populated by frontend on next fetch
-                    isFinalized: false,
-                    lastUpdated: new Date()
-                }
-            };
-            
-            // Emit the update to all connected clients
-            io.emit('leaderboardUpdate', leaderboardUpdate);
-            console.log(`Emitted leaderboardUpdate for contest ${contestId}`);
-        } catch (socketError) {
-            console.error("Socket.IO emission error:", socketError);
-            // Continue with response even if socket emission fails
-        }
-
-        // Return results to user
-        res.status(200).json({
+        // Return response
+        return res.status(200).json({
             success: true,
             submission: {
                 id: submission._id,
                 status,
-                score,
                 testCasesPassed,
                 totalTestCases: problem.hiddenTestCases.length,
                 runtime,
                 memory,
-                submissionTime: submission.submissionTime
+                errorMessage
             }
         });
 
-} catch (error) {
-        console.error("❌ Error submitting contest code:", error);
-        try {
-            res.status(500).json({ success: false, message: error.message || error });
-        } catch (sendErr) {
-            console.error("Error sending error response:", sendErr);
-        }
+    } catch (error) {
+        console.error("Submission error:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Internal server error while processing submission"
+        });
     }
 };
 
@@ -308,18 +221,18 @@ exports.runContestCode = async (req, res) => {
 
         // Validate required fields
         if (!userId || !contestId || !problemId || !code || !language) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Missing required fields" 
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields"
             });
         }
 
         // Check if contest exists and is active
         const contest = await Contest.findById(contestId);
         if (!contest) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Contest not found" 
+            return res.status(404).json({
+                success: false,
+                message: "Contest not found"
             });
         }
 
@@ -329,34 +242,34 @@ exports.runContestCode = async (req, res) => {
 
         // Check if contest has started
         if (now < startTime) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Contest has not started yet" 
+            return res.status(400).json({
+                success: false,
+                message: "Contest has not started yet"
             });
         }
 
         // Check if contest has ended
         if (now > endTime) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Contest has ended" 
+            return res.status(400).json({
+                success: false,
+                message: "Contest has ended"
             });
         }
 
         // Check if problem belongs to this contest
         if (!contest.problems.includes(problemId)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Problem is not part of this contest" 
+            return res.status(400).json({
+                success: false,
+                message: "Problem is not part of this contest"
             });
         }
 
         // Fetch the problem
         const problem = await Problem.findById(problemId);
         if (!problem) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Problem not found" 
+            return res.status(404).json({
+                success: false,
+                message: "Problem not found"
             });
         }
 
@@ -369,9 +282,9 @@ exports.runContestCode = async (req, res) => {
         // Get language ID for Judge0
         const languageId = getLanguageById(normalizedLanguage);
         if (!languageId) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Invalid language" 
+            return res.status(400).json({
+                success: false,
+                message: "Invalid language"
             });
         }
 
@@ -386,9 +299,9 @@ exports.runContestCode = async (req, res) => {
         // Submit to Judge0
         const submitResult = await SubmitBatch(testCases);
         if (!submitResult || !Array.isArray(submitResult)) {
-            return res.status(500).json({ 
-                success: false, 
-                message: "Code evaluation failed" 
+            return res.status(500).json({
+                success: false,
+                message: "Code evaluation failed"
             });
         }
 
@@ -450,9 +363,9 @@ exports.getUserContestSubmissions = async (req, res) => {
 
         // Validate required fields
         if (!userId || !contestId || !problemId) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Missing required fields" 
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields"
             });
         }
 

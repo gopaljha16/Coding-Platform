@@ -6,7 +6,7 @@ import { z } from "zod";
 import { useSelector, useDispatch } from "react-redux";
 import {
   registerUser,
-  verifySignupOTPThunk,
+  verifyEmailOTPThunk,
   resetEmailVerificationState,
   signupWithVerificationThunk,
   loginUser,
@@ -98,7 +98,7 @@ const Signup = () => {
       <EmailVerification
         email={registeredEmail}
         onVerified={(otp) => {
-          dispatch(verifySignupOTPThunk({ email: registeredEmail, otp }));
+          dispatch(verifyEmailOTPThunk({ email: registeredEmail, otp }));
         }}
       />
     );

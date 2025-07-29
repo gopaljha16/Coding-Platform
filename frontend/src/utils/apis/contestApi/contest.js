@@ -14,4 +14,21 @@ export const runContestCode = (contestId, problemId, data) => axiosClient.post(`
 export const submitContestCode = (contestId, problemId, data) => axiosClient.post(`/contest/${contestId}/problem/${problemId}/submit`, data);
 
 // New API call for contest registration
-export const registerForContest = (contestId) => axiosClient.post(`/contest/${contestId}/register`);
+export const registerForContest = async (contestId) => {
+    try {
+        const response = await axiosClient.post(`/contest/${contestId}/register`);
+        return response.data;
+    } catch (error) {
+        // Add specific error handling
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        throw error;
+    }
+};
+
+// Add missing contest APIs
+export const getActiveContests = () => axiosClient.get("/contest/active");
+export const getContestLeaderboard = (contestId) => axiosClient.get(`/contest/${contestId}/leaderboard`);
+export const getUserContestSubmissions = (contestId, problemId) =>
+    axiosClient.get(`/contest/${contestId}/problem/${problemId}/submissions`);

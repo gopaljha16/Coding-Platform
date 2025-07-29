@@ -82,9 +82,7 @@ const App = () => {
             />
             <Route
               path="/problems"
-              element={
-                isAuthenticated ? <Problem /> : <Navigate to="/login" />
-              }
+              element={isAuthenticated ? <Problem /> : <Navigate to="/login" />}
             />
             <Route
               path="/playlists/:id"
@@ -198,7 +196,11 @@ const App = () => {
             <Route
               path="/contest/:contestId/problem/:problemId"
               element={
-                isAuthenticated ? <ContestProblemSolve /> : <Navigate to="/login" />
+                isAuthenticated ? (
+                  <ContestProblemSolve />
+                ) : (
+                  <Navigate to="/login" />
+                )
               }
             />
             <Route
@@ -227,16 +229,24 @@ const App = () => {
             />
             <Route
               path="/profile"
-              element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" />}
+              element={
+                isAuthenticated ? <UserProfile /> : <Navigate to="/login" />
+              }
             />
             <Route
               path="/discuss"
-              element={isAuthenticated ? <DiscussPage /> : <Navigate to="/login" />}
+              element={
+                isAuthenticated ? <DiscussPage /> : <Navigate to="/login" />
+              }
             />
             <Route
               path="/discuss/:discussionId"
               element={
-                isAuthenticated ? <DiscussionDetail /> : <Navigate to="/login" />
+                isAuthenticated ? (
+                  <DiscussionDetail />
+                ) : (
+                  <Navigate to="/login" />
+                )
               }
             />
           </Routes>

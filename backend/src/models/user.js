@@ -84,6 +84,14 @@ const userScehma = Schema({
         github: { type: String, default: '' },
         twitter: { type: String, default: '' },
         website: { type: String, default: '' }
+    },
+    points: {
+        type: Number,
+        default: 0
+    },
+    streak: {
+        type: Number,
+        default: 0
     }
 }, { timestamps: true })
 

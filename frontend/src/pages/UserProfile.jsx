@@ -317,7 +317,7 @@ const UserProfile = () => {
       return;
     }
     dispatch(
-      verifySignupOTPThunk({
+      verifyEmailOTPThunk({
         email: emailForVerification,
         otp: verificationOtp,
       })

@@ -20,6 +20,10 @@ export const verifySignupOTP = (email, otp) => {
   return axiosClient.post('/user/verifySignupOTP', { email, otp });
 };
 
+export const requestEmailVerificationOTP = (email) => {
+  return axiosClient.post('/user/requestEmailVerificationOTP', { email });
+};
+
 export const requestPasswordResetOTP = (email) => {
   return axiosClient.post('/user/requestPasswordResetOTP', { email });
 };

@@ -21,6 +21,7 @@
     "daisyui": "^5.0.35",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
+    "gsap": "^3.13.0",
     "lucide-react": "^0.511.0",
     "motion": "^12.15.0",
     "particle.js": "^1.0.7",

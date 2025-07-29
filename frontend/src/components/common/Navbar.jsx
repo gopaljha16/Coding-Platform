@@ -23,6 +23,7 @@ import {
   Star,
 } from "lucide-react";
 import codexa from "../../utils/logo/codexa-logo.png";
+import { getSocket } from "../../utils/socket"; // Import socket utility
 
 const Navbar = () => {
   const dispatch = useDispatch();
@@ -35,6 +36,10 @@ const Navbar = () => {
     (state) => state.auth
   );
   const navigate = useNavigate();
+
+  // Local state for points and streak
+  const [points, setPoints] = useState(user?.points || 0);
+  const [streak, setStreak] = useState(user?.streak || 0);
 
   // Handle scroll effect
   useEffect(() => {
@@ -51,6 +56,26 @@ const Navbar = () => {
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  // Setup socket listener for userStatsUpdate
+  useEffect(() => {
+    const io = getSocket();
+
+    if (io && user) {
+      const userId = user._id || user.id;
+      io.on("userStatsUpdate", (data) => {
+        if (data && data.points !== undefined && data.streak !== undefined) {
+          setPoints(data.points);
+          setStreak(data.streak);
+        }
+      });
+
+      // Cleanup on unmount
+      return () => {
+        io.off("userStatsUpdate");
+      };
+    }
+  }, [user]);
 
   const logout = () => {
     dispatch(logutUser());
@@ -186,7 +211,7 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* User Menu */}
+              {/* User Menu */}              
               <div className="relative user-dropdown">
                 {isAuthenticated ? (
                   <div>
@@ -205,8 +230,7 @@ const Navbar = () => {
                             : "bg-gradient-to-br from-orange-500 to-amber-500"
                         }`}
                       >
-                      {console.log("Navbar user.profileImage:", user?.profileImage)}
-                      {user?.profileImage ? (
+                        {user?.profileImage ? (
                           <img
                             src={user.profileImage.startsWith('http') ? user.profileImage : `${import.meta.env.VITE_BACKEND_URL}${user.profileImage}`}
                             alt="Profile"
@@ -256,30 +280,30 @@ const Navbar = () => {
                             }`}
                           >
                             <div className="flex items-center space-x-4">
-                          <div
-                            className={`w-12 h-12 rounded-full flex items-center justify-center relative overflow-hidden ${
-                              user?.isPremium
-                                ? "bg-gradient-to-br from-yellow-500 to-amber-500"
-                                : "bg-gradient-to-br from-orange-500 to-amber-500"
-                            }`}
-                          >
-                            {user?.profileImage ? (
-                              <img
-                                src={user.profileImage.startsWith('http') ? user.profileImage : `${import.meta.env.VITE_BACKEND_URL}${user.profileImage}`}
-                                alt="Profile"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-white text-sm font-bold">
-                                {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
-                              </span>
-                            )}
-                            {user?.isPremium && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
-                                <Crown className="w-2.5 h-2.5 text-slate-800" />
+                              <div
+                                className={`w-12 h-12 rounded-full flex items-center justify-center relative overflow-hidden ${
+                                  user?.isPremium
+                                    ? "bg-gradient-to-br from-yellow-500 to-amber-500"
+                                    : "bg-gradient-to-br from-orange-500 to-amber-500"
+                                }`}
+                              >
+                                {user?.profileImage ? (
+                                  <img
+                                    src={user.profileImage.startsWith('http') ? user.profileImage : `${import.meta.env.VITE_BACKEND_URL}${user.profileImage}`}
+                                    alt="Profile"
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-white text-sm font-bold">
+                                    {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+                                  </span>
+                                )}
+                                {user?.isPremium && (
+                                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                                    <Crown className="w-2.5 h-2.5 text-slate-800" />
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
                               <div>
                                 <p className="font-semibold text-white text-lg flex items-center space-x-2">
                                   <span>
@@ -397,7 +421,7 @@ const Navbar = () => {
                             {/* Divider */}
                             <div className="border-t border-slate-600/30 my-2"></div>
 
-                            {/* Logout Button */}
+                            {/* Logout Button */} 
                             <button
                               onClick={logout}
                               className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl text-slate-300 hover:text-white hover:bg-red-900/20 border border-transparent hover:border-red-700/30 transition-all duration-200 group"

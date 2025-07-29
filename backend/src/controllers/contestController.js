@@ -26,9 +26,9 @@ exports.createContest = async (req, res) => {
       problems: problems,
       startTime: req.body.startTime,
       endTime: req.body.endTime,
-      createdBy: req.result._id, 
+      createdBy: req.result._id,
       isPublic: req.body.isPublic,
-      date: new Date(req.body.startTime).toISOString().split("T")[0] 
+      date: new Date(req.body.startTime).toISOString().split("T")[0]
     });
 
     await contest.save();
@@ -45,8 +45,6 @@ exports.registerForContest = async (req, res) => {
     const contestId = req.params.contestId;
     const userId = req.result._id;
 
-    console.log(`Registration attempt for contest ${contestId} by user ${userId}`);
-
     if (!mongoose.Types.ObjectId.isValid(contestId)) {
       return res.status(400).json({ success: false, message: "Invalid contest ID" });
     }
@@ -56,60 +54,71 @@ exports.registerForContest = async (req, res) => {
       return res.status(404).json({ success: false, message: "Contest not found" });
     }
 
-    // Check if contest is active - TEMPORARILY DISABLED DUE TO SYSTEM DATE ISSUE
-    // const now = new Date();
-    // if (now < contest.startTime) {
-    //   return res.status(400).json({ success: false, message: "Contest has not started yet" });
-    // }
-    // 
-    // if (now > contest.endTime) {
-    //   return res.status(400).json({ success: false, message: "Contest has already ended" });
-    // }
+    // Check if contest is public or user has access
+    if (!contest.isPublic) {
+      // Add private contest access check logic here
+      return res.status(403).json({ success: false, message: "No access to this contest" });
+    }
 
-    // Check if user already registered
-    if (contest.participants && contest.participants.map(p => p.toString()).includes(userId.toString())) {
-      console.log(`User ${userId} already registered for contest ${contestId}`);
+    // Check if already registered
+    if (contest.participants?.includes(userId)) {
       return res.status(200).json({ success: true, message: "Already registered" });
     }
 
-    // Add user to participants
+    // Add to participants
     contest.participants = contest.participants || [];
     contest.participants.push(userId);
-    try {
-      await contest.save();
-      console.log(`User ${userId.toString()} successfully registered for contest ${contest._id.toString()}`);
-    } catch (saveError) {
-      console.error("Error saving contest participants:", saveError);
-      return res.status(500).json({ success: false, message: "Failed to register for contest" });
-    }
+    await contest.save();
 
-    res.status(200).json({ success: true, message: "Registered for contest successfully" });
-  } catch (error) {
-    console.error("Error in registerForContest:", error);
-    // Try to register anyway as a fallback
-    try {
-      const contestId = req.params.contestId;
-      const userId = req.result._id;
-      
-      const contest = await Contest.findById(contestId);
-      if (contest && !contest.participants.includes(userId)) {
-        contest.participants = contest.participants || [];
-        contest.participants.push(userId);
-        await contest.save();
-        console.log(`Fallback: User ${userId} registered for contest ${contestId}`);
-        return res.status(200).json({
-          success: true,
-          message: "Registered for contest successfully (fallback)"
-        });
+    res.status(200).json({
+      success: true,
+      message: "Registered successfully",
+      contest: {
+        id: contest._id,
+        name: contest.name,
+        startTime: contest.startTime,
+        endTime: contest.endTime
       }
-    } catch (fallbackError) {
-      console.error("Fallback registration also failed:", fallbackError);
-    }
-    
-    res.status(500).json({ success: false, message: "Server error" });
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({ success: false, message: "Registration failed" });
   }
 };
 
+// Add contest status check middleware
+exports.validateContestAccess = async (req, res, next) => {
+  try {
+    const contestId = req.params.contestId;
+    const contest = await Contest.findById(contestId);
+
+    if (!contest) {
+      return res.status(404).json({ success: false, message: "Contest not found" });
+    }
+
+    // Add to req object for later use
+    req.contest = contest;
+    next();
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error validating contest access" });
+  }
+};
+
+// Add API to fetch active contests
+exports.getActiveContests = async (req, res) => {
+  try {
+    const now = new Date();
+    const contests = await Contest.find({
+      startTime: { $lte: now },
+      endTime: { $gte: now },
+      isPublic: true
+    }).populate('problems', 'title difficulty');
+
+    res.json({ success: true, contests });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 exports.getAllContests = async (req, res) => {
   try {

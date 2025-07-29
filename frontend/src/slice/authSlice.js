@@ -98,7 +98,7 @@ export const updateProfile = createAsyncThunk(
 
 
 
-import { signupWithVerification, verifySignupOTP, requestPasswordResetOTP, resetPassword, changePassword } from '../utils/apis/userApi';
+import { signupWithVerification, verifySignupOTP, requestEmailVerificationOTP, requestPasswordResetOTP, resetPassword, changePassword } from '../utils/apis/userApi';
 
 export const signupWithVerificationThunk = createAsyncThunk(
   "auth/signupWithVerification",
@@ -130,9 +130,20 @@ export const requestEmailVerificationOTPThunk = createAsyncThunk(
   "auth/requestEmailVerificationOTP",
   async (email, { rejectWithValue }) => {
     try {
-      // This thunk is kept for backward compatibility or other uses
-      // but the API no longer exports requestEmailVerificationOTP
-      return null;
+      const response = await requestEmailVerificationOTP(email);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const verifyEmailOTPThunk = createAsyncThunk(
+  "auth/verifyEmailOTP",
+  async ({ email, otp }, { rejectWithValue }) => {
+    try {
+      const response = await axiosClient.post("/user/verifyEmailOTP", { email, otp });
+      return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
     }
@@ -382,22 +393,21 @@ const authSlice = createSlice({
         state.requestEmailVerificationOTPSuccess = false;
     })
 
-            // verifyEmailOTP
-            // Removed verifyEmailOTPThunk which is not defined anymore
-            // .addCase(verifyEmailOTPThunk.pending, (state) => {
-            //     state.verifyEmailOTPLoading = true;
-            //     state.verifyEmailOTPError = null;
-            //     state.verifyEmailOTPSuccess = false;
-            // })
-            // .addCase(verifyEmailOTPThunk.fulfilled, (state) => {
-            //     state.verifyEmailOTPLoading = false;
-            //     state.verifyEmailOTPSuccess = true;
-            // })
-            // .addCase(verifyEmailOTPThunk.rejected, (state, action) => {
-            //     state.verifyEmailOTPLoading = false;
-            //     state.verifyEmailOTPError = action.payload;
-            //     state.verifyEmailOTPSuccess = false;
-            // })
+    // verifyEmailOTP
+    .addCase(verifyEmailOTPThunk.pending, (state) => {
+        state.verifyEmailOTPLoading = true;
+        state.verifyEmailOTPError = null;
+        state.verifyEmailOTPSuccess = false;
+    })
+    .addCase(verifyEmailOTPThunk.fulfilled, (state) => {
+        state.verifyEmailOTPLoading = false;
+        state.verifyEmailOTPSuccess = true;
+    })
+    .addCase(verifyEmailOTPThunk.rejected, (state, action) => {
+        state.verifyEmailOTPLoading = false;
+        state.verifyEmailOTPError = action.payload;
+        state.verifyEmailOTPSuccess = false;
+    })
 
     // requestPasswordResetOTP
     .addCase(requestPasswordResetOTPThunk.pending, (state) => {
