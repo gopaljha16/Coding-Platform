@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/common/Navbar'
+import AiAssistant from '../components/common/AiAssistant'
 import codexa from  "../utils/logo/Codexa .png"
 import {
   Code,
@@ -293,6 +294,7 @@ const Homepage = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
       {/* Navbar */}
       <Navbar />
+      <AiAssistant />
 
       {/* Enhanced Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
