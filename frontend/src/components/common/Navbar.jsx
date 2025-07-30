@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { logutUser, setUserStats } from "../../slice/authSlice"; // Import setUserStats
+import { logutUser, setUserStats, getProfile } from "../../slice/authSlice"; // Import setUserStats
 import { useNavigate, Link, NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -22,7 +22,7 @@ import {
   Crown,
   Star,
   Zap, // Added Zap icon for streak
-  ScanEye 
+  ScanEye,
 } from "lucide-react";
 import codexa from "../../utils/logo/codexa-logo.png";
 import { getSocket } from "../../utils/socket"; // Import socket utility
@@ -53,7 +53,10 @@ const Navbar = () => {
   // Entry animation
   useEffect(() => {
     setIsVisible(true);
-  }, []);
+    if (isAuthenticated) {
+      dispatch(getProfile());
+    }
+  }, [isAuthenticated, dispatch]);
 
   // Setup socket listener for userStatsUpdate
   useEffect(() => {
@@ -106,7 +109,7 @@ const Navbar = () => {
     <>
       {/* Navbar Spacer - ensures content doesn't get hidden under navbar */}
       <div className="h-24"></div>
-          
+
       {/* Main Navbar */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out ${
@@ -186,28 +189,33 @@ const Navbar = () => {
               {isAuthenticated && (
                 <div>
                   {user?.isPremium ? (
-                    // Premium User - Show Premium Badge
-                    <div className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 rounded-lg">
-                      <Crown className="w-4 h-4 text-yellow-400" />
-                      <span className="text-sm font-semibold text-yellow-400">
-                        Premium
-                      </span>
-                      <Star className="w-3 h-3 text-yellow-400 animate-pulse" />
-                    </div>
+                    user.tokensLeft > 0 ? (
+                      // Premium User - Show Token Count
+                      <div></div>
+                    ) : (
+                      // Premium User, No Tokens - Show Buy Tokens Button
+                      <NavLink to="/premium" className="cursor-pointer">
+                        <button className="relative p-2 text-slate-40 font-semibold text-white transition-all duration-200 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg hover:shadow-xl">
+                          <span className="flex items-center space-x-1">
+                            <Crown className="w-4 h-4" />
+                            <span>Buy Tokens</span>
+                          </span>
+                        </button>
+                      </NavLink>
+                    )
                   ) : (
                     // Non-Premium User - Show Upgrade Button
                     <NavLink to="/premium" className="cursor-pointer">
                       <button className="relative p-2 text-slate-40 font-semibold text-white transition-all duration-200 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg hover:shadow-xl">
                         <span className="flex items-center space-x-1">
                           <Crown className="w-4 h-4" />
-                          <span>Premium</span>
+                          <span>Buy Premium</span>
                         </span>
                       </button>
                     </NavLink>
                   )}
                 </div>
               )}
-
 
               {/* Streak Display */}
               {isAuthenticated && (
@@ -219,7 +227,7 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* User Menu */}              
+              {/* User Menu */}
               <div className="relative user-dropdown">
                 {isAuthenticated ? (
                   <div>
@@ -240,13 +248,19 @@ const Navbar = () => {
                       >
                         {user?.profileImage ? (
                           <img
-                            src={user.profileImage.startsWith('http') ? user.profileImage : `${import.meta.env.VITE_BACKEND_URL}${user.profileImage}`}
+                            src={
+                              user.profileImage.startsWith("http")
+                                ? user.profileImage
+                                : `${import.meta.env.VITE_BACKEND_URL}${
+                                    user.profileImage
+                                  }`
+                            }
                             alt="Profile"
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <span className="text-white text-sm font-bold">
-                            {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+                            {user?.firstName?.charAt(0)?.toUpperCase() || "U"}
                           </span>
                         )}
                         {user?.isPremium && (
@@ -267,7 +281,6 @@ const Navbar = () => {
                             ? "Premium Member"
                             : user?.role || "User"}
                         </p>
-                  
                       </div>
                       <ChevronDown
                         className={`w-4 h-4 text-slate-400 transition-all duration-200 ${
@@ -378,7 +391,7 @@ const Navbar = () => {
                             {/* Premium Section */}
                             {user?.isPremium ? (
                               <Link
-                                to="/premium/dashboard"
+                                to="/premium-dashboard"
                                 onClick={() => setIsopen(false)}
                                 className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl bg-gradient-to-r from-yellow-900/30 to-amber-900/30 hover:from-yellow-800/40 hover:to-amber-800/40 border border-yellow-700/30 transition-all duration-200 group"
                               >

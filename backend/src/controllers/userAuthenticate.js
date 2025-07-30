@@ -72,7 +72,7 @@ const login = async (req, res) => {
             role: user.role
         };
 
-        res.status(201).json({ user: reply, token: token, message: "Logged In Successfully" });
+        res.status(201).json({ user: reply, token, message: "Logged In Successfully" });
     } catch (err) {
         console.error("Login error:", err);
         res.status(403).send("Error " + err);
@@ -127,6 +127,8 @@ const getProfile = async (req, res) => {
                 emailVerified: user.emailVerified,
                 socialLinks: user.socialLinks || {},
                 streak: user.streak || 0, // Ensure streak is always a number
+                isPremium: user.isPremium,
+                tokensLeft: user.tokensLeft,
             }
         });
     } catch (err) {
@@ -256,6 +258,7 @@ const googleLogin = async (req, res) => {
                 role: user.role,
                 profileImage: user.profileImage,
             },
+            token: jwtToken,
             message: "Logged in with Google successfully",
         });
     } catch (error) {

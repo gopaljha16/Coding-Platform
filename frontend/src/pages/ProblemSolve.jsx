@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import Editor from "@monaco-editor/react";
 import { useParams, NavLink } from "react-router-dom";
 import codexalogo from "../utils/logo/Codexa .png";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { fetchSolvedProblems } from "../slice/problemSlice";
 import { toast } from "react-toastify";
 
@@ -40,6 +40,7 @@ import SubmissionHistory from "../components/common/SubmissionHistory";
 
 const ProblemPage = () => {
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   const [problem, setProblem] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const [code, setCode] = useState("");
@@ -633,7 +634,7 @@ const ProblemPage = () => {
 
             {activeLeftTab === "DoubtAi" && (
               <div className="h-full">
-                <DobutAi problem={problem} />
+                <DobutAi problem={problem} user={user} />
               </div>
             )}
           </div>

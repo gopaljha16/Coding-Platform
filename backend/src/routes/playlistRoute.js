@@ -1,6 +1,6 @@
 const express = require('express');
 const Playlist = require('../models/playlist');
-const userMiddleware = require('../middleware/userMiddleware');
+const {userMiddleware} = require('../middleware/userMiddleware');
 const playlistRouter = express.Router();
 
 

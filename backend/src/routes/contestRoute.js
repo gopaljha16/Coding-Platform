@@ -3,7 +3,7 @@ const contestController = require("../controllers/contestController");
 const leaderboardController = require("../controllers/leaderboardController");
 const contestSubmissionController = require("../controllers/contestSubmissionController");
 const adminMiddleware = require("../middleware/adminMiddleware");
-const userMiddleware = require("../middleware/userMiddleware");
+const { userMiddleware } = require("../middleware/userMiddleware");
 const contestRouter = express.Router();
 
 // Today's contest

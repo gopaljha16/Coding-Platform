@@ -1,9 +1,23 @@
 // controllers/doubtAi.js
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const User = require("../models/user"); // Import User model
 
 const DoubtAi = async (req, res) => {
   try {
     const { messages, title, description, testCases, startCode } = req.body;
+    const userId = req.result.id; // Get user from request
+
+    // Deduct tokens
+    const user = await User.findById(userId);
+    if (!user || user.tokensLeft < 10) {
+      res.status(403).json({
+        success: false,
+        msg: "Insufficient tokens. Please purchase more.",
+      });
+      return;
+    }
+    user.tokensLeft -= 10;
+    await user.save();
 
     // Setup headers for SSE
     res.setHeader("Content-Type", "text/event-stream");
@@ -13,7 +27,7 @@ const DoubtAi = async (req, res) => {
     res.flushHeaders();
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
     const context = [
       {

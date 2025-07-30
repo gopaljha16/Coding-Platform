@@ -15,7 +15,8 @@ import {
   Home,
   ArrowLeft,
 } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { getProfile } from "../../slice/authSlice";
 import axiosClient from "../../utils/axiosClient";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "react-router-dom";
@@ -30,6 +31,7 @@ const Premium = () => {
   const [redirectCount, setRedirectCount] = useState(5);
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const plans = [
     {
@@ -174,7 +176,7 @@ const Premium = () => {
             console.log("Verification response:", verifyResponse.data);
 
             if (verifyResponse.data.success) {
-              
+              dispatch(getProfile());
               const selectedPlan = plans.find((plan) => plan.id === planId);
               console.log("Selected plan:", selectedPlan); 
               

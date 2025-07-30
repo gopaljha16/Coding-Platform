@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const discussionController = require('../controllers/discussionController');
-const userMiddleware = require('../middleware/userMiddleware');
+const {userMiddleware} = require('../middleware/userMiddleware');
 
 // Get all discussions with filtering and pagination
 router.get('/', discussionController.getDiscussions);

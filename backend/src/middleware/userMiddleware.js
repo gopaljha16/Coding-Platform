@@ -12,11 +12,11 @@ const userMiddleware = async (req, res, next) => {
                 token = authHeader.substring(7, authHeader.length);
             }
         }
-        
+
         if (!token) {
-            return res.status(401).json({ 
+            return res.status(401).json({
                 success: false,
-                message: "Authentication token missing" 
+                message: "Authentication token missing"
             });
         }
 
@@ -40,7 +40,7 @@ const userMiddleware = async (req, res, next) => {
                 });
             }
         }
-        
+
         const { _id } = payload;
 
         if (!_id) {
@@ -74,7 +74,7 @@ const userMiddleware = async (req, res, next) => {
 
     } catch (err) {
         console.error("Authentication error:", err);
-        
+
         // Handle specific JWT errors
         if (err instanceof jwt.TokenExpiredError) {
             return res.status(401).json({
@@ -99,4 +99,32 @@ const userMiddleware = async (req, res, next) => {
     }
 };
 
-module.exports = userMiddleware;
+const checkPremiumAndTokens = (req, res, next) => {
+    try {
+        const user = req.result;
+
+        if (!user.isPremium) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Premium subscription required."
+            });
+        }
+
+        if (user.tokensLeft <= 0) {
+            return res.status(403).json({
+                success: false,
+                message: "Insufficient tokens. Please purchase more."
+            });
+        }
+
+        next();
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: "Middleware check failed",
+            error: err.message
+        });
+    }
+};
+
+module.exports = { userMiddleware, checkPremiumAndTokens };

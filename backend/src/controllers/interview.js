@@ -309,7 +309,7 @@ const getFeedback = async (req, res) => {
     }
 
     // Generate feedback for completed interview
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
     const prompt = generateFeedbackPrompt(session);
 
     const result = await model.generateContent(prompt);
@@ -504,7 +504,7 @@ const createSession = async (req, res) => {
     try {
 
 
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       // Extract key skills to focus the interview
@@ -625,7 +625,7 @@ const continueInterview = async (req, res) => {
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
     // Add user answer to conversation
     session.conversation.push({
@@ -690,7 +690,7 @@ const endInterview = async (req, res) => {
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
     const interviewDuration = Math.floor((Date.now() - session.startTime) / 1000);
 
     // Generate optimized feedback prompt
