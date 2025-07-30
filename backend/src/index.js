@@ -48,14 +48,14 @@ app.use("/api", interviewRouter);
 app.use("/contest", contestRouter)
 app.use('/playlists', playlistRouter);
 app.use('/discussions', discussionRouter);
-app.use("/dsa" , dsaRouter);
+app.use("/dsa", dsaRouter);
 
 const initialConnection = async () => {
     try {
         // Connect to MongoDB
         await database();
         console.log("MongoDB Connected");
-        
+
         // Initialize Socket.IO
         const io = initializeSocket(server);
 
@@ -64,13 +64,13 @@ const initialConnection = async () => {
             console.log('Running scheduled task: autoFinalizeContestRankings');
             autoFinalizeContestRankings();
         });
-        
+
         // Start the server regardless of Redis connection status
         server.listen(PORT_NO, () => {
             console.log(`Server is Listening on port no ${PORT_NO}`);
             console.log(`Socket.IO initialized`);
         });
-        
+
         // Try to connect to Redis, but don't block server startup
         try {
             await redisWrapper.connect();

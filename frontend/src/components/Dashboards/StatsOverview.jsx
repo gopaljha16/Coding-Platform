@@ -1,6 +1,6 @@
 import React from "react";
 
-const StatsOverview = ({ stats, loading, streaks, badges, rank }) => {
+const StatsOverview = ({ stats, loading, streaks, badges, rank, user }) => { // Added user prop
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -142,7 +142,7 @@ const StatsOverview = ({ stats, loading, streaks, badges, rank }) => {
         <div className="space-y-4">
           <div className="text-center p-4 bg-gradient-to-br from-orange-900/30 to-red-900/30 rounded-xl border border-orange-700/30">
             <div className="text-2xl font-bold text-orange-400 mb-1">
-              {streaks?.currentStreak ?? 0}
+              {user?.streak ?? 0} {/* Use user.streak from AuthContext */}
             </div>
             <div className="text-xs text-orange-300 font-semibold uppercase tracking-wider">Current</div>
           </div>

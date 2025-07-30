@@ -84,6 +84,61 @@ const generateRankings = (submissions) => {
         }));
 };
 
+const updateUserContestStats = async (rankings, contestId) => {
+    for (const rank of rankings) {
+        const user = await User.findById(rank.userId);
+        if (user) {
+            const contestIndex = user.contestHistory.findIndex(
+                (history) => history.contestId.toString() === contestId.toString()
+            );
+
+            if (contestIndex > -1) {
+                // Update existing entry
+                user.contestHistory[contestIndex] = {
+                    contestId,
+                    rank: rank.rank,
+                    score: rank.score,
+                    problemsSolved: rank.problemsSolved,
+                    totalRuntime: rank.totalRuntime
+                };
+            } else {
+                // Add new entry
+                user.contestHistory.push({
+                    contestId,
+                    rank: rank.rank,
+                    score: rank.score,
+                    problemsSolved: rank.problemsSolved,
+                    totalRuntime: rank.totalRuntime
+                });
+            }
+            
+            // Update streak
+            const today = new Date().setHours(0, 0, 0, 0);
+            const lastCompletion = user.lastContestCompletion ? new Date(user.lastContestCompletion).setHours(0, 0, 0, 0) : null;
+
+            if (lastCompletion !== today) {
+                user.streak = (lastCompletion === today - 86400000) ? user.streak + 1 : 1;
+                user.lastContestCompletion = new Date();
+            }
+
+            if (!user.contestsCompleted.some(c => c.toString() === contestId.toString())) {
+                user.contestsCompleted.push(contestId);
+            }
+            
+            await user.save();
+
+            // Emit stats update to the specific user
+            const io = getIO();
+            if (io) {
+                io.to(user._id.toString()).emit('userStatsUpdate', {
+                    points: user.points,
+                    streak: user.streak
+                });
+            }
+        }
+    }
+};
+
 // Finalize contest rankings automatically after contest ends
 exports.autoFinalizeContestRankings = async () => {
     try {
@@ -117,6 +172,7 @@ exports.autoFinalizeContestRankings = async () => {
             });
 
             await leaderboard.save();
+            await updateUserContestStats(rankings, contest._id);
                 console.log(`Auto-finalized leaderboard for contest ${contest._id}`);
                 
                 // Emit leaderboard update via Socket.IO
@@ -142,18 +198,43 @@ exports.autoFinalizeContestRankings = async () => {
     }
 };
 
-// Get contest leaderboard
+const getRealtimeLeaderboard = async (contestId) => {
+    const submissions = await ContestSubmission.find({ contestId })
+        .populate('userId', 'name email profileImage')
+        .populate('problemId', 'title difficulty');
+    
+    const rankings = generateRankings(submissions);
+
+    return {
+        contestId,
+        rankings,
+        isFinalized: false,
+        lastUpdated: new Date()
+    };
+};
+
+exports.updateAndEmitLeaderboard = async (contestId) => {
+    try {
+        const io = getIO();
+        if (io) {
+            const leaderboard = await getRealtimeLeaderboard(contestId);
+            io.emit('leaderboardUpdate', { contestId, leaderboard });
+            console.log(`Emitted leaderboardUpdate for contest ${contestId}`);
+        }
+    } catch (error) {
+        console.error(`Error updating and emitting leaderboard for contest ${contestId}:`, error);
+    }
+};
+
 exports.getContestLeaderboard = async (req, res) => {
     try {
         const { contestId } = req.params;
 
-        // Check if contest exists
         const contest = await Contest.findById(contestId);
         if (!contest) {
             return res.status(404).json({ success: false, message: "Contest not found" });
         }
 
-        // Check if finalized leaderboard exists
         const existingLeaderboard = await Leaderboard.findOne({ contestId, isFinalized: true })
             .populate({
                 path: 'rankings.userId',
@@ -173,114 +254,11 @@ exports.getContestLeaderboard = async (req, res) => {
             });
         }
 
-        // If no finalized leaderboard, generate a real-time one
-        const submissions = await ContestSubmission.find({ contestId })
-            .populate('userId', 'name email profileImage')
-            .populate('problemId', 'title difficulty');
+        const leaderboard = await getRealtimeLeaderboard(contestId);
 
-        // Group submissions by user
-        const userSubmissions = {};
-        submissions.forEach(submission => {
-            if (!submission.userId) return; // Skip if userId is null
-            const userId = submission.userId._id.toString();
-            if (!userSubmissions[userId]) {
-                userSubmissions[userId] = {
-                    user: submission.userId,
-                    problems: {},
-                    totalScore: 0,
-                    problemsSolved: 0,
-                    totalRuntime: 0
-                };
-            }
-
-            const problemId = submission.problemId._id.toString();
-            if (!userSubmissions[userId].problems[problemId] || 
-                (submission.status === 'Accepted' && 
-                 (userSubmissions[userId].problems[problemId].status !== 'Accepted' || 
-                  submission.runtime < userSubmissions[userId].problems[problemId].runtime))) {
-                
-                // Update problem data with this submission
-                userSubmissions[userId].problems[problemId] = {
-                    problem: submission.problemId,
-                    status: submission.status,
-                    score: submission.score,
-                    runtime: submission.runtime,
-                    submissionTime: submission.submissionTime || submission.createdAt
-                };
-
-                // Update user totals
-                if (submission.status === 'Accepted') {
-                    // If this is a new accepted solution or better runtime
-                    if (!userSubmissions[userId].problems[problemId].counted) {
-                        userSubmissions[userId].problemsSolved++;
-                        userSubmissions[userId].problems[problemId].counted = true;
-                    }
-                }
-
-                userSubmissions[userId].totalScore = Object.values(userSubmissions[userId].problems)
-                    .reduce((sum, p) => sum + (p.score || 0), 0);
-                
-                userSubmissions[userId].totalRuntime = Object.values(userSubmissions[userId].problems)
-                    .filter(p => p.status === 'Accepted')
-                    .reduce((sum, p) => sum + (p.runtime || 0), 0);
-            }
-        });
-
-        // Convert to array and sort
-        const rankings = Object.values(userSubmissions)
-            .map(data => ({
-                userId: data.user,
-                score: data.totalScore,
-                problemsSolved: data.problemsSolved,
-                totalRuntime: data.totalRuntime,
-                submissions: Object.values(data.problems).map(p => ({
-                    problemId: p.problem._id,
-                    status: p.status,
-                    score: p.score,
-                    bestRuntime: p.runtime,
-                    submissionTime: p.submissionTime
-                }))
-            }))
-            .sort((a, b) => {
-                // Sort by score (descending)
-                if (b.score !== a.score) return b.score - a.score;
-                // Then by problems solved (descending)
-                if (b.problemsSolved !== a.problemsSolved) return b.problemsSolved - a.problemsSolved;
-                // Then by runtime (ascending)
-                return a.totalRuntime - b.totalRuntime;
-            })
-            .map((user, index) => ({
-                ...user,
-                rank: index + 1
-            }));
-
-        // Create temporary leaderboard response
-        const leaderboard = {
-            contestId,
-            rankings,
-            isFinalized: false,
-            lastUpdated: new Date()
-        };
-
-        // Emit leaderboard update via Socket.IO if contest is active
         const isActive = new Date() >= new Date(contest.startTime) && new Date() <= new Date(contest.endTime);
         if (isActive) {
-            try {
-                const io = getIO();
-                
-                // Create a leaderboard update object
-                const leaderboardUpdate = {
-                    contestId,
-                    leaderboard
-                };
-                
-                // Emit the update to all connected clients
-                io.emit('leaderboardUpdate', leaderboardUpdate);
-                console.log(`Emitted leaderboardUpdate for contest ${contestId} from getContestLeaderboard`);
-            } catch (socketError) {
-                console.error("Socket.IO emission error:", socketError);
-                // Continue with response even if socket emission fails
-            }
+            exports.updateAndEmitLeaderboard(contestId);
         }
 
         return res.status(200).json({
@@ -423,6 +401,7 @@ exports.finalizeContestRankings = async (req, res) => {
         });
 
         await leaderboard.save();
+        await updateUserContestStats(rankings, contestId);
 
         // Emit leaderboard update via Socket.IO
         try {
@@ -459,45 +438,23 @@ exports.getUserContestHistory = async (req, res) => {
     try {
         const userId = req.result._id; // From auth middleware
 
-        // Find all contests the user has participated in
-        const submissions = await ContestSubmission.find({ userId })
-            .distinct('contestId');
+        const user = await User.findById(userId).populate({
+            path: 'contestHistory.contestId',
+            select: 'name startTime'
+        });
 
-        // Get contest details and user's rank in each
-        const contestHistory = await Promise.all(submissions.map(async (contestId) => {
-            const contest = await Contest.findById(contestId);
-            const leaderboard = await Leaderboard.findOne({ contestId, isFinalized: true });
-            
-            let rank = null;
-            let score = 0;
-            let problemsSolved = 0;
-            
-            if (leaderboard) {
-                const userRanking = leaderboard.rankings.find(
-                    r => r.userId.toString() === userId.toString()
-                );
-                
-                if (userRanking) {
-                    rank = userRanking.rank;
-                    score = userRanking.score;
-                    problemsSolved = userRanking.problemsSolved;
-                }
-            }
-            
-            return {
-                contestId,
-                name: contest.name,
-                date: contest.startTime,
-                rank,
-                score,
-                problemsSolved,
-                totalParticipants: leaderboard ? leaderboard.rankings.length : null,
-                isFinalized: leaderboard ? leaderboard.isFinalized : false
-            };
-        }));
-        
-        // Sort by date (most recent first)
-        contestHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const contestHistory = user.contestHistory.map(history => ({
+            contestId: history.contestId._id,
+            name: history.contestId.name,
+            date: history.contestId.startTime,
+            rank: history.rank,
+            score: history.score,
+            problemsSolved: history.problemsSolved,
+        })).sort((a, b) => new Date(b.date) - new Date(a.date));
         
         res.status(200).json({
             success: true,

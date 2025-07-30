@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import axiosClient from '../utils/axiosClient';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axiosClient from "../utils/axiosClient";
 
 const AuthContext = createContext();
 
@@ -10,8 +10,8 @@ export const AuthProvider = ({ children }) => {
 
   // Load user and token from localStorage on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem("user");
+    const storedToken = localStorage.getItem("token");
     if (storedUser && storedToken) {
       setUser(JSON.parse(storedUser));
       setToken(storedToken);
@@ -22,14 +22,17 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (email, password) => {
     try {
-      const response = await axiosClient.post('/user/login', { email, password });
+      const response = await axiosClient.post("/user/login", {
+        email,
+        password,
+      });
       if (response.data.success) {
         const { user, token } = response.data;
         setUser(user);
         setToken(token);
         setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('token', token);
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("token", token);
         return { success: true };
       } else {
         return { success: false, message: response.data.message };
@@ -43,19 +46,21 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       // Call backend logout API to clear cookie and blacklist token
-      await axiosClient.post('/user/logout');
+      await axiosClient.post("/user/logout");
     } catch (error) {
       console.error("Logout API error:", error);
     }
     setUser(null);
     setToken(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
   return (
-    <AuthContext.Provider value={{ user: { ...user, token }, isAuthenticated, login, logout }}>
+    <AuthContext.Provider
+      value={{ user: { ...user, token }, isAuthenticated, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

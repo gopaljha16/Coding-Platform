@@ -7,6 +7,7 @@ const userMiddleware = require("../middleware/userMiddleware");
 const contestRouter = express.Router();
 
 // Today's contest
+// Temporarily replace handler with inline function for debugging
 contestRouter.get("/today", contestController.getTodayContest);
 
 contestRouter.post("/create", adminMiddleware, contestController.createContest);
@@ -22,6 +23,9 @@ contestRouter.get("/:contestId/problem/:problemId", contestController.getContest
 
 // New route for contest registration
 contestRouter.post("/:contestId/register", userMiddleware, contestController.registerForContest);
+
+// New route for getting contest status
+contestRouter.get("/:contestId/status", userMiddleware, contestController.getContestStatus);
 
 // Leaderboard routes
 contestRouter.get("/:contestId/leaderboard", leaderboardController.getContestLeaderboard);

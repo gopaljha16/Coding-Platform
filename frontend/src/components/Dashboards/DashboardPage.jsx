@@ -15,8 +15,14 @@ import SubmissionsTabs from "./SubmissionsTabs";
 import ProblemCard from "../common/ProblemCard";
 import Navbar from "../common/Navbar";
 import LoadingSpinner from "../common/LoadingSpinner";
+import { getSocket } from "../../utils/socket";
+import { useSelector, useDispatch } from "react-redux"; // Import useSelector and useDispatch
+import { getProfile } from "../../slice/authSlice"; // Import getProfile thunk
 
 const DashboardPage = () => {
+  const dispatch = useDispatch(); // Initialize useDispatch
+  const { user: authUser } = useSelector((state) => state.auth); // Get user from Redux state
+
   const [dashboardData, setDashboardData] = useState({
     user: null,
     problemsSolved: null,
@@ -37,15 +43,15 @@ const DashboardPage = () => {
           profileRes,
           solvedRes,
           allRes,
-          streaksRes,
+          streaksRes, // Keep streaksRes for maxStreak if needed
           badgesRes,
           rankRes,
           submissionsRes,
         ] = await Promise.all([
-          fetchUserProfile(),
+          dispatch(getProfile()).unwrap(), // Fetch profile first
           fetchProblemsSolved(),
           fetchAllProblems(),
-          fetchUserStreaks(),
+          fetchUserStreaks(), // Fetch streaks separately for maxStreak
           fetchUserBadges(),
           fetchUserRank(),
           fetchAllUserSubmissions(),
@@ -53,7 +59,7 @@ const DashboardPage = () => {
 
         setDashboardData({
           user: {
-            ...profileRes.data.user,
+            ...profileRes.user, // Use user from getProfile response
             rank: rankRes.data.rank,
           },
           problemsSolved: solvedRes.data,
@@ -67,7 +73,10 @@ const DashboardPage = () => {
             attempting: allRes.data.attempting,
             problems: allRes.data.problems || [],
           },
-          streaks: streaksRes.data,
+          streaks: {
+            currentStreak: profileRes.user?.streak ?? 0, // Use streak from getProfile response
+            maxStreak: streaksRes.data?.maxStreak ?? 0, // Use maxStreak from fetchUserStreaks
+          },
           badges: badgesRes.data.badges || [],
           rank: rankRes.data,
           fullSubmissions: submissionsRes.data.submissions || [],
@@ -79,8 +88,22 @@ const DashboardPage = () => {
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    fetchDashboardData(); // Call fetchDashboardData on mount
+
+    // Listen for userStatsUpdate from socket and trigger getProfile
+    const io = getSocket();
+    if (io) {
+      io.on("userStatsUpdate", (data) => {
+        dispatch(getProfile()); // Trigger getProfile to refresh user data
+      });
+    }
+
+    return () => {
+      if (io) {
+        io.off("userStatsUpdate");
+      }
+    };
+  }, [dispatch]); // Dependency array includes dispatch
 
   if (loading) return <LoadingSpinner fullScreen />;
   if (error) return <ErrorDisplay message={error} />;
@@ -92,7 +115,7 @@ const DashboardPage = () => {
         {/* Sidebar - Left Column */}
         <div className="lg:col-span-1 space-y-8">
           <SidebarProfileCard
-            user={dashboardData.user}
+            user={authUser} // Pass user from Redux state
             stats={dashboardData.allProblems}
             rank={dashboardData.rank?.rank}
           />
@@ -107,6 +130,7 @@ const DashboardPage = () => {
             badges={dashboardData.badges}
             rank={dashboardData.rank}
             loading={loading}
+            user={authUser} // Pass authUser to StatsOverview
           />
 
           {/* Heatmap Calendar */}

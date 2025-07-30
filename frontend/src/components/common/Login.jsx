@@ -53,15 +53,7 @@ const Login = () => {
         console.log('Email not verified:', res.payload.email);
         toast.warning("Your email is not verified. Please verify to continue.");
         setUnverifiedEmail(res.payload.email);
-        
-        // Send verification code
-        const otpRes = await dispatch(requestEmailVerificationOTPThunk(res.payload.email));
-        if (otpRes?.meta?.requestStatus === "fulfilled") {
-          toast.info("Verification code sent to your email.");
-          setShowVerification(true);
-        } else {
-          toast.error("Failed to send verification code. Please try again.");
-        }
+        setShowVerification(true); // Directly show verification page
       } else {
         const errorMsg = res?.payload?.message || "Login failed";
         toast.error(errorMsg);
@@ -101,6 +93,10 @@ const Login = () => {
       if (res?.meta?.requestStatus === "fulfilled") {
         toast.success("Logged In Successfully with Google");
         await dispatch(getProfile());
+      } else if (res?.payload?.needsVerification) {
+        toast.warning("Your Google account email is not verified. Please verify to continue.");
+        setUnverifiedEmail(res.payload.email);
+        setShowVerification(true);
       } else {
         toast.error("Google login failed");
       }
@@ -117,7 +113,7 @@ const Login = () => {
   // Custom Google Login Button Component
   const CustomGoogleButton = () => (
     <div className="w-full">
-      <style jsx>{`
+      <style>{`
         .custom-google-button {
           display: none;
         }

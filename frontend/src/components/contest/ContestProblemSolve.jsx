@@ -30,12 +30,15 @@ import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { getSocket } from '../../utils/socket';
 import { useContest } from '../../context/ContestContext';
+import { useDispatch } from 'react-redux'; // Import useDispatch
+import { getProfile } from '../../slice/authSlice'; // Import getProfile thunk
 
 const ContestProblemSolve = () => {
   const { contestId, problemId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { user, setUser } = useAuth();
+  const dispatch = useDispatch(); // Initialize useDispatch
   const editorRef = useRef(null);
   const consoleRef = useRef(null);
 
@@ -63,6 +66,10 @@ const ContestProblemSolve = () => {
 
   // Fetch problem and contest data
   useEffect(() => {
+    const savedCode = localStorage.getItem(`contest_${contestId}_problem_${problemId}_code`);
+    if (savedCode) {
+      setCode(savedCode);
+    }
     let isMounted = true;
 
     if (!contestId || !problemId || problemId === 'problems') {
@@ -142,6 +149,9 @@ const ContestProblemSolve = () => {
       
       if (timeLeft <= 0) {
         setRemainingTime('Contest Ended');
+        if (!isSubmitting) {
+            handleSubmitCode(true);
+        }
         return null; // Return null to clear interval
       }
       
@@ -165,7 +175,7 @@ const ContestProblemSolve = () => {
     }, 1000);
 
     return () => clearInterval(timerInterval);
-  }, [contest]);
+  }, [contest, isSubmitting]);
 
   // Handle editor mount
   const handleEditorDidMount = (editor, monaco) => {
@@ -190,6 +200,7 @@ const ContestProblemSolve = () => {
   // Handle code change
   const handleCodeChange = (value) => {
     setCode(value);
+    localStorage.setItem(`contest_${contestId}_problem_${problemId}_code`, value);
   };
 
   // Run code
@@ -251,20 +262,14 @@ const ContestProblemSolve = () => {
 
         if (submission.status === 'Accepted') {
           showToast('Solution accepted! 🎉', 'success');
-          // Refetch contest details to update registration/completion status
-          const contestResponse = await axiosClient.get(`/contest/${contestId}`);
-          const { contest, userStatus } = contestResponse.data;
-          setContest(contest);
-          setParticipants(contest.participants || []);
-          setHasEntered(userStatus?.isRegistered || true);
-          setHasCompleted(userStatus?.isCompleted || false);
-          // Navigate to leaderboard after successful submission
-          setTimeout(() => {
-            navigate(`/contest/${contestId}/leaderboard`);
-          }, 2000);
+          dispatch(getProfile()); // Dispatch getProfile to update user data including streak
         } else {
           showToast(`Submission status: ${submission.status}`, 'warning');
         }
+        // Navigate to leaderboard after successful submission
+        setTimeout(() => {
+          navigate(`/contest/${contestId}/leaderboard`);
+        }, 2000);
       } else {
         throw new Error(response.data?.message || 'Submission failed');
       }
@@ -764,4 +769,3 @@ const ContestProblemSolve = () => {
 };
 
 export default ContestProblemSolve;
-                      

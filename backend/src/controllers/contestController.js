@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Contest = require("../models/contest");
 const Problem = require("../models/problem");
+const User = require("../models/user");
 
 exports.createContest = async (req, res) => {
   try {
@@ -63,6 +64,11 @@ exports.registerForContest = async (req, res) => {
     // Check if already registered
     if (contest.participants?.includes(userId)) {
       return res.status(200).json({ success: true, message: "Already registered" });
+    }
+
+    const user = await User.findById(userId);
+    if (user.contestsCompleted.some(c => c.toString() === contestId)) {
+        return res.status(400).json({ success: false, message: "You have already completed this contest" });
     }
 
     // Add to participants
@@ -175,13 +181,34 @@ exports.deleteContest = async (req, res) => {
   }
 };
 
-// Fetch all problems to show in UI
-exports.getAllProblems = async (req, res) => {
+exports.getContestStatus = async (req, res) => {
   try {
-    const problems = await Problem.find({}, "_id title difficulty");
-    res.json({ success: true, problems });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const { contestId } = req.params;
+    const userId = req.result._id;
+
+    const contest = await Contest.findById(contestId);
+    if (!contest) {
+      return res.status(404).json({ success: false, message: "Contest not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const isRegistered = contest.participants.includes(user._id);
+    const isCompleted = user.contestsCompleted.some(cId => cId.toString() === contest._id.toString());
+
+    res.json({
+      success: true,
+      status: {
+        isRegistered,
+        isCompleted,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching contest status:", error);
+    res.status(500).json({ success: false, message: "Error fetching contest status" });
   }
 };
 
@@ -253,5 +280,16 @@ exports.getContestProblem = async (req, res) => {
     res.json({ problem });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getAllProblems = async (req, res) => {
+  try {
+    // This is a placeholder. You might want to fetch all problems from your database here.
+    // For now, it returns an empty array.
+    res.json({ success: true, problems: [] });
+  } catch (error) {
+    console.error("Error fetching all problems:", error);
+    res.status(500).json({ success: false, message: "Error fetching all problems" });
   }
 };

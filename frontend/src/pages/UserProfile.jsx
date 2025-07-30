@@ -72,6 +72,24 @@ const UserProfile = () => {
     dispatch(getProfile());
   }, [dispatch]);
 
+  const [contestHistory, setContestHistory] = useState([]);
+  const [contestHistoryLoading, setContestHistoryLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchContestHistory = async () => {
+      try {
+        const response = await axiosClient.get("/contest/user/history");
+        setContestHistory(response.data.contestHistory);
+      } catch (error) {
+        console.error("Error fetching contest history:", error);
+      } finally {
+        setContestHistoryLoading(false);
+      }
+    };
+
+    fetchContestHistory();
+  }, []);
+
   useEffect(() => {
     if (profile) {
       setFormData({
@@ -1031,6 +1049,69 @@ const UserProfile = () => {
               </div>
             </div>
           )}
+
+          {/* Contest Stats Section */}
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-2xl">
+            <h3 className="text-xl font-semibold text-orange-400 mb-6 flex items-center">
+              <span className="mr-2">🏆</span>
+              Contest Stats
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gray-700/50 p-4 rounded-xl flex items-center">
+                <div className="p-3 bg-orange-500/20 rounded-full mr-4">
+                  <span className="text-2xl">🔥</span>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-sm">Contest Streak</div>
+                  <div className="text-white text-2xl font-bold">{profile?.user?.streak || 0}</div>
+                </div>
+              </div>
+              <div className="bg-gray-700/50 p-4 rounded-xl flex items-center">
+                <div className="p-3 bg-green-500/20 rounded-full mr-4">
+                  <span className="text-2xl">🏅</span>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-sm">Contests Completed</div>
+                  <div className="text-white text-2xl font-bold">{profile?.user?.contestsCompleted?.length || 0}</div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6">
+              <h4 className="text-lg font-semibold text-white mb-4">Contest History</h4>
+              {contestHistoryLoading ? (
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                </div>
+              ) : contestHistory.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left text-gray-400">
+                    <thead className="text-xs text-gray-400 uppercase bg-gray-700/50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3">Contest</th>
+                        <th scope="col" className="px-6 py-3">Rank</th>
+                        <th scope="col" className="px-6 py-3">Score</th>
+                        <th scope="col" className="px-6 py-3">Problems Solved</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {contestHistory.map((contest) => (
+                        <tr key={contest.contestId} className="bg-gray-800/50 border-b border-gray-700">
+                          <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">
+                            {contest.name}
+                          </th>
+                          <td className="px-6 py-4">{contest.rank}</td>
+                          <td className="px-6 py-4">{contest.score}</td>
+                          <td className="px-6 py-4">{contest.problemsSolved}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-500">No contest history yet.</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

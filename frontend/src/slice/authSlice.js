@@ -7,19 +7,6 @@ import axiosClient from '../utils/axiosClient'
 import { updateProfile as updateProfileApi } from '../utils/apis/userApi';
 
 // api's
-export const registerUser = createAsyncThunk(
-    "auth/register",
-    async (userData, { rejectWithValue }) => {
-        try {
-            const response = await axiosClient.post("/user/register", userData);//the user data which will be sended to to backend process stores in db and give us an response
-            return response.data.user;
-        } catch (err) {
-            // Extract error message string for serializable payload
-            const message = err.response?.data?.message || err.message || "Registration failed";
-            return rejectWithValue(message);
-        }
-    }
-)
 
 export const loginUser = createAsyncThunk(
     "auth/login",
@@ -112,13 +99,11 @@ export const signupWithVerificationThunk = createAsyncThunk(
   }
 );
 
-// Removed verifyEmailOTPThunk which is not defined anymore
-
 export const verifySignupOTPThunk = createAsyncThunk(
   "auth/verifySignupOTP",
-  async ({ email, otp }, { rejectWithValue }) => {
+  async (data, { rejectWithValue }) => {
     try {
-      const response = await verifySignupOTP(email, otp);
+      const response = await verifySignupOTP(data);
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -131,18 +116,6 @@ export const requestEmailVerificationOTPThunk = createAsyncThunk(
   async (email, { rejectWithValue }) => {
     try {
       const response = await requestEmailVerificationOTP(email);
-      return response.data;
-    } catch (err) {
-      return rejectWithValue(err.response?.data || err.message);
-    }
-  }
-);
-
-export const verifyEmailOTPThunk = createAsyncThunk(
-  "auth/verifyEmailOTP",
-  async ({ email, otp }, { rejectWithValue }) => {
-    try {
-      const response = await axiosClient.post("/user/verifyEmailOTP", { email, otp });
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -203,9 +176,11 @@ const authSlice = createSlice({
         requestEmailVerificationOTPLoading: false,
         requestEmailVerificationOTPError: null,
         requestEmailVerificationOTPSuccess: false,
-        verifyEmailOTPLoading: false,
-        verifyEmailOTPError: null,
-        verifyEmailOTPSuccess: false,
+        // Removed verifyEmailOTPLoading, verifyEmailOTPError, verifyEmailOTPSuccess as they are no longer needed
+        signupSuccess: false, // New state for signup
+        verifySignupOTPLoading: false, // Add loading state for signup verification
+        verifySignupOTPError: null, // Add error state for signup verification
+        verifySignupOTPSuccess: false, // New state for signup verification
         requestPasswordResetOTPLoading: false,
         requestPasswordResetOTPError: null,
         requestPasswordResetOTPSuccess: false,
@@ -226,9 +201,7 @@ const authSlice = createSlice({
             state.requestEmailVerificationOTPLoading = false;
             state.requestEmailVerificationOTPError = null;
             state.requestEmailVerificationOTPSuccess = false;
-            state.verifyEmailOTPLoading = false;
-            state.verifyEmailOTPError = null;
-            state.verifyEmailOTPSuccess = false;
+            // Removed verifyEmailOTPLoading, verifyEmailOTPError, verifyEmailOTPSuccess as they are no longer needed
         },
         resetPasswordResetState: (state) => {
             state.requestPasswordResetOTPLoading = false;
@@ -242,27 +215,17 @@ const authSlice = createSlice({
             state.changePasswordLoading = false;
             state.changePasswordError = null;
             state.changePasswordSuccess = false;
+        },
+        // New reducer to update user stats from socket
+        setUserStats: (state, action) => {
+            if (state.user) {
+                state.user.points = action.payload.points;
+                state.user.streak = action.payload.streak;
+            }
         }
     },
     extraReducers: (builder) => {
         builder
-            //register user cases
-            .addCase(registerUser.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
-            .addCase(registerUser.fulfilled, (state, action) => {
-                state.loading = false,
-                    state.isAuthenticated = !!action.payload;
-                state.user = action.payload;
-            })
-            .addCase(registerUser.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload?.message || "Something Went Wrong";
-                state.isAuthenticated = false;
-                state.user = null;
-            })
-
             //login user cases
             .addCase(loginUser.pending, (state) => {
                 state.loading = true,
@@ -276,6 +239,8 @@ const authSlice = createSlice({
             // Update localStorage for token and user
             localStorage.setItem('token', action.payload.token);
             localStorage.setItem('user', JSON.stringify(action.payload.user));
+            // Dispatch getProfile to fetch full user data including streak
+            // This needs to be handled outside the slice, e.g., in the component that dispatches loginUser
             })
     .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -293,6 +258,8 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = !!action.payload;
         state.user = action.payload;
+        // Dispatch getProfile to fetch full user data including streak
+        // This needs to be handled outside the slice, e.g., in the component that dispatches googleLoginUser
     })
     .addCase(googleLoginUser.rejected, (state, action) => {
         state.loading = false;
@@ -377,6 +344,45 @@ const authSlice = createSlice({
         state.updateProfileSuccess = false;
     })
 
+    // signupWithVerification
+    .addCase(signupWithVerificationThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+    })
+    .addCase(signupWithVerificationThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.signupSuccess = true; // Set signup success to true
+        // Do not set isAuthenticated or user here, as verification is pending
+    })
+    .addCase(signupWithVerificationThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Signup with verification failed";
+    })
+
+    // verifySignupOTP
+    .addCase(verifySignupOTPThunk.pending, (state) => {
+        state.verifySignupOTPLoading = true;
+        state.verifySignupOTPError = null;
+        state.verifySignupOTPSuccess = false;
+    })
+    .addCase(verifySignupOTPThunk.fulfilled, (state, action) => {
+        state.verifySignupOTPLoading = false;
+        state.isAuthenticated = true; // User is authenticated after OTP verification
+        state.user = action.payload.user; // Assuming payload contains user data
+        state.token = action.payload.token; // Assuming payload contains token
+        state.verifySignupOTPSuccess = true;
+        localStorage.setItem('token', action.payload.token);
+        localStorage.setItem('user', JSON.stringify(action.payload.user));
+    })
+    .addCase(verifySignupOTPThunk.rejected, (state, action) => {
+        state.verifySignupOTPLoading = false;
+        state.verifySignupOTPError = action.payload || "OTP verification failed";
+        state.isAuthenticated = false;
+        state.user = null;
+        state.verifySignupOTPSuccess = false;
+    })
+
     // requestEmailVerificationOTP
     .addCase(requestEmailVerificationOTPThunk.pending, (state) => {
         state.requestEmailVerificationOTPLoading = true;
@@ -391,22 +397,6 @@ const authSlice = createSlice({
         state.requestEmailVerificationOTPLoading = false;
         state.requestEmailVerificationOTPError = action.payload;
         state.requestEmailVerificationOTPSuccess = false;
-    })
-
-    // verifyEmailOTP
-    .addCase(verifyEmailOTPThunk.pending, (state) => {
-        state.verifyEmailOTPLoading = true;
-        state.verifyEmailOTPError = null;
-        state.verifyEmailOTPSuccess = false;
-    })
-    .addCase(verifyEmailOTPThunk.fulfilled, (state) => {
-        state.verifyEmailOTPLoading = false;
-        state.verifyEmailOTPSuccess = true;
-    })
-    .addCase(verifyEmailOTPThunk.rejected, (state, action) => {
-        state.verifyEmailOTPLoading = false;
-        state.verifyEmailOTPError = action.payload;
-        state.verifyEmailOTPSuccess = false;
     })
 
     // requestPasswordResetOTP
@@ -461,6 +451,6 @@ const authSlice = createSlice({
 
 
 
-export const { resetUpdateProfileState, resetEmailVerificationState, resetPasswordResetState, resetChangePasswordState } = authSlice.actions;
+export const { resetUpdateProfileState, resetEmailVerificationState, resetPasswordResetState, resetChangePasswordState, setUserStats } = authSlice.actions;
 
 export default authSlice.reducer;

@@ -14,6 +14,7 @@ import {
   Trophy,
   ArrowRight,
   Zap,
+  Home, // Added Home icon
 } from "lucide-react";
 import axiosClient from "../../utils/axiosClient";
 import { useToast } from "../../hooks/useToast";
@@ -49,14 +50,20 @@ const ContestDetails = () => {
   const fetchContestDetails = async () => {
     try {
       setIsLoading(true);
-      const response = await axiosClient.get(`/contest/${contestId}`);
-      const { contest: fetchedContest, userStatus } = response.data;
+      const contestResponse = await axiosClient.get(`/contest/${contestId}`);
+      const { contest: fetchedContest } = contestResponse.data;
 
       if (fetchedContest) {
         setContest(fetchedContest);
         setParticipants(fetchedContest.participants || []);
-        setHasEntered(userStatus?.isRegistered || false);
-        setHasCompleted(userStatus?.isCompleted || false);
+
+        // Fetch user status
+        if (user) {
+          const statusResponse = await axiosClient.get(`/contest/${contestId}/status`);
+          const { status } = statusResponse.data;
+          setHasEntered(status.isRegistered);
+          setHasCompleted(status.isCompleted);
+        }
 
         // Fetch problems for this contest
         const problemsResponse = await axiosClient.get(
@@ -75,6 +82,12 @@ const ContestDetails = () => {
   useEffect(() => {
     fetchContestDetails();
   }, [contestId, user]);
+
+  useEffect(() => {
+    if (hasCompleted) {
+      setActiveTab("leaderboard");
+    }
+  }, [hasCompleted]);
 
   // Update contest status and time remaining
   useEffect(() => {
@@ -211,6 +224,15 @@ const ContestDetails = () => {
   return (
     <div className="min-h-screen bg-gray-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Back to Home Button */}
+        <button
+          onClick={() => navigate("/")}
+          className="mb-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white font-medium transition-colors flex items-center"
+        >
+          <Home className="w-4 h-4 mr-2" />
+          Back to Home
+        </button>
+
         {/* Contest Header */}
         <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl overflow-hidden mb-6">
           <div className="p-6 md:p-8">
@@ -291,7 +313,7 @@ const ContestDetails = () => {
                 </div>
               </div>
 
-              {contestStatus === "active" && (
+              {contestStatus === "active" && !hasCompleted && !hasEntered && (
                 <button
                   onClick={async () => {
                     try {
@@ -343,8 +365,36 @@ const ContestDetails = () => {
                   }}
                   className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-md text-white font-medium transition-colors flex items-center"
                 >
+                  Register
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </button>
+              )}
+              {contestStatus === "active" && hasEntered && !hasCompleted && (
+                <button
+                  onClick={() => {
+                    if (contest.problems && contest.problems.length > 0) {
+                      const firstProblemId =
+                        typeof contest.problems[0] === "object"
+                          ? contest.problems[0]._id
+                          : contest.problems[0];
+                      navigate(
+                        `/contest/${contestId}/problem/${firstProblemId}`
+                      );
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-md text-white font-medium transition-colors flex items-center"
+                >
                   Enter Contest
                   <ArrowRight className="w-4 h-4 ml-2" />
+                </button>
+              )}
+              {hasCompleted && (
+                <button
+                  onClick={() => setActiveTab("leaderboard")}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white font-medium transition-colors flex items-center"
+                >
+                  View Results
+                  <Trophy className="w-4 h-4 ml-2" />
                 </button>
               )}
 
@@ -478,23 +528,15 @@ const ContestDetails = () => {
                                 : "bg-gray-700 text-gray-400 cursor-not-allowed"
                             }`}
                           >
-                            {contestStatus === "active" &&
-                            hasEntered &&
-                            !hasCompleted ? (
+                            {hasCompleted ? (
+                              "Completed"
+                            ) : contestStatus === "active" && hasEntered ? (
                               <>
                                 Solve
                                 <ChevronRight className="w-3.5 h-3.5 ml-1" />
                               </>
                             ) : (
-                              <>
-                                {hasCompleted
-                                  ? "Contest Completed"
-                                  : contestStatus === "upcoming"
-                                  ? "Not Started"
-                                  : !hasEntered
-                                  ? "Not Registered"
-                                  : "Contest Ended"}
-                              </>
+                              "Unavailable"
                             )}
                           </button>
                         </td>

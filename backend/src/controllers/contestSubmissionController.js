@@ -1,8 +1,33 @@
 const Problem = require("../models/problem");
 const Contest = require("../models/contest");
 const ContestSubmission = require("../models/contestSubmission");
+const User = require("../models/user");
 const { getLanguageById, submitToken, SubmitBatch } = require("../utils/problemUtility");
 const { getIO } = require("../config/socket");
+const { updateAndEmitLeaderboard } = require("./leaderboardController");
+
+const calculateScore = (problem, testCasesPassed) => {
+    if (!problem.hiddenTestCases || problem.hiddenTestCases.length === 0) {
+        return 0;
+    }
+    const difficulty = problem.difficulty.toLowerCase();
+    let baseScore = 0;
+    switch (difficulty) {
+        case "easy":
+            baseScore = 10;
+            break;
+        case "medium":
+            baseScore = 20;
+            break;
+        case "hard":
+            baseScore = 30;
+            break;
+        default:
+            baseScore = 10;
+    }
+    const score = (baseScore / problem.hiddenTestCases.length) * testCasesPassed;
+    return score;
+};
 
 // Submit code for a contest problem
 exports.submitContestCode = async (req, res) => {
@@ -117,7 +142,40 @@ exports.submitContestCode = async (req, res) => {
         submission.runtime = runtime;
         submission.memory = memory;
         submission.errorMessage = errorMessage;
+        submission.score = calculateScore(problem, testCasesPassed);
         await submission.save();
+
+        // Update user's streak and contest history
+        if (status === "Accepted") {
+            const user = await User.findById(userId);
+            if (user) {
+                const today = new Date();
+                const lastCompletion = user.lastContestCompletion ? new Date(user.lastContestCompletion) : null;
+                
+                if (lastCompletion) {
+                    const diffTime = Math.abs(today - lastCompletion);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    if (diffDays === 1) {
+                        user.streak += 1;
+                    } else if (diffDays > 1) {
+                        user.streak = 1;
+                    }
+                } else {
+                    user.streak = 1;
+                }
+
+                user.lastContestCompletion = today;
+                
+                if (!user.contestsCompleted.some(c => c.toString() === contestId)) {
+                    user.contestsCompleted.push(contestId);
+                }
+                
+                await user.save();
+            }
+        }
+
+        // Update and emit leaderboard
+        updateAndEmitLeaderboard(contestId);
 
         // Return response
         return res.status(200).json({
@@ -129,7 +187,8 @@ exports.submitContestCode = async (req, res) => {
                 totalTestCases: problem.hiddenTestCases.length,
                 runtime,
                 memory,
-                errorMessage
+                errorMessage,
+                score: submission.score
             }
         });
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { logutUser } from "../../slice/authSlice";
+import { logutUser, setUserStats } from "../../slice/authSlice"; // Import setUserStats
 import { useNavigate, Link, NavLink } from "react-router-dom";
 import { toast } from "react-toastify";
 
@@ -21,6 +21,7 @@ import {
   Bell,
   Crown,
   Star,
+  Zap, // Added Zap icon for streak
   ScanEye 
 } from "lucide-react";
 import codexa from "../../utils/logo/codexa-logo.png";
@@ -37,10 +38,6 @@ const Navbar = () => {
     (state) => state.auth
   );
   const navigate = useNavigate();
-
-  // Local state for points and streak
-  const [points, setPoints] = useState(user?.points || 0);
-  const [streak, setStreak] = useState(user?.streak || 0);
 
   // Handle scroll effect
   useEffect(() => {
@@ -66,8 +63,7 @@ const Navbar = () => {
       const userId = user._id || user.id;
       io.on("userStatsUpdate", (data) => {
         if (data && data.points !== undefined && data.streak !== undefined) {
-          setPoints(data.points);
-          setStreak(data.streak);
+          dispatch(setUserStats({ points: data.points, streak: data.streak }));
         }
       });
 
@@ -212,6 +208,17 @@ const Navbar = () => {
                 </div>
               )}
 
+
+              {/* Streak Display */}
+              {isAuthenticated && (
+                <div className="flex items-center space-x-2 px-3 py-2 min-w-[70px] justify-center">
+                  <Zap className="w-5 h-5 text-orange-400" />
+                  <span className="text-xl font-semibold text-white">
+                    {user?.streak}
+                  </span>
+                </div>
+              )}
+
               {/* User Menu */}              
               <div className="relative user-dropdown">
                 {isAuthenticated ? (
@@ -260,6 +267,7 @@ const Navbar = () => {
                             ? "Premium Member"
                             : user?.role || "User"}
                         </p>
+                  
                       </div>
                       <ChevronDown
                         className={`w-4 h-4 text-slate-400 transition-all duration-200 ${
@@ -290,13 +298,21 @@ const Navbar = () => {
                               >
                                 {user?.profileImage ? (
                                   <img
-                                    src={user.profileImage.startsWith('http') ? user.profileImage : `${import.meta.env.VITE_BACKEND_URL}${user.profileImage}`}
+                                    src={
+                                      user.profileImage.startsWith("http")
+                                        ? user.profileImage
+                                        : `${import.meta.env.VITE_BACKEND_URL}${
+                                            user.profileImage
+                                          }`
+                                    }
                                     alt="Profile"
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
                                   <span className="text-white text-sm font-bold">
-                                    {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+                                    {user?.firstName
+                                      ?.charAt(0)
+                                      ?.toUpperCase() || "U"}
                                   </span>
                                 )}
                                 {user?.isPremium && (
@@ -422,7 +438,7 @@ const Navbar = () => {
                             {/* Divider */}
                             <div className="border-t border-slate-600/30 my-2"></div>
 
-                            {/* Logout Button */} 
+                            {/* Logout Button */}
                             <button
                               onClick={logout}
                               className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl text-slate-300 hover:text-white hover:bg-red-900/20 border border-transparent hover:border-red-700/30 transition-all duration-200 group"

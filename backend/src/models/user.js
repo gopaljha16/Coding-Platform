@@ -26,9 +26,6 @@ const userScehma = Schema({
         type: String,
         required: true,
     },
-    confirmPassword: {
-        type: String,
-    },
     age: {
         type: Number,
         min: 6,
@@ -92,6 +89,25 @@ const userScehma = Schema({
     streak: {
         type: Number,
         default: 0
+    },
+    lastContestCompletion: {
+        type: Date,
+        default: null
+    },
+    contestHistory: {
+        type: [
+            {
+                contestId: {
+                    type: Schema.Types.ObjectId,
+                    ref: "contest"
+                },
+                rank: Number,
+                score: Number,
+                problemsSolved: Number,
+                totalRuntime: Number
+            }
+        ],
+        default: []
     }
 }, { timestamps: true })
 

@@ -1,15 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Clock, Medal, Award, Zap, User, ArrowUp, ArrowDown, Minus, Shield, Star, Info, CheckCircle } from 'lucide-react';
+import { Trophy, Clock, Medal, Award, Zap, User, ArrowUp, ArrowDown, Minus, Shield, Star, Info, CheckCircle, Share2, Home } from 'lucide-react'; // Added Home icon
 import axiosClient from '../../utils/axiosClient';
 import { getSocket, initializeSocket } from '../../utils/socket';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../hooks/useToast';
+import { useNavigate } from 'react-router-dom'; // Added useNavigate
 
 const ContestLeaderboard = ({ contestId, isContestActive }) => {
+  const { user: currentUser } = useAuth();
+  const { showToast } = useToast();
   const [leaderboard, setLeaderboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(null);
   const [socket, setSocket] = React.useState(null);
+  const navigate = useNavigate(); // Moved useNavigate to the top level
 
   React.useEffect(() => {
     const token = localStorage.getItem('token'); // or get token from context/auth
@@ -137,7 +143,13 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
   }
 
   return (
-    <div className="bg-gray-900/50 rounded-xl border border-gray-800/50 overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="bg-gray-900/50 rounded-xl border border-gray-800/50 overflow-hidden"
+    >
+    
       <div className="p-4 border-b border-gray-800/50 flex justify-between items-center">
         <h3 className="text-lg font-semibold text-white flex items-center">
           <Trophy className="w-5 h-5 text-orange-400 mr-2" />
@@ -160,6 +172,7 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
               <th className="px-4 py-3 text-center">Score</th>
               <th className="px-4 py-3 text-center">Problems Solved</th>
               <th className="px-4 py-3 text-center">Runtime</th>
+              <th className="px-4 py-3 text-center">Share</th>
             </tr>
           </thead>
           <tbody>
@@ -169,7 +182,9 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="border-b border-gray-800/30 hover:bg-gray-800/20 transition-colors"
+                className={`border-b border-gray-800/30 hover:bg-gray-800/20 transition-colors ${
+                  currentUser?._id === entry.userId._id ? 'bg-orange-500/10' : ''
+                }`}
               >
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center">
@@ -216,6 +231,18 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
                     </span>
                   </div>
                 </td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    onClick={() => {
+                      const text = `I ranked #${entry.rank} in the ${leaderboard.contestName} contest on CodinG Platform! Check it out!`;
+                      navigator.clipboard.writeText(text);
+                      showToast("Copied to clipboard!", "success");
+                    }}
+                    className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                  >
+                    <Share2 className="w-4 h-4 text-gray-400" />
+                  </button>
+                </td>
               </motion.tr>
             ))}
           </tbody>
@@ -237,7 +264,7 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
           <span>These are the final contest results. Congratulations to all participants!</span>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

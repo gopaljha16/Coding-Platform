@@ -32,36 +32,7 @@ const upload = multer({
     }
 }).single("profileImage");
 
-const { requestEmailVerificationOTP } = require('./userVerification');
-
-const register = async (req, res) => {
-    try {
-        validate(req.body);
-        const { firstName, emailId, password, confirmPassword } = req.body;
-        if (!firstName || !emailId) return res.status(400).json({ success: false, message: "Credential Missing" });
-        if (password !== confirmPassword) return res.status(400).json({ success: false, message: "Password Doesn't Match" });
-
-        req.body.password = await bcrypt.hash(password, 10);
-        req.body.role = "user";
-        req.body.emailVerified = false;
-
-        const user = await User.create(req.body);
-
-        // Send OTP email for verification
-        await requestEmailVerificationOTP({ body: { email: emailId } }, { status: () => ({ json: () => {} }) });
-
-        const reply = {
-            firstName: user.firstName,
-            emailId: user.emailId,
-            _id: user._id,
-        };
-
-        // Do not log in user immediately, require email verification first
-        res.status(201).json({ user: reply, message: "User Registered Successfully. Please verify your email." });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message || "Internal Server Error" });
-    }
-};
+// Removed the 'register' function as signupWithVerification is now the primary registration method.
 
 const login = async (req, res) => {
     try {
@@ -154,7 +125,8 @@ const getProfile = async (req, res) => {
                 recentSubmissions: user.problemSolved,
                 profileImage: user.profileImage,
                 emailVerified: user.emailVerified,
-                socialLinks: user.socialLinks || {}
+                socialLinks: user.socialLinks || {},
+                streak: user.streak || 0, // Ensure streak is always a number
             }
         });
     } catch (err) {
@@ -292,8 +264,8 @@ const googleLogin = async (req, res) => {
     }
 };
 
+
 module.exports = {
-    register,
     login,
     logout,
     getProfile,

@@ -16,8 +16,8 @@ export const signupWithVerification = (data) => {
   return axiosClient.post('/user/signupWithVerification', data);
 };
 
-export const verifySignupOTP = (email, otp) => {
-  return axiosClient.post('/user/verifySignupOTP', { email, otp });
+export const verifySignupOTP = (data) => {
+  return axiosClient.post('/user/verifySignupOTP', data);
 };
 
 export const requestEmailVerificationOTP = (email) => {
@@ -34,4 +34,8 @@ export const resetPassword = (email, otp, newPassword) => {
 
 export const changePassword = (oldPassword, newPassword) => {
   return axiosClient.post('/user/changePassword', { oldPassword, newPassword });
+};
+
+export const getProfile = () => {
+  return axiosClient.get('/user/getProfile');
 };

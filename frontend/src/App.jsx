@@ -31,6 +31,7 @@ import DiscussPage from "./pages/DiscussPage";
 import DiscussionDetail from "./pages/DiscussionDetail";
 import { ContestProvider } from "./context/ContestContext";
 import DSAVisualizerPage from "./pages/DSAVisualizerPage";
+import EmailVerification from "./components/common/EmailVerification"; // Import EmailVerification
 
 const ContestLeaderboardWrapper = () => {
   const { contestId } = useParams();
@@ -69,194 +70,235 @@ const App = () => {
             <Route path="/explore" element={<Explore />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-email" element={<EmailVerification />} /> {/* New route for email verification */}
             <Route
               path="/dashboard"
               element={
-                isAuthenticated ? <DashboardPage /> : <Navigate to="/login" />
+                isAuthenticated && user?.emailVerified ? (
+                  <DashboardPage />
+                ) : (
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                )
               }
             />
             <Route
               path="/interview"
               element={
-                isAuthenticated ? <Interview /> : <Navigate to="/login" />
+                isAuthenticated && user?.emailVerified ? (
+                  <Interview />
+                ) : (
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                )
               }
             />
             <Route
               path="/problems"
-              element={isAuthenticated ? <Problem /> : <Navigate to="/login" />}
+              element={
+                isAuthenticated && user?.emailVerified ? (
+                  <Problem />
+                ) : (
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                )
+              }
             />
             <Route
               path="/playlists/:id"
               element={
-                isAuthenticated ? <PlaylistDetail /> : <Navigate to="/login" />
+                isAuthenticated && user?.emailVerified ? (
+                  <PlaylistDetail />
+                ) : (
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                )
               }
             />
             <Route path="/problem/:problemId" element={<ProblemSolve />} />
             <Route
               path="/admin"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <AdminPage />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/admin/create"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <CreateProblem />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/admin/update"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <UpdateProblem />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/admin/delete"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <DeleteProblem />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/admin/users"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <UserManagement />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/admin/analytics"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <PlatformAnalytics />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/admin/video"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <ManageVideo />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/admin/contest"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <AdminContest />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/contest"
               element={
-                isAuthenticated ? <ContestPage /> : <Navigate to="/login" />
+                isAuthenticated && user?.emailVerified ? (
+                  <ContestPage />
+                ) : (
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                )
               }
             />
             <Route
               path="/contest/:contestId"
               element={
-                isAuthenticated ? <ContestDetails /> : <Navigate to="/login" />
+                isAuthenticated && user?.emailVerified ? (
+                  <ContestDetails />
+                ) : (
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                )
               }
             />
             <Route
               path="/admin/contest/:id"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <ContestDetail />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/contest/:contestId/problem/:problemId"
               element={
-                isAuthenticated ? (
+                isAuthenticated && user?.emailVerified ? (
                   <ContestProblemSolve />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/contest/:contestId/leaderboard"
               element={
-                isAuthenticated ? (
+                isAuthenticated && user?.emailVerified ? (
                   <ContestLeaderboardWrapper />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/admin/upload/:problemId"
               element={
-                isAuthenticated && user?.role === "admin" ? (
+                isAuthenticated && user?.role === "admin" && user?.emailVerified ? (
                   <UploadVideo />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/premium"
-              element={isAuthenticated ? <Premium /> : <Navigate to="/login" />}
+              element={
+                isAuthenticated && user?.emailVerified ? (
+                  <Premium />
+                ) : (
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                )
+              }
             />
             <Route
               path="/profile"
               element={
-                isAuthenticated ? <UserProfile /> : <Navigate to="/login" />
+                isAuthenticated && user?.emailVerified ? (
+                  <UserProfile />
+                ) : (
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                )
               }
             />
             <Route
               path="/discuss"
               element={
-                isAuthenticated ? <DiscussPage /> : <Navigate to="/login" />
+                isAuthenticated && user?.emailVerified ? (
+                  <DiscussPage />
+                ) : (
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                )
               }
             />
             <Route
               path="/discuss/:discussionId"
               element={
-                isAuthenticated ? (
+                isAuthenticated && user?.emailVerified ? (
                   <DiscussionDetail />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />
             <Route
               path="/visualizer"
               element={
-                isAuthenticated ? (
+                isAuthenticated && user?.emailVerified ? (
                   <DSAVisualizerPage />
                 ) : (
-                  <Navigate to="/login" />
+                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
                 )
               }
             />

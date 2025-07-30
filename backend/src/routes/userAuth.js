@@ -1,5 +1,5 @@
 const express = require("express");
-const { register, getProfile, login, logout, deleteProfile, activeUsers, updateProfile, googleLogin } = require("../controllers/userAuthenticate");
+const { getProfile, login, logout, deleteProfile, activeUsers, updateProfile, googleLogin } = require("../controllers/userAuthenticate"); // Removed 'register'
 const { requestEmailVerificationOTP, verifyEmailOTP, requestPasswordResetOTP, resetPassword, changePassword } = require("../controllers/userVerification");
 const { signupWithVerification, verifySignupOTP } = require("../controllers/userSignupVerification");
 const userMiddleware = require("../middleware/userMiddleware");
@@ -8,7 +8,7 @@ const adminRegister = require("../controllers/adminAuthenticate");
 const dashboardController = require("../controllers/dashboardController");
 const authRouter = express.Router();
 
-authRouter.post("/register", register);
+// Removed authRouter.post("/register", register);
 authRouter.post("/login", login);
 authRouter.post("/logout", userMiddleware, logout);
 authRouter.post("/admin/register", adminMiddleware, adminRegister);

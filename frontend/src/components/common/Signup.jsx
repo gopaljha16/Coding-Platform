@@ -5,11 +5,9 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useSelector, useDispatch } from "react-redux";
 import {
-  registerUser,
-  verifyEmailOTPThunk,
   resetEmailVerificationState,
   signupWithVerificationThunk,
-  loginUser,
+  verifySignupOTPThunk,
 } from "../../slice/authSlice";
 import { toast } from "react-toastify";
 import { EyeOff, Eye, ArrowLeft } from "lucide-react";
@@ -36,9 +34,8 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
-  const [signupData, setSignupData] = useState(null);
   const dispatch = useDispatch();
-  const { isAuthenticated, loading, error, verifyEmailOTPSuccess } =
+  const { isAuthenticated, loading, error, verifySignupOTPSuccess } =
     useSelector((state) => state.auth);
   const navigate = useNavigate();
 
@@ -55,41 +52,28 @@ const Signup = () => {
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    if (verifyEmailOTPSuccess && signupData) {
-      dispatch(
-        loginUser({
-          emailId: signupData.emailId,
-          password: signupData.password,
-        })
-      ).then((res) => {
-        if (res?.meta?.requestStatus === "fulfilled") {
-          toast.success("Logged in successfully after verification.");
-          setShowVerification(false);
-        } else {
-          toast.error("Login failed after verification.");
-        }
-      });
+    if (verifySignupOTPSuccess) {
+      toast.success("Email verified successfully. Redirecting to homepage.");
+      setShowVerification(false);
       dispatch(resetEmailVerificationState());
+      navigate("/"); // Redirect to homepage after successful verification
     }
-  }, [verifyEmailOTPSuccess, signupData, dispatch]);
+  }, [verifySignupOTPSuccess, dispatch, navigate]);
 
   const onSubmit = async (data) => {
     try {
-      const registerRes = await dispatch(registerUser(data));
-      if (registerRes?.meta?.requestStatus === "fulfilled") {
-        toast.success("Registered successfully. Please verify your email.");
+      const resultAction = await dispatch(signupWithVerificationThunk(data));
+      if (signupWithVerificationThunk.fulfilled.match(resultAction)) {
+        toast.success(resultAction.payload.message);
         setRegisteredEmail(data.emailId);
-        setSignupData(data);
         setShowVerification(true);
       } else {
         const errorMsg =
-          registerRes?.payload?.message || "Registration failed.";
+          resultAction.payload?.message || "Registration failed.";
         toast.error(errorMsg);
       }
     } catch (err) {
-      toast.error(
-        "Failed to process registration: " + (err.message || "Unknown error")
-      );
+      toast.error("An unexpected error occurred.");
     }
   };
 
@@ -97,9 +81,7 @@ const Signup = () => {
     return (
       <EmailVerification
         email={registeredEmail}
-        onVerified={(otp) => {
-          dispatch(verifyEmailOTPThunk({ email: registeredEmail, otp }));
-        }}
+        // onVerified prop is no longer needed as verifySignupOTPThunk handles login and redirect
       />
     );
   }
