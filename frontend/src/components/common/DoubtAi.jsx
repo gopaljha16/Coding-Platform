@@ -533,6 +533,22 @@ function DobutAi({ problem }) {
     );
   }
 
+  if (user?.isPremium && user?.tokensLeft <= 0) {
+    return (
+      <div className="flex flex-col h-full bg-gray-900 text-gray-100 items-center justify-center text-center p-4">
+        <h1 className="text-3xl font-bold mb-4">You've run out of tokens</h1>
+        <p className="text-lg mb-8">
+          Please purchase more tokens to continue using Doubt AI.
+        </p>
+        <NavLink to="/premium">
+          <button className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded">
+            Buy More Tokens
+          </button>
+        </NavLink>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-gray-900 text-gray-100">
       {/* Header */}
@@ -679,13 +695,9 @@ function DobutAi({ problem }) {
             <div className="flex-1 relative">
               <textarea
                 ref={textareaRef}
-                placeholder={
-                  user?.tokensLeft > 0
-                    ? "Ask me anything about coding..."
-                    : "You've used all your tokens. Please buy more to continue."
-                }
+                placeholder="Ask me anything about coding..."
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent resize-none min-h-[50px] max-h-32 transition-all duration-200 shadow-lg"
-                disabled={isStreaming || user?.tokensLeft <= 0}
+                disabled={isStreaming}
                 rows="1"
                 onInput={(e) => {
                   e.target.style.height = "auto";
@@ -710,7 +722,7 @@ function DobutAi({ problem }) {
             </div>
             <button
               type="submit"
-              disabled={errors.message || isStreaming || user?.tokensLeft <= 0}
+              disabled={errors.message || isStreaming}
               className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white p-3 rounded-xl transition-all duration-200 flex items-center justify-center min-w-[50px] shadow-lg hover:shadow-orange-500/30 disabled:hover:shadow-none"
             >
               {isStreaming ? (

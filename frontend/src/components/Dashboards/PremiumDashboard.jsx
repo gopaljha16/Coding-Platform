@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { getProfile } from '../../slice/authSlice';
 import { Crown, Key, Zap, Shield, ArrowLeft } from 'lucide-react';
+import PaymentHistory from './PaymentHistory';
 
 const PremiumDashboard = () => {
   const dispatch = useDispatch();
@@ -79,6 +80,7 @@ const PremiumDashboard = () => {
                 </div>
               </div>
             </div>
+            <PaymentHistory />
           </div>
 
           {/* Right Column */}
@@ -96,7 +98,7 @@ const PremiumDashboard = () => {
                 You have access to all exclusive features.
               </p>
               <button className="mt-6 w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl">
-                Manage Subscription
+                Coming Soon
               </button>
             </div>
 

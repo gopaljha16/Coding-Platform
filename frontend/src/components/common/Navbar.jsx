@@ -272,9 +272,7 @@ const Navbar = () => {
                       <div className="hidden sm:block text-left">
                         <p className="text-sm font-medium text-white flex items-center space-x-1">
                           <span>{user?.firstName}</span>
-                          {user?.isPremium && (
-                            <Crown className="w-3 h-3 text-yellow-400" />
-                          )}
+                        
                         </p>
                         <p className="text-xs text-slate-400 capitalize">
                           {user?.isPremium
@@ -330,7 +328,7 @@ const Navbar = () => {
                                 )}
                                 {user?.isPremium && (
                                   <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
-                                    <Crown className="w-2.5 h-2.5 text-slate-800" />
+                                 
                                   </div>
                                 )}
                               </div>

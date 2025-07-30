@@ -129,6 +129,7 @@ const getProfile = async (req, res) => {
                 streak: user.streak || 0, // Ensure streak is always a number
                 isPremium: user.isPremium,
                 tokensLeft: user.tokensLeft,
+                paymentHistory: user.paymentHistory || [],
             }
         });
     } catch (err) {

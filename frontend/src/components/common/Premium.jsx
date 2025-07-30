@@ -249,7 +249,104 @@ const Premium = () => {
     navigate("/");
   };
 
-  
+  const handleBuyTokens = async () => {
+    if (!razorpayLoaded) {
+      alert("Payment gateway not loaded. Please refresh the page.");
+      return;
+    }
+    if (!user?._id) {
+      alert("Please login first.");
+      return;
+    }
+    setIsLoading("buy_tokens");
+    try {
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY;
+      if (!razorpayKey) {
+        alert("❌ Razorpay key not configured. Please contact support.");
+        setIsLoading(null);
+        return;
+      }
+      const { data: order } = await axiosClient.post(
+        "/api/payments/create-order",
+        { plan: "buy_tokens" }
+      );
+      const options = {
+        key: razorpayKey,
+        amount: order.amount,
+        currency: order.currency || "INR",
+        name: "Codexa Premium",
+        description: "Buy More Tokens",
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            const verifyResponse = await axiosClient.post(
+              "/api/payments/verify",
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                plan: "buy_tokens",
+                userId: user._id,
+              }
+            );
+            if (verifyResponse.data.success) {
+              dispatch(getProfile());
+              setPurchasedPlan({ name: "Tokens" });
+              setShowSuccess(true);
+            } else {
+              alert(
+                "⚠️ Payment verified but activation failed. Please contact support."
+              );
+            }
+          } catch (error) {
+            console.error("Verification error:", error);
+            alert(
+              `❌ Payment verification failed: ${
+                error.response?.data?.message || error.message
+              }`
+            );
+          }
+          setIsLoading(null);
+        },
+        prefill: {
+          name: user?.firstName || "Codexa User",
+          email: user?.emailId || "test@example.com",
+          contact: user?.phoneNumber || "",
+        },
+        theme: {
+          color: "#ff6b35",
+        },
+        modal: {
+          ondismiss: () => {
+            setIsLoading(null);
+          },
+        },
+        retry: {
+          enabled: true,
+          max_count: 3,
+        },
+        timeout: 300,
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response) => {
+        console.error("Payment failed:", response.error);
+        const errorMessage =
+          response.error?.description ||
+          response.error?.reason ||
+          "Unknown error";
+        alert(`❌ Payment failed: ${errorMessage}`);
+        setIsLoading(null);
+      });
+      rzp.open();
+    } catch (error) {
+      console.error("Payment initiation error:", error);
+      const errorMessage =
+        error.response?.data?.message || error.message || "Unknown error";
+      alert(`❌ Payment could not be started: ${errorMessage}`);
+      setIsLoading(null);
+    }
+  };
+
   if (showSuccess && purchasedPlan) {
     return (
       <Success 
@@ -279,6 +376,41 @@ const Premium = () => {
             Unlock AI-powered coding, interview prep, and mentorship.
           </p>
         </div>
+
+        {user?.isPremium && (
+          <div className="mb-12">
+            <div className="max-w-2xl mx-auto bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 text-center">
+              <h2 className="text-3xl font-bold mb-4">
+                You are a Premium User!
+              </h2>
+              <p className="text-slate-300 mb-6">
+                You can now purchase more tokens to continue using our AI
+                features.
+              </p>
+              <button
+                onClick={handleBuyTokens}
+                disabled={isLoading === "buy_tokens" || !razorpayLoaded}
+                className={`w-full py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group/btn bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-lg shadow-green-500/25 ${
+                  isLoading === "buy_tokens" || !razorpayLoaded
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+              >
+                {isLoading === "buy_tokens" ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Buy More Tokens
+                    <ArrowRight className="w-5 h-5 transform group-hover/btn:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan) => (

@@ -322,12 +322,11 @@ const authSlice = createSlice({
       })
       .addCase(getProfile.fulfilled, (state, action) => {
         state.profileLoading = false;
-        // Update both user and profile if needed
         state.profile = action.payload;
-        // Update user info as well to ensure Navbar re-renders
         state.user = {
           ...state.user,
-          ...action.payload.user
+          ...action.payload.user,
+          paymentHistory: action.payload.user.paymentHistory || [],
         };
       })
       .addCase(getProfile.rejected, (state, action) => {

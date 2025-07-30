@@ -108,8 +108,17 @@ const userScehma = Schema({
             }
         ],
         default: []
-    }
-}, { timestamps: true })
+    },
+    paymentHistory: [
+        {
+            orderId: { type: String },
+            paymentId: { type: String },
+            amount: { type: Number },
+            plan: { type: String },
+            date: { type: Date, default: Date.now },
+        },
+    ],
+}, { timestamps: true });
 
 userScehma.post("findOneAndDelete", async (userInfo) => {
     if (userInfo)

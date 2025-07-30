@@ -9,7 +9,8 @@ const createOrder = async (req, res) => {
     const prices = {
       starter: 199,
       pro: 499,
-      ultimate: 799
+      ultimate: 799,
+      buy_tokens: 99,
     };
 
     if (!prices[plan]) {
@@ -98,32 +99,44 @@ const verifyOrder = async (req, res) => {
     }
 
     // Step 2: Allocate tokens and update user
-    let tokens = 100;
-    if (plan === "pro") tokens = 300;
-    else if (plan === "ultimate") tokens = 1000;
-
-    console.log(`Activating ${plan} plan for user ${userId} with ${tokens} tokens`);
-
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        msg: "User not found" 
+      return res.status(404).json({
+        success: false,
+        msg: "User not found",
       });
     }
 
-    // Update user with premium status
-    user.isPremium = true;
-    user.tokensLeft = (user.tokensLeft || 0) + tokens;
-    user.premiumExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-    user.premiumPlan = plan;
-    user.lastPayment = {
-      orderId: razorpay_order_id,
-      paymentId: razorpay_payment_id,
-      amount: tokens === 100 ? 199 : tokens === 300 ? 499 : 799,
-      plan: plan,
-      date: new Date()
-    };
+    if (plan === "buy_tokens") {
+      const tokens = 100;
+      console.log(`Adding ${tokens} tokens for user ${userId}`);
+      user.tokensLeft = (user.tokensLeft || 0) + tokens;
+      user.paymentHistory.push({
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        amount: 99,
+        plan: "buy_tokens",
+      });
+    } else {
+      let tokens = 100;
+      if (plan === "pro") tokens = 300;
+      else if (plan === "ultimate") tokens = 1000;
+
+      console.log(
+        `Activating ${plan} plan for user ${userId} with ${tokens} tokens`
+      );
+
+      user.isPremium = true;
+      user.tokensLeft = (user.tokensLeft || 0) + tokens;
+      user.premiumExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      user.premiumPlan = plan;
+      user.paymentHistory.push({
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        amount: tokens === 100 ? 199 : tokens === 300 ? 499 : 799,
+        plan: plan,
+      });
+    }
 
     await user.save();
 
