@@ -1,7 +1,6 @@
 const Problem = require("../models/problem");
 const Contest = require("../models/contest");
 const ContestSubmission = require("../models/contestSubmission");
-const User = require("../models/user");
 const { getLanguageById, submitToken, SubmitBatch } = require("../utils/problemUtility");
 const { getIO } = require("../config/socket");
 
@@ -58,7 +57,7 @@ exports.submitContestCode = async (req, res) => {
             problemId,
             code,
             language: normalizedLanguage,
-            status: "Pending",
+            status: "Processing",
             totalTestCases: problem.hiddenTestCases?.length || 0,
             submissionTime: new Date()
         });
@@ -84,38 +83,14 @@ exports.submitContestCode = async (req, res) => {
         }));
 
         // Submit to Judge0
-        let submitResult;
-        try {
-            submitResult = await SubmitBatch(testCases);
-        } catch (err) {
-            console.error("Error submitting batch to Judge0:", err);
-            submission.status = "Error";
-            submission.errorMessage = "Judge0 submission failed";
-            await submission.save();
-            return res.status(500).json({
-                success: false,
-                message: "Judge0 submission failed"
-            });
-        }
+        const submitResult = await SubmitBatch(testCases);
         if (!submitResult?.length) {
             throw new Error("Failed to submit to judge");
         }
 
         // Get tokens and fetch results
-        let testResults;
-        try {
-            const resultTokens = submitResult.map(value => value.token);
-            testResults = await submitToken(resultTokens);
-        } catch (err) {
-            console.error("Error fetching results from Judge0:", err);
-            submission.status = "Error";
-            submission.errorMessage = "Judge0 result fetching failed";
-            await submission.save();
-            return res.status(500).json({
-                success: false,
-                message: "Judge0 result fetching failed"
-            });
-        }
+        const resultTokens = submitResult.map(value => value.token);
+        const testResults = await submitToken(resultTokens);
 
         // Process results
         let testCasesPassed = 0;
@@ -143,51 +118,6 @@ exports.submitContestCode = async (req, res) => {
         submission.memory = memory;
         submission.errorMessage = errorMessage;
         await submission.save();
-
-        // Update submission
-        submission.status = status;
-        submission.testCasesPassed = testCasesPassed;
-        submission.runtime = runtime;
-        submission.memory = memory;
-        submission.errorMessage = errorMessage;
-        await submission.save();
-
-        // Update user points and streak if accepted
-        if (status === "Accepted") {
-            try {
-                const user = await User.findById(userId);
-                if (user) {
-                    // Increment points by submission score or fixed value (e.g., 10)
-                    user.points = (user.points || 0) + (submission.score || 10);
-
-                    // Update streak logic: increment if last submission was recent, else reset
-                    const lastSubmission = await ContestSubmission.findOne({ userId: user._id })
-                        .sort({ submissionTime: -1 });
-                    if (lastSubmission) {
-                        const diff = new Date(submission.submissionTime) - new Date(lastSubmission.submissionTime);
-                        const oneDay = 24 * 60 * 60 * 1000;
-                        if (diff <= oneDay) {
-                            user.streak = (user.streak || 0) + 1;
-                        } else {
-                            user.streak = 1;
-                        }
-                    } else {
-                        user.streak = 1;
-                    }
-
-                    await user.save();
-
-                    // Emit socket event for updated user stats
-                    const io = getIO();
-                    io.to(user._id.toString()).emit('userStatsUpdate', {
-                        points: user.points,
-                        streak: user.streak
-                    });
-                }
-            } catch (err) {
-                console.error("Error updating user points and streak:", err);
-            }
-        }
 
         // Return response
         return res.status(200).json({

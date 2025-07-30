@@ -1,28 +1,24 @@
-/**
- * Generates visualization steps for array operations
- * @param {Array} operations - Operations from code parser
- * @returns {Array} Visualization steps
- */
 export const visualizeArray = (operations) => {
   const steps = [];
   let array = [];
-  let state = {};
-  let stepIndex = 0;
 
-  // Initial state
-  steps.push(createStep('initial', array, [], "Initializing visualization"));
+  const createStep = (action, array, highlights, description) => ({
+    step: action,
+    array: [...array],
+    highlights: [...highlights],
+    description
+  });
 
-  // Process each operation
+  steps.push(createStep('initial', array, [], "Ready to visualize"));
+
   for (const op of operations) {
     switch (op.type) {
       case 'create':
-        array = [...op.args];
-        steps.push(createStep(
-          'create',
-          array,
-          [],
-          `Created array with ${array.length} elements`
-        ));
+        // AST parser wraps array in another array
+        array = op.args[0] ? [...op.args[0]] : [];
+        steps.push(createStep('create', array,
+          array.map((_, i) => ({ index: i, color: '#10B981' })),
+          `Created array with ${array.length} elements`));
         break;
 
       case 'insert':
@@ -30,12 +26,9 @@ export const visualizeArray = (operations) => {
           const [index, value] = op.args;
           if (index >= 0 && index <= array.length) {
             array.splice(index, 0, value);
-            steps.push(createStep(
-              'insert',
-              array,
-              [{ index, color: '#10B981' }],
-              `Inserted ${value} at index ${index}`
-            ));
+            steps.push(createStep('insert', array,
+              [{ index, color: '#3B82F6' }],
+              `Inserted ${value} at index ${index}`));
           }
         }
         break;
@@ -45,20 +38,12 @@ export const visualizeArray = (operations) => {
           const index = op.args[0];
           if (index >= 0 && index < array.length) {
             const deleted = array[index];
-            steps.push(createStep(
-              'pre-delete',
-              array,
+            steps.push(createStep('pre-delete', array,
               [{ index, color: '#EF4444' }],
-              `Deleting element at index ${index}`
-            ));
-            
+              `Deleting element at index ${index}`));
             array.splice(index, 1);
-            steps.push(createStep(
-              'delete',
-              array,
-              [],
-              `Deleted ${deleted} from index ${index}`
-            ));
+            steps.push(createStep('delete', array, [],
+              `Deleted ${deleted} from index ${index}`));
           }
         }
         break;
@@ -67,21 +52,13 @@ export const visualizeArray = (operations) => {
         if (op.args.length >= 2) {
           const [index, value] = op.args;
           if (index >= 0 && index < array.length) {
-            const original = array[index];
-            steps.push(createStep(
-              'pre-update',
-              array,
+            steps.push(createStep('pre-update', array,
               [{ index, color: '#F59E0B' }],
-              `Updating index ${index} from ${original} to ${value}`
-            ));
-            
+              `Updating index ${index} to ${value}`));
             array[index] = value;
-            steps.push(createStep(
-              'update',
-              array,
+            steps.push(createStep('update', array,
               [{ index, color: '#10B981' }],
-              `Updated index ${index} to ${value}`
-            ));
+              `Updated index ${index}`));
           }
         }
         break;
@@ -90,43 +67,29 @@ export const visualizeArray = (operations) => {
         if (op.args.length >= 2) {
           const [i, j] = op.args;
           if (i >= 0 && i < array.length && j >= 0 && j < array.length) {
-            // Highlight both elements
-            steps.push(createStep(
-              'pre-swap',
-              array,
-              [
-                { index: i, color: '#3B82F6' },
-                { index: j, color: '#3B82F6' }
-              ],
-              `Swapping elements at positions ${i} and ${j}`
-            ));
-            
-            // Perform swap
+            steps.push(createStep('pre-swap', array,
+              [{ index: i, color: '#8B5CF6' }, { index: j, color: '#8B5CF6' }],
+              `Swapping elements at positions ${i} and ${j}`));
             [array[i], array[j]] = [array[j], array[i]];
-            steps.push(createStep(
-              'swap',
-              array,
-              [
-                { index: i, color: '#10B981' },
-                { index: j, color: '#10B981' }
-              ],
-              `Swapped positions ${i} and ${j}`
-            ));
+            steps.push(createStep('swap', array,
+              [{ index: i, color: '#10B981' }, { index: j, color: '#10B981' }],
+              `Swapped positions ${i} and ${j}`));
           }
         }
         break;
 
-      case 'sort':
-        if (op.name === 'bubbleSort') {
-          bubbleSortVisualization(array, steps);
-        }
-        // Add other sort algorithms...
+      case 'bubbleSort':
+        bubbleSortVisualization(array, steps);
         break;
 
-      case 'search':
-        if (op.name === 'linearSearch') {
+      case 'linearSearch':
+        if (op.args.length >= 1) {
           linearSearchVisualization(array, op.args[0], steps);
-        } else if (op.name === 'binarySearch') {
+        }
+        break;
+
+      case 'binarySearch':
+        if (op.args.length >= 1) {
           binarySearchVisualization(array, op.args[0], steps);
         }
         break;
@@ -136,134 +99,60 @@ export const visualizeArray = (operations) => {
   return steps;
 };
 
-/**
- * Creates a visualization step
- */
-const createStep = (action, array, highlights, description) => ({
-  step: action,
-  array: [...array],
-  highlights: [...highlights],
-  description,
-  codeLine: null
-});
-
-/**
- * Generates visualization steps for bubble sort
- */
 const bubbleSortVisualization = (array, steps) => {
-  const arr = [...array];
-  const n = arr.length;
-  
-  steps.push(createStep(
-    'sort-start',
-    arr,
-    [],
-    'Starting Bubble Sort'
-  ));
+  const n = array.length;
+
+  const createStep = (action, array, highlights, description) => ({
+    step: action, array: [...array], highlights: [...highlights], description
+  });
 
   for (let i = 0; i < n - 1; i++) {
     for (let j = 0; j < n - i - 1; j++) {
-      // Compare step
-      const highlights = [
-        { index: j, color: '#3B82F6' },
-        { index: j + 1, color: '#3B82F6' }
-      ];
-      
-      steps.push(createStep(
-        'compare',
-        arr,
-        highlights,
-        `Comparing ${arr[j]} and ${arr[j+1]}`
-      ));
+      steps.push(createStep('compare', array,
+        [{ index: j, color: '#3B82F6' }, { index: j + 1, color: '#3B82F6' }],
+        `Comparing ${array[j]} and ${array[j + 1]}`));
 
-      if (arr[j] > arr[j + 1]) {
-        // Swap step
-        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-        
-        steps.push(createStep(
-          'swap',
-          arr,
-          [
-            { index: j, color: '#10B981' },
-            { index: j + 1, color: '#10B981' }
-          ],
-          `Swapped ${arr[j+1]} and ${arr[j]}`
-        ));
+      if (array[j] > array[j + 1]) {
+        [array[j], array[j + 1]] = [array[j + 1], array[j]];
+        steps.push(createStep('swap', array,
+          [{ index: j, color: '#10B981' }, { index: j + 1, color: '#10B981' }],
+          `Swapped ${array[j + 1]} and ${array[j]}`));
       }
     }
-    
-    // Mark sorted element
-    const sortedIndex = n - i - 1;
-    steps.push(createStep(
-      'sorted',
-      arr,
-      [{ index: sortedIndex, color: '#10B981' }],
-      `Element at position ${sortedIndex} is now sorted`
-    ));
   }
-
-  steps.push(createStep(
-    'sort-end',
-    arr,
-    arr.map((_, i) => ({ index: i, color: '#10B981' })),
-    'Bubble Sort completed'
-  ));
-  
-  return arr;
 };
 
-/**
- * Generates visualization steps for linear search
- */
 const linearSearchVisualization = (array, target, steps) => {
-  steps.push(createStep(
-    'search-start',
-    array,
-    [],
-    `Starting Linear Search for ${target}`
-  ));
+  const createStep = (action, array, highlights, description) => ({
+    step: action, array: [...array], highlights: [...highlights], description
+  });
+
+  steps.push(createStep('search-start', array, [], `Searching for ${target}`));
 
   for (let i = 0; i < array.length; i++) {
-    const highlights = [{ index: i, color: '#3B82F6' }];
-    
     if (array[i] === target) {
-      steps.push(createStep(
-        'found',
-        array,
+      steps.push(createStep('found', array,
         [{ index: i, color: '#10B981' }],
-        `Found ${target} at index ${i}`
-      ));
+        `Found ${target} at index ${i}`));
       return;
     }
-    
-    steps.push(createStep(
-      'search-check',
-      array,
-      highlights,
-      `Checking element ${array[i]} at index ${i}`
-    ));
+
+    steps.push(createStep('search-check', array,
+      [{ index: i, color: '#F59E0B' }],
+      `Checking element ${array[i]} at index ${i}`));
   }
 
-  steps.push(createStep(
-    'not-found',
-    array,
-    [],
-    `${target} not found in the array`
-  ));
+  steps.push(createStep('not-found', array, [], `${target} not found`));
 };
 
-/**
- * Generates visualization steps for binary search
- */
 const binarySearchVisualization = (array, target, steps) => {
-  // Ensure array is sorted
   const sortedArray = [...array].sort((a, b) => a - b);
-  steps.push(createStep(
-    'binary-search-start',
-    sortedArray,
-    [],
-    `Starting Binary Search for ${target}`
-  ));
+  const createStep = (action, array, highlights, description) => ({
+    step: action, array: [...array], highlights: [...highlights], description
+  });
+
+  steps.push(createStep('binary-search-start', sortedArray, [],
+    `Binary search for ${target} (array sorted)`));
 
   let low = 0;
   let high = sortedArray.length - 1;
@@ -271,51 +160,29 @@ const binarySearchVisualization = (array, target, steps) => {
   while (low <= high) {
     const mid = Math.floor((low + high) / 2);
     const midVal = sortedArray[mid];
-    
-    // Highlight current search area
+
     const rangeHighlight = [];
     for (let i = low; i <= high; i++) {
-      rangeHighlight.push({ index: i, color: i === mid ? '#3B82F6' : '#6B7280' });
+      rangeHighlight.push({
+        index: i,
+        color: i === mid ? '#3B82F6' : '#6B7280'
+      });
     }
-    
-    steps.push(createStep(
-      'binary-search-check',
-      sortedArray,
-      rangeHighlight,
-      `Checking middle element at index ${mid} (${midVal})`
-    ));
+
+    steps.push(createStep('binary-search-check', sortedArray, rangeHighlight,
+      `Checking middle: ${midVal} at index ${mid}`));
 
     if (midVal === target) {
-      steps.push(createStep(
-        'found',
-        sortedArray,
+      steps.push(createStep('found', sortedArray,
         [{ index: mid, color: '#10B981' }],
-        `Found ${target} at index ${mid}`
-      ));
+        `Found ${target} at index ${mid}`));
       return;
     } else if (midVal < target) {
-      steps.push(createStep(
-        'search-right',
-        sortedArray,
-        rangeHighlight,
-        `${target} is greater than ${midVal}, searching right half`
-      ));
       low = mid + 1;
     } else {
-      steps.push(createStep(
-        'search-left',
-        sortedArray,
-        rangeHighlight,
-        `${target} is less than ${midVal}, searching left half`
-      ));
       high = mid - 1;
     }
   }
 
-  steps.push(createStep(
-    'not-found',
-    sortedArray,
-    [],
-    `${target} not found in the array`
-  ));
+  steps.push(createStep('not-found', sortedArray, [], `${target} not found`));
 };

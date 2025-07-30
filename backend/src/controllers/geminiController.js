@@ -11,7 +11,7 @@ exports.generateCodeStream = async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
     
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const fullPrompt = `
       Generate a JavaScript function that demonstrates ${dsaType} operations.
       ${prompt ? `Additional requirements: ${prompt}` : ''}
@@ -41,4 +41,3 @@ exports.generateCodeStream = async (req, res) => {
     res.end();
   }
 };
-

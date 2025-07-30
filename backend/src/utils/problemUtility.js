@@ -4,9 +4,9 @@ const axios = require('axios');
 const getLanguageById = (lang)=>{
 
   const language = {
-      "c++":105,
+      "c++":54,
       "java":91,
-      "javascript":102
+      "javascript":93
   }
 
 

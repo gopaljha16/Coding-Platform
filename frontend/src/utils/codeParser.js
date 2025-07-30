@@ -1,132 +1,67 @@
-/**
- * Parses JavaScript code to extract DSA operations
- * @param {string} code - JavaScript code string
- * @param {string} dsaType - Type of data structure (Array, Linked List, etc.)
- * @returns {Array} Array of operations with metadata
- */
-export const parseCode = (code, dsaType) => {
-  try {
-    // Remove single and multi-line comments
-    const cleanedCode = code
-      .replace(/\/\/.*$/gm, '')  // Remove single-line comments
-      .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
+import { Parser } from 'acorn';
 
-    // Extract all function calls from the code
-    const functionCalls = [];
-    const functionRegex = /(\w+)\(([\s\S]*?)\)/g;
-    
-    let match;
-    while ((match = functionRegex.exec(cleanedCode)) !== null) {
-      const functionName = match[1];
-      const rawArgs = match[2].trim();
-      const args = parseArguments(rawArgs);
-      
-      functionCalls.push({
-        name: functionName,
-        args,
-        line: getLineNumber(cleanedCode, match.index)
-      });
-    }
-
-    // Filter and map to known operations based on DSA type
-    return mapToOperations(dsaType, functionCalls);
-  } catch (error) {
-    console.error('Code parsing error:', error);
-    return [];
-  }
-};
-
-/**
- * Parses function arguments string into array of values
- */
-const parseArguments = (argsString) => {
-  if (!argsString) return [];
+// AST-based Code Parser
+export const parseCode = (code) => {
+  const operations = [];
   
-  const args = [];
-  let current = '';
-  let depth = 0;
-  let inString = false;
-  let quoteChar = '';
+  try {
+    const ast = Parser.parse(code, { ecmaVersion: 2020, sourceType: 'module' });
 
-  for (let i = 0; i < argsString.length; i++) {
-    const char = argsString[i];
+    const walk = (node) => {
+      if (!node) return;
+
+      switch (node.type) {
+        case 'Program':
+          node.body.forEach(walk);
+          break;
+
+        case 'ExpressionStatement':
+          walk(node.expression);
+          break;
+
+        case 'VariableDeclaration':
+          node.declarations.forEach(walk);
+          break;
+
+        case 'VariableDeclarator':
+          if (node.init && node.init.type === 'ArrayExpression') {
+            const args = node.init.elements.map(el => el.value);
+            operations.push({ type: 'create', args: [args] });
+          }
+          break;
+
+        case 'CallExpression':
+          const calleeName = node.callee.name;
+          const args = node.arguments.map(arg => arg.value);
+          
+          // Map function names to operation types
+          const operationMap = {
+            'insertAt': 'insert',
+            'deleteAt': 'delete',
+            'updateAt': 'update',
+            'swap': 'swap',
+            'bubbleSort': 'bubbleSort',
+            'linearSearch': 'linearSearch',
+            'binarySearch': 'binarySearch',
+            'createLinkedList': 'create',
+            'insertNode': 'insert',
+            'deleteNode': 'delete',
+            'reverse': 'reverse',
+          };
+          
+          if (operationMap[calleeName]) {
+            operations.push({ type: operationMap[calleeName], args });
+          }
+          break;
+      }
+    };
+
+    walk(ast);
+    return operations;
     
-    if ((char === '"' || char === "'") && !inString) {
-      inString = true;
-      quoteChar = char;
-      current += char;
-    } else if (char === quoteChar && inString) {
-      inString = false;
-      current += char;
-    } else if (char === '(' && !inString) {
-      depth++;
-      current += char;
-    } else if (char === ')' && !inString) {
-      depth--;
-      current += char;
-    } else if (char === ',' && depth === 0 && !inString) {
-      args.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
+  } catch (error) {
+    console.error("Code parsing error:", error);
+    // Return a structured error object
+    return { error: true, message: error.message, line: error.loc?.line };
   }
-
-  if (current) args.push(current.trim());
-
-return args.map(arg => {
-  // Try to parse numbers, otherwise return strings
-  if (!isNaN(arg)) return Number(arg);
-  if ((arg.startsWith('"') && arg.endsWith('"')) || 
-      (arg.startsWith("'") && arg.endsWith("'"))) {
-    return arg.slice(1, -1);
-  }
-  return arg;
-});
-};
-
-/**
- * Maps function calls to known DSA operations
- */
-const mapToOperations = (dsaType, calls) => {
-  const operationMap = {
-    Array: {
-      'createArray': 'create',
-      'insertAt': 'insert',
-      'deleteAt': 'delete',
-      'updateAt': 'update',
-      'swap': 'swap',
-      'bubbleSort': 'sort',
-      'quickSort': 'sort',
-      'mergeSort': 'sort',
-      'linearSearch': 'search',
-      'binarySearch': 'search'
-    },
-    'Linked List': {
-      'createLinkedList': 'create',
-      'insertNode': 'insert',
-      'deleteNode': 'delete',
-      'updateNode': 'update',
-      'reverseLinkedList': 'reverse'
-    },
-    // Add other DSA types...
-  };
-
-  const typeMap = operationMap[dsaType] || {};
-  return calls
-    .filter(call => typeMap[call.name])
-    .map(call => ({
-      type: typeMap[call.name],
-      name: call.name,
-      args: call.args,
-      line: call.line
-    }));
-};
-
-/**
- * Gets line number from character index
- */
-const getLineNumber = (code, index) => {
-  const lines = code.substring(0, index).split('\n');
-  return lines.length;
 };

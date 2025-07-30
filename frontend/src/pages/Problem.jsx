@@ -82,6 +82,7 @@ const Problem = () => {
   const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false);
   const [playlistLoading, setPlaylistLoading] = useState(false);
   const [addingToPlaylist, setAddingToPlaylist] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   // Get unique tags from problems
   const uniqueTags = React.useMemo(() => {
@@ -110,15 +111,17 @@ const Problem = () => {
         ]);
 
         setProblems(problemsRes.data);
-        if (user) {
+        if (user && initialLoad) {
           setPlaylists(playlistsRes.data?.data || playlistsRes.data || []);
-          // Fetch solved problems first
-          try {
-            await dispatch(fetchSolvedProblems()).unwrap();
-            console.log("fetchSolvedProblems dispatched successfully");
-          } catch (error) {
-            console.error("Error dispatching fetchSolvedProblems:", error);
-            toast.error("Failed to load solved problems. Please try again.");
+          // Fetch solved problems only if they haven't been fetched yet
+          if (solvedProblems.length === 0) {
+            try {
+              await dispatch(fetchSolvedProblems()).unwrap();
+              setInitialLoad(false);
+            } catch (error) {
+              console.error("Error dispatching fetchSolvedProblems:", error);
+              toast.error("Failed to load solved problems. Please try again.");
+            }
           }
         }
       } catch (err) {
@@ -130,7 +133,7 @@ const Problem = () => {
     };
 
     fetchData();
-  }, [user, dispatch]);
+  }, [user, dispatch, solvedProblems.length, initialLoad]);
   
   // Add error display for solved problems fetch failure
   const solvedProblemsError = useSelector(state => state.problems.error);
@@ -349,8 +352,7 @@ const Problem = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-orange-500/20 border-t-orange-500 mx-auto mb-4"></div>
-            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-orange-300/10 animate-pulse"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-orange-500 border-solid mx-auto mb-4"></div>
           </div>
           <div className="text-slate-300 font-medium">Loading Problems...</div>
           <div className="text-slate-500 text-sm mt-1">

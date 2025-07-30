@@ -108,13 +108,13 @@ const submitCode = async (req, res) => {
         console.log("submitCode: Checking if problem is already solved. Status:", status);
         console.log("submitCode: User's problemSolved array:", req.result.problemSolved);
         console.log("submitCode: Problem ID to check:", problemId);
-        
+
         // Check if problemId is already in the problemSolved array
-        const isAlreadySolved = req.result.problemSolved.some(id => 
+        const isAlreadySolved = req.result.problemSolved.some(id =>
             id.toString() === problemId.toString()
         );
         console.log("submitCode: Is problem already solved?", isAlreadySolved);
-        
+
         if (status === 'Accepted' && !isAlreadySolved) {
             console.log("submitCode: Adding problem to solved list");
             req.result.problemSolved.push(problemId);
@@ -125,7 +125,7 @@ const submitCode = async (req, res) => {
                 console.error("submitCode: Error saving user document:", userSaveErr);
                 // Log detailed error for debugging
                 console.error("Error details:", JSON.stringify(userSaveErr));
-                
+
                 // Try to update using findByIdAndUpdate as a fallback
                 try {
                     await User.findByIdAndUpdate(
@@ -164,80 +164,76 @@ const submitCode = async (req, res) => {
 
 
 const runCode = async (req, res) => {
-    try {
 
-        const userId = req.result._id;
-        console.log(userId)
+    const userId = req.result._id;
+    console.log(userId)
 
-        const { id } = req.params;
-        const problemId = id;
+    const { id } = req.params;
+    const problemId = id;
 
-        const { code, language } = req.body;
-        if (language === 'cpp')
-            language = 'c++'
+    let { code, language } = req.body;
+    if (language === 'cpp')
+        language = 'c++'
 
-        if (!userId || !problemId || !code || !language)
-            return res.status(401).send("Fields Are Missing");
+    if (!userId || !problemId || !code || !language)
+        return res.status(401).send("Fields Are Missing");
 
-        //fetch the problem from database
-        const problem = await Problem.findById(problemId);
+    //fetch the problem from database
+    const problem = await Problem.findById(problemId);
 
-        //now judge0 code submit 
-        const languageId = await getLanguageById(language);
+    //now judge0 code submit 
+    const languageId = await getLanguageById(language);
 
-        if (!languageId)
-            return res.status(404).send(" Invalid Language Id");
+    if (!languageId)
+        return res.status(404).send(" Invalid Language Id");
 
-        const submission = problem.visibleTestCases.map((testcase) => ({
-            source_code: code,
-            language_id: languageId,
-            stdin: testcase.input,
-            expected_output: testcase.output,
-        }))
+    const submission = problem.visibleTestCases.map((testcase) => ({
+        source_code: code,
+        language_id: languageId,
+        stdin: testcase.input,
+        expected_output: testcase.output,
+    }))
 
-        const submitResult = await SubmitBatch(submission);
+    const submitResult = await SubmitBatch(submission);
 
-        if (!submitResult || !Array.isArray(submitResult)) {
-            return res.status(500).send("Judge0 submission failed or no result returned.");
-        }
+    if (!submitResult || !Array.isArray(submitResult)) {
+        return res.status(500).send("Judge0 submission failed or no result returned.");
+    }
 
 
-        const resultToken = submitResult.map((value) => value.token);
+    const resultToken = submitResult.map((value) => value.token);
 
-        const testResult = await submitToken(resultToken);
+    const testResult = await submitToken(resultToken);
 
-        let testCasesPassed = 0;
-        let runtime = 0;
-        let memory = 0;
-        let status = true;
-        let errorMessage = null;
+    let testCasesPassed = 0;
+    let runtime = 0;
+    let memory = 0;
+    let status = true;
+    let errorMessage = null;
 
-        for (const test of testResult) {
-            if (test.status_id == 3) {
-                testCasesPassed++;
-                runtime = runtime + parseFloat(test.time)
-                memory = Math.max(memory, test.memory);
-            } else {
-                if (test.status_id == 4) {
-                    status = false
-                    errorMessage = test.stderr
-                }
-                else {
-                    status = false
-                    errorMessage = test.stderr
-                }
+    for (const test of testResult) {
+        if (test.status_id == 3) {
+            testCasesPassed++;
+            runtime = runtime + parseFloat(test.time)
+            memory = Math.max(memory, test.memory);
+        } else {
+            if (test.status_id == 4) {
+                status = false
+                errorMessage = test.stderr
+            }
+            else {
+                status = false
+                errorMessage = test.stderr
             }
         }
-
-        res.status(201).json({
-            success: status,
-            testCases: testResult,
-            runtime,
-            memory
-        });
-    } catch (err) {
-        res.status(403).send("Error Occured " + err);
     }
+
+    res.status(201).json({
+        success: status,
+        testCases: testResult,
+        runtime,
+        memory
+    });
 }
 
 

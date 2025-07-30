@@ -1,74 +1,50 @@
-/**
- * Generates visualization steps for linked list operations
- * @param {Array} operations - Operations from code parser
- * @returns {Array} Visualization steps
- */
 export const visualizeLinkedList = (operations) => {
   const steps = [];
   let list = [];
-  let stepIndex = 0;
 
-  // Node structure
-  const createNode = (value, next = null) => ({ value, next });
+  const createStep = (action, list, highlights, description) => ({
+    step: action,
+    list: list.map(node => ({ value: node.value })),
+    highlights: [...highlights],
+    description,
+    pointers: getPointerInfo(list)
+  });
 
-  // Initial state
-  steps.push(createStep('initial', list, [], "Initializing linked list"));
+  const getPointerInfo = (list) => {
+    const pointers = [];
+    for (let i = 0; i < list.length - 1; i++) {
+      pointers.push({ from: i, to: i + 1, color: '#3B82F6' });
+    }
+    return pointers;
+  };
 
-  // Process operations
+  steps.push(createStep('initial', list, [], "Ready to visualize linked list"));
+
   for (const op of operations) {
     switch (op.type) {
       case 'create':
-        list = op.args.map(value => createNode(value));
-        // Link nodes
-        for (let i = 0; i < list.length - 1; i++) {
-          list[i].next = list[i + 1];
-        }
-        steps.push(createStep(
-          'create',
-          [...list],
+        list = op.args.map(value => ({ value, next: null }));
+        steps.push(createStep('create', list,
           list.map((_, i) => ({ index: i, color: '#10B981' })),
-          `Created linked list with ${list.length} nodes`
-        ));
+          `Created linked list with ${list.length} nodes`));
         break;
 
       case 'insert':
         if (op.args.length >= 2) {
           const [index, value] = op.args;
-          const newNode = createNode(value);
-          
+          const newNode = { value, next: null };
+
           if (index === 0) {
-            // Insert at head
-            newNode.next = list[0];
             list.unshift(newNode);
-            steps.push(createStep(
-              'insert',
-              [...list],
-              [{ index: 0, color: '#10B981' }],
-              `Inserted ${value} at head`
-            ));
-          } else if (index === list.length) {
-            // Insert at tail
-            if (list.length > 0) list[list.length - 1].next = newNode;
+          } else if (index >= list.length) {
             list.push(newNode);
-            steps.push(createStep(
-              'insert',
-              [...list],
-              [{ index: list.length - 1, color: '#10B981' }],
-              `Inserted ${value} at tail`
-            ));
-          } else if (index > 0 && index < list.length) {
-            // Insert in middle
-            const prev = list[index - 1];
-            newNode.next = prev.next;
-            prev.next = newNode;
+          } else {
             list.splice(index, 0, newNode);
-            steps.push(createStep(
-              'insert',
-              [...list],
-              [{ index, color: '#10B981' }],
-              `Inserted ${value} at position ${index}`
-            ));
           }
+
+          steps.push(createStep('insert', list,
+            [{ index: Math.min(index, list.length - 1), color: '#10B981' }],
+            `Inserted ${value} at position ${index}`));
         }
         break;
 
@@ -77,82 +53,22 @@ export const visualizeLinkedList = (operations) => {
           const index = op.args[0];
           if (index >= 0 && index < list.length) {
             const deletedValue = list[index].value;
-            
-            // Highlight before deletion
-            steps.push(createStep(
-              'pre-delete',
-              [...list],
+            steps.push(createStep('pre-delete', list,
               [{ index, color: '#EF4444' }],
-              `Deleting node with value ${deletedValue}`
-            ));
-            
-            if (index === 0) {
-              list.shift();
-            } else {
-              list[index - 1].next = list[index].next;
-              list.splice(index, 1);
-            }
-            
-            steps.push(createStep(
-              'delete',
-              [...list],
-              [],
-              `Deleted node with value ${deletedValue}`
-            ));
+              `Deleting node with value ${deletedValue}`));
+            list.splice(index, 1);
+            steps.push(createStep('delete', list, [],
+              `Deleted node with value ${deletedValue}`));
           }
         }
         break;
 
       case 'reverse':
-        steps.push(createStep(
-          'reverse-start',
-          [...list],
-          [],
-          'Starting linked list reversal'
-        ));
-        
-        let prev = null;
-        let current = list[0];
-        let next = null;
-        let position = 0;
-        
-        while (current) {
-          next = current.next;
-          current.next = prev;
-          prev = current;
-          current = next;
-          
-          // Visualize each step
-          const tempList = [prev];
-          let tempNode = prev;
-          while (tempNode.next) {
-            tempList.push(tempNode.next);
-            tempNode = tempNode.next;
-          }
-          
-          steps.push(createStep(
-            'reverse-step',
-            [...tempList],
-            [{ index: position, color: '#3B82F6' }],
-            `Reversing node at position ${position}`
-          ));
-          
-          position++;
-        }
-        
-        list = prev ? [prev] : [];
-        let node = prev;
-        while (node && node.next) {
-          list.push(node.next);
-          node = node.next;
-        }
-        
-        steps.push(createStep(
-          'reverse-complete',
-          [...list],
+        steps.push(createStep('reverse-start', list, [], 'Reversing linked list'));
+        list.reverse();
+        steps.push(createStep('reverse-complete', list,
           list.map((_, i) => ({ index: i, color: '#10B981' })),
-          'Linked list reversed'
-        ));
+          'Linked list reversed'));
         break;
     }
   }
@@ -160,35 +76,96 @@ export const visualizeLinkedList = (operations) => {
   return steps;
 };
 
-/**
- * Creates a linked list visualization step
- */
-const createStep = (action, list, highlights, description) => ({
-  step: action,
-  list: list.map(node => ({ value: node.value })),
-  highlights: [...highlights],
-  description,
-  pointers: getPointerInfo(list)
-});
+// Custom Hook for Visualization
+export const useVisualization = (dsaType, code) => {
+  const [visualizationData, setVisualizationData] = useState(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [steps, setSteps] = useState([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1000);
 
-/**
- * Extracts pointer information for visualization
- */
-const getPointerInfo = (list) => {
-  const pointers = [];
-  
-  for (let i = 0; i < list.length; i++) {
-    if (list[i].next) {
-      const nextIndex = list.findIndex(node => node === list[i].next);
-      if (nextIndex !== -1) {
-        pointers.push({
-          from: i,
-          to: nextIndex,
-          color: '#3B82F6'
-        });
-      }
+  const visualizationHandlers = {
+    'Array': visualizeArray,
+    'Linked List': visualizeLinkedList,
+    'Stack': visualizeArray,
+    'Queue': visualizeArray,
+    'Binary Tree': visualizeArray,
+    'Graph': visualizeArray,
+    'Sorting': visualizeArray,
+    'Searching': visualizeArray
+  };
+
+  useEffect(() => {
+    if (!code || code.trim() === '// Start coding here...') {
+      setSteps([]);
+      setVisualizationData(null);
+      return;
     }
-  }
-  
-  return pointers;
+
+    try {
+      const operations = parseCode(code, dsaType);
+      const handler = visualizationHandlers[dsaType] || visualizeArray;
+      const generatedSteps = handler(operations);
+
+      setSteps(generatedSteps);
+      setCurrentStep(0);
+      setVisualizationData(generatedSteps[0]);
+      setIsPlaying(false);
+    } catch (error) {
+      console.error('Visualization generation error:', error);
+    }
+  }, [code, dsaType]);
+
+  useEffect(() => {
+    let timer;
+    if (isPlaying && currentStep < steps.length - 1) {
+      timer = setTimeout(() => {
+        const nextStep = currentStep + 1;
+        setCurrentStep(nextStep);
+        setVisualizationData(steps[nextStep]);
+
+        if (nextStep >= steps.length - 1) {
+          setIsPlaying(false);
+        }
+      }, speed);
+    }
+    return () => clearTimeout(timer);
+  }, [isPlaying, currentStep, steps, speed]);
+
+  const play = () => setIsPlaying(true);
+  const pause = () => setIsPlaying(false);
+  const reset = () => {
+    setIsPlaying(false);
+    setCurrentStep(0);
+    if (steps.length > 0) setVisualizationData(steps[0]);
+  };
+
+  const stepForward = useCallback(() => {
+    if (currentStep < steps.length - 1) {
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      setVisualizationData(steps[nextStep]);
+    }
+  }, [currentStep, steps]);
+
+  const stepBackward = useCallback(() => {
+    if (currentStep > 0) {
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+      setVisualizationData(steps[prevStep]);
+    }
+  }, [currentStep, steps]);
+
+  return {
+    visualizationData,
+    currentStep,
+    totalSteps: steps.length,
+    isPlaying,
+    play,
+    pause,
+    reset,
+    stepForward,
+    stepBackward,
+    setSpeed
+  };
 };

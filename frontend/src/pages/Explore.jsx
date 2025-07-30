@@ -690,8 +690,8 @@ const testimonials = [
                 <div className="absolute inset-0 bg-gradient-to-br from-gray-900/50 to-gray-950/50 z-0"></div>
                 
                 <div className="relative z-10">
-                  <div className={`w-14 h-14 mb-6 flex items-center justify-center rounded-xl ${feature.iconBg} border ${feature.borderColor}`}>
-                    {feature.icon}
+                  <div className={`w-14 h-14 mb-6 flex items-center justify-center rounded-xl border ${feature.borderColor}`}>
+                    <feature.icon className="w-8 h-8 text-orange-400" />
                   </div>
                   
                   <div className="flex items-center justify-between mb-3">

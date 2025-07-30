@@ -31,7 +31,6 @@ import DiscussPage from "./pages/DiscussPage";
 import DiscussionDetail from "./pages/DiscussionDetail";
 import { ContestProvider } from "./context/ContestContext";
 import DSAVisualizerPage from "./pages/DSAVisualizerPage";
-import Navbar from "./components/common/Navbar";
 
 const ContestLeaderboardWrapper = () => {
   const { contestId } = useParams();
@@ -70,17 +69,10 @@ const App = () => {
             <Route path="/explore" element={<Explore />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-
             <Route
               path="/dashboard"
               element={
                 isAuthenticated ? <DashboardPage /> : <Navigate to="/login" />
-              }
-            />
-             <Route
-              path="/visualizer"
-              element={
-                isAuthenticated ? <DSAVisualizerPage /> : <Navigate to="/login" />
               }
             />
             <Route
@@ -253,6 +245,16 @@ const App = () => {
               element={
                 isAuthenticated ? (
                   <DiscussionDetail />
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+            <Route
+              path="/visualizer"
+              element={
+                isAuthenticated ? (
+                  <DSAVisualizerPage />
                 ) : (
                   <Navigate to="/login" />
                 )
