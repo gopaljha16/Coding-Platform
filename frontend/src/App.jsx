@@ -32,6 +32,8 @@ import DiscussPage from "./pages/DiscussPage";
 import DiscussionDetail from "./pages/DiscussionDetail";
 import { ContestProvider } from "./context/ContestContext";
 import { DSAVisualizer } from "./pages/DSAVisualizer";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import EmailVerification from "./components/common/EmailVerification"; // Import 
 import DobutAi from "./components/common/DoubtAi";
@@ -73,6 +75,8 @@ const App = () => {
             <Route path="/explore" element={<Explore />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgotpassword" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/verify-email" element={<EmailVerification />} />{" "}
             {/* New route for email verification */}
             <Route

@@ -24,12 +24,16 @@ export const requestEmailVerificationOTP = (email) => {
   return axiosClient.post('/user/requestEmailVerificationOTP', { email });
 };
 
-export const requestPasswordResetOTP = (email) => {
-  return axiosClient.post('/user/requestPasswordResetOTP', { email });
+export const verifyEmailOTP = (data) => {
+  return axiosClient.post('/user/verifyEmailOTP', data);
 };
 
-export const resetPassword = (email, otp, newPassword) => {
-  return axiosClient.post('/user/resetPassword', { email, otp, newPassword });
+export const forgotPassword = (email) => {
+  return axiosClient.post('/user/forgot-password', { email });
+};
+
+export const resetPassword = (token, newPassword) => {
+  return axiosClient.post(`/user/reset-password/${token}`, { newPassword });
 };
 
 export const changePassword = (oldPassword, newPassword) => {

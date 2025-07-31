@@ -85,7 +85,7 @@ export const updateProfile = createAsyncThunk(
 
 
 
-import { signupWithVerification, verifySignupOTP, requestEmailVerificationOTP, requestPasswordResetOTP, resetPassword, changePassword } from '../utils/apis/userApi';
+import { signupWithVerification, verifySignupOTP, requestEmailVerificationOTP, verifyEmailOTP, forgotPassword, resetPassword, changePassword } from '../utils/apis/userApi';
 
 export const signupWithVerificationThunk = createAsyncThunk(
   "auth/signupWithVerification",
@@ -123,6 +123,18 @@ export const requestEmailVerificationOTPThunk = createAsyncThunk(
   }
 );
 
+export const verifyEmailOTPThunk = createAsyncThunk(
+  "auth/verifyEmailOTP",
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await verifyEmailOTP(data);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 export const requestPasswordResetOTPThunk = createAsyncThunk(
   "auth/requestPasswordResetOTP",
   async (email, { rejectWithValue }) => {
@@ -135,11 +147,23 @@ export const requestPasswordResetOTPThunk = createAsyncThunk(
   }
 );
 
+export const forgotPasswordThunk = createAsyncThunk(
+  "auth/forgotPassword",
+  async (email, { rejectWithValue }) => {
+    try {
+      const response = await forgotPassword(email);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 export const resetPasswordThunk = createAsyncThunk(
   "auth/resetPassword",
-  async ({ email, otp, newPassword }, { rejectWithValue }) => {
+  async ({ token, newPassword }, { rejectWithValue }) => {
     try {
-      const response = await resetPassword(email, otp, newPassword);
+      const response = await resetPassword(token, newPassword);
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -177,7 +201,9 @@ const authSlice = createSlice({
     requestEmailVerificationOTPLoading: false,
     requestEmailVerificationOTPError: null,
     requestEmailVerificationOTPSuccess: false,
-    // Removed verifyEmailOTPLoading, verifyEmailOTPError, verifyEmailOTPSuccess as they are no longer needed
+    verifyEmailOTPLoading: false,
+    verifyEmailOTPError: null,
+    verifyEmailOTPSuccess: false,
     signupSuccess: false, // New state for signup
     verifySignupOTPLoading: false, // Add loading state for signup verification
     verifySignupOTPError: null, // Add error state for signup verification
@@ -202,7 +228,9 @@ const authSlice = createSlice({
       state.requestEmailVerificationOTPLoading = false;
       state.requestEmailVerificationOTPError = null;
       state.requestEmailVerificationOTPSuccess = false;
-      // Removed verifyEmailOTPLoading, verifyEmailOTPError, verifyEmailOTPSuccess as they are no longer needed
+      state.verifyEmailOTPLoading = false;
+      state.verifyEmailOTPError = null;
+      state.verifyEmailOTPSuccess = false;
     },
     resetPasswordResetState: (state) => {
       state.requestPasswordResetOTPLoading = false;
@@ -409,6 +437,23 @@ const authSlice = createSlice({
         state.requestEmailVerificationOTPLoading = false;
         state.requestEmailVerificationOTPError = action.payload;
         state.requestEmailVerificationOTPSuccess = false;
+      })
+
+      // verifyEmailOTP
+      .addCase(verifyEmailOTPThunk.pending, (state) => {
+        state.verifyEmailOTPLoading = true;
+        state.verifyEmailOTPError = null;
+        state.verifyEmailOTPSuccess = false;
+      })
+      .addCase(verifyEmailOTPThunk.fulfilled, (state, action) => {
+        state.verifyEmailOTPLoading = false;
+        state.verifyEmailOTPSuccess = true;
+        state.user = { ...state.user, ...action.payload.user };
+      })
+      .addCase(verifyEmailOTPThunk.rejected, (state, action) => {
+        state.verifyEmailOTPLoading = false;
+        state.verifyEmailOTPError = action.payload;
+        state.verifyEmailOTPSuccess = false;
       })
 
       // requestPasswordResetOTP

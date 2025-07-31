@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import { verifySignupOTPThunk, requestEmailVerificationOTPThunk } from "../../slice/authSlice";
+import { verifyEmailOTPThunk, requestEmailVerificationOTPThunk } from "../../slice/authSlice";
 import { ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 
 const EmailVerification = ({ email, onVerified }) => {
@@ -12,8 +12,8 @@ const EmailVerification = ({ email, onVerified }) => {
   const [verificationAttempts, setVerificationAttempts] = useState(0);
   const dispatch = useDispatch();
   const {
-    verifySignupOTPLoading,
-    verifySignupOTPError,
+    verifyEmailOTPLoading,
+    verifyEmailOTPError,
     requestEmailVerificationOTPLoading,
     requestEmailVerificationOTPError,
   } = useSelector((state) => state.auth);
@@ -44,11 +44,11 @@ const EmailVerification = ({ email, onVerified }) => {
     
     try {
       console.log("Verifying code:", { email, otp });
-      const resultAction = await dispatch(verifySignupOTPThunk({ email, otp }));
+      const resultAction = await dispatch(verifyEmailOTPThunk({ email, otp }));
       
       if (resultAction.meta.requestStatus === 'fulfilled') {
         toast.success("Email verified successfully");
-        // onVerified(otp); // No longer needed as verifySignupOTPThunk handles login and redirect
+        onVerified(otp);
       } else if (resultAction.payload) {
         toast.error(resultAction.payload.message || "Verification failed");
       } else {
@@ -140,10 +140,10 @@ const EmailVerification = ({ email, onVerified }) => {
                 placeholder="••••••"
                 autoFocus
               />
-              {verifySignupOTPError && (
+              {verifyEmailOTPError && (
                 <div className="mt-2 text-red-400 text-sm flex items-start">
                   <AlertCircle className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" />
-                  <span>{verifySignupOTPError.message || verifySignupOTPError}</span>
+                  <span>{verifyEmailOTPError.message || verifyEmailOTPError}</span>
                 </div>
               )}
             </div>
@@ -153,7 +153,7 @@ const EmailVerification = ({ email, onVerified }) => {
               disabled={loading || otp.length !== 6}
               className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
             >
-              {verifySignupOTPLoading ? (
+              {verifyEmailOTPLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                   Verifying...

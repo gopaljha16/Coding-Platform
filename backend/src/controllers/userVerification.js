@@ -1,3 +1,4 @@
+require('dotenv').config();
 const crypto = require('crypto');
 const User = require('../models/user');
 const nodemailer = require('nodemailer');
@@ -152,12 +153,12 @@ const verifyEmailOTP = async (req, res) => {
         // Delete OTP from Redis
         await redisWrapper.del(`otp:${email.toLowerCase()}`);
 
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             message: 'Email verified successfully',
             user: {
-                email: user.emailId,
-                verified: user.emailVerified
+                emailId: user.emailId,
+                emailVerified: user.emailVerified
             }
         });
     } catch (error) {
@@ -180,7 +181,8 @@ const verifyEmailOTP = async (req, res) => {
     }
 };
 
-// Forgot password - send reset OTP
+const jwt = require('jsonwebtoken');
+// Forgot password - send reset link with token
 const requestPasswordResetOTP = async (req, res) => {
     try {
         const { email } = req.body;
@@ -199,17 +201,6 @@ const requestPasswordResetOTP = async (req, res) => {
             });
         }
 
-        // Check rate limiting
-        const rateLimitKey = `rate_limit:reset_otp:${email.toLowerCase()}`;
-        const currentCount = await redisWrapper.get(rateLimitKey) || 0;
-        
-        if (currentCount >= OTP_RATE_LIMIT.max) {
-            return res.status(429).json({ 
-                success: false, 
-                message: 'Too many OTP requests. Please try again later.' 
-            });
-        }
-
         const user = await User.findOne({ emailId: email.toLowerCase() });
         if (!user) {
             return res.status(404).json({ 
@@ -218,65 +209,45 @@ const requestPasswordResetOTP = async (req, res) => {
             });
         }
 
-        const otp = generateOTP();
-        
-        // Store OTP and increment rate limit counter
-        // Since we're using a wrapper, we need to handle these operations individually
-        await redisWrapper.set(`resetotp:${email.toLowerCase()}`, otp, 'EX', 600);
-        
-        // Increment rate limit counter
-        const newCount = parseInt(await redisWrapper.get(rateLimitKey) || '0') + 1;
-        await redisWrapper.set(rateLimitKey, newCount);
-        await redisWrapper.expire(rateLimitKey, OTP_RATE_LIMIT.windowMs / 1000);
+        // Create a JWT token
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const resetLink = `${"http://localhost:5173"}/reset-password/${token}`;
 
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: email,
-            subject: 'Your Password Reset OTP for Codexa',
-            text: `Your password reset OTP is: ${otp}. It is valid for 10 minutes.`,
-            html: `<p>Your password reset OTP is: <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
+            subject: 'Password Reset Request for Codexa',
+            text: `You requested a password reset. Click this link to reset your password: ${resetLink}`,
+            html: `<p>You requested a password reset. Click this link to reset your password: <a href="${resetLink}">${resetLink}</a></p>`
         };
         await transporter.sendMail(mailOptions);
 
         res.status(200).json({ 
             success: true, 
-            message: 'Password reset OTP sent to email' 
+            message: 'Password reset link sent to email' 
         });
     } catch (error) {
         console.error('Error in requestPasswordResetOTP:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Failed to send password reset OTP' 
+            message: 'Failed to send password reset link' 
         });
     }
 };
 
-// Reset password using OTP
+// Reset password using token
 const resetPassword = async (req, res) => {
     try {
-        const { email, otp, newPassword } = req.body;
-        
-        if (!email || !otp || !newPassword) {
+        const { token } = req.params;
+        const { newPassword } = req.body;
+
+        if (!newPassword) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Email, OTP and new password are required' 
+                message: 'New password is required' 
             });
         }
-        
-        if (!validator.isEmail(email)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid email format' 
-            });
-        }
-        
-        if (!/^\d{6}$/.test(otp)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'OTP must be 6 digits' 
-            });
-        }
-        
+
         if (newPassword.length < 6) {
             return res.status(400).json({ 
                 success: false, 
@@ -284,22 +255,9 @@ const resetPassword = async (req, res) => {
             });
         }
 
-        const storedOTP = await redisWrapper.get(`resetotp:${email.toLowerCase()}`);
-        if (!storedOTP) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'OTP expired or not found' 
-            });
-        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
 
-        if (storedOTP !== otp) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid OTP' 
-            });
-        }
-
-        const user = await User.findOne({ emailId: email.toLowerCase() });
         if (!user) {
             return res.status(404).json({ 
                 success: false, 
@@ -319,15 +277,15 @@ const resetPassword = async (req, res) => {
         user.password = await bcrypt.hash(newPassword, 10);
         await user.save();
 
-        // Delete OTP from Redis
-        await redisWrapper.del(`resetotp:${email.toLowerCase()}`);
-
         res.status(200).json({ 
             success: true, 
             message: 'Password reset successfully' 
         });
     } catch (error) {
         console.error('Error in resetPassword:', error);
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+        }
         res.status(500).json({ 
             success: false, 
             message: 'Failed to reset password' 

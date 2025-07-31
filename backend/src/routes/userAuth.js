@@ -27,8 +27,8 @@ authRouter.post("/verifyEmailOTP", verifyEmailOTP);
 // New signup with email verification routes
 authRouter.post("/signupWithVerification", signupWithVerification);
 authRouter.post("/verifySignupOTP", verifySignupOTP);
-authRouter.post("/requestPasswordResetOTP", requestPasswordResetOTP);
-authRouter.post("/resetPassword", resetPassword);
+authRouter.post("/forgot-password", requestPasswordResetOTP);
+authRouter.post("/reset-password/:token", resetPassword);
 authRouter.post("/changePassword", userMiddleware, changePassword);
 
 // Dashboard endpoints

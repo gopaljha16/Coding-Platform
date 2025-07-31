@@ -13,7 +13,8 @@ import {
   resetEmailVerificationState,
   resetChangePasswordState,
 } from "../slice/authSlice";
-import{ ArrowLeft} from "lucide-react"
+import { ArrowLeft } from "lucide-react";
+import EmailVerification from "../components/common/EmailVerification";
 
 const UserProfile = () => {
   const dispatch = useDispatch();
@@ -51,7 +52,7 @@ const UserProfile = () => {
   const [showEmailVerification, setShowEmailVerification] = useState(false);
 
   useEffect(() => {
-    if (profile?.user?.isEmailVerified) {
+    if (profile?.user?.emailVerified) {
       setShowEmailVerification(false);
     }
   }, [profile]);
@@ -340,6 +341,11 @@ const UserProfile = () => {
         otp: verificationOtp,
       })
     );
+  };
+
+  const handleEmailVerified = () => {
+    dispatch(getProfile());
+    setShowEmailVerification(false);
   };
 
   if (profileLoading) {
@@ -707,7 +713,7 @@ const UserProfile = () => {
                 <span className="mr-2">✉️</span>
                 Email Verification
               </h3>
-              {profile?.user?.isEmailVerified ? (
+              {profile?.user?.emailVerified ? (
                 <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full flex items-center">
                   <span className="mr-1">✓</span> Verified
                 </span>
@@ -723,96 +729,11 @@ const UserProfile = () => {
               )}
             </div>
 
-            {!profile?.user?.isEmailVerified && showEmailVerification && (
-              <div className="mt-4 space-y-4">
-                <div>
-                  <p className="text-gray-400 text-sm mb-2">
-                    We'll send a verification code to your email address:{" "}
-                    <span className="font-medium text-white">
-                      {emailForVerification}
-                    </span>
-                  </p>
-
-                  {requestEmailVerificationOTPError && (
-                    <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm mb-4">
-                      ⚠️ {requestEmailVerificationOTPError}
-                    </div>
-                  )}
-
-                  {verifyEmailOTPError && (
-                    <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm mb-4">
-                      ⚠️ {verifyEmailOTPError}
-                    </div>
-                  )}
-
-                  {requestEmailVerificationOTPSuccess &&
-                    !verifyEmailOTPSuccess && (
-                      <div className="p-3 bg-green-500/20 border border-green-500/30 rounded-xl text-green-400 text-sm mb-4">
-                        Verification code sent to your email! Please check your
-                        inbox.
-                      </div>
-                    )}
-
-                  {!requestEmailVerificationOTPSuccess ? (
-                    <button
-                      onClick={handleRequestVerificationOTP}
-                      disabled={requestEmailVerificationOTPLoading}
-                      className={`w-full px-4 py-3 rounded-xl font-medium text-white transition-all ${
-                        requestEmailVerificationOTPLoading
-                          ? "bg-gray-600 cursor-not-allowed"
-                          : "bg-orange-500 hover:bg-orange-600"
-                      }`}
-                    >
-                      {requestEmailVerificationOTPLoading ? (
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                          <span>Sending OTP...</span>
-                        </div>
-                      ) : (
-                        "Send Verification Code"
-                      )}
-                    </button>
-                  ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-gray-300 text-sm font-medium mb-2">
-                          Verification Code
-                        </label>
-                        <input
-                          type="text"
-                          value={verificationOtp}
-                          onChange={(e) => setVerificationOtp(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
-                          placeholder="Enter 6-digit code"
-                        />
-                        {validationErrors.otp && (
-                          <p className="mt-2 text-red-400 text-sm">
-                            ⚠️ {validationErrors.otp}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleVerifyEmail}
-                        disabled={verifyEmailOTPLoading}
-                        className={`w-full px-4 py-3 rounded-xl font-medium text-white transition-all ${
-                          verifyEmailOTPLoading
-                            ? "bg-gray-600 cursor-not-allowed"
-                            : "bg-green-500 hover:bg-green-600"
-                        }`}
-                      >
-                        {verifyEmailOTPLoading ? (
-                          <div className="flex items-center justify-center space-x-2">
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                            <span>Verifying...</span>
-                          </div>
-                        ) : (
-                          "Verify Email"
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
+            {!profile?.user?.emailVerified && showEmailVerification && (
+              <EmailVerification
+                email={emailForVerification}
+                onVerified={handleEmailVerified}
+              />
             )}
           </div>
 
@@ -979,12 +900,12 @@ const UserProfile = () => {
                   <div className="mb-3">
                     <span
                       className={`text-sm ${
-                        profile?.user?.isEmailVerified
+                        profile?.user?.emailVerified
                           ? "text-green-400"
                           : "text-yellow-400"
                       }`}
                     >
-                      {profile?.user?.isEmailVerified ? (
+                      {profile?.user?.emailVerified ? (
                         <span className="flex items-center">
                           <span className="mr-1">✓</span> Verified Email:{" "}
                           {profile?.user?.email}
