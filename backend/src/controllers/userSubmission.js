@@ -52,8 +52,24 @@ const submitCode = async (req, res) => {
         }
         console.log("submitCode: Language ID found:", languageId);
 
+        if (!problem.hiddenTestCases || problem.hiddenTestCases.length === 0) {
+            console.log("submitCode: Problem has no hidden test cases.");
+            return res.status(400).json({
+                success: false,
+                message: "This problem has no hidden test cases and cannot be submitted."
+            });
+        }
+
+        const referenceSolution = problem.referenceSolution.find(rs => rs.language.toLowerCase() === language.toLowerCase());
+        const startCode = problem.startCode.find(sc => sc.language.toLowerCase() === language.toLowerCase());
+
+        let finalCode = code;
+        if (referenceSolution && startCode) {
+            finalCode = referenceSolution.completeCode.replace(startCode.initialCode, code);
+        }
+
         const submission = problem.hiddenTestCases.map((testcase) => ({
-            source_code: code,
+            source_code: finalCode,
             language_id: languageId,
             stdin: testcase.input,
             expected_output: testcase.output,
@@ -87,7 +103,7 @@ const submitCode = async (req, res) => {
                     status = "Wrong Answer";
                     errorMessage = test.stderr;
                 } else {
-                    status = "Error";
+                    status = "Compiler Error";
                     errorMessage = test.stderr;
                 }
             }
@@ -109,34 +125,22 @@ const submitCode = async (req, res) => {
         console.log("submitCode: User's problemSolved array:", req.result.problemSolved);
         console.log("submitCode: Problem ID to check:", problemId);
 
-        // Check if problemId is already in the problemSolved array
-        const isAlreadySolved = req.result.problemSolved.some(id =>
-            id.toString() === problemId.toString()
-        );
-        console.log("submitCode: Is problem already solved?", isAlreadySolved);
-
-        if (status === 'Accepted' && !isAlreadySolved) {
-            console.log("submitCode: Adding problem to solved list");
-            req.result.problemSolved.push(problemId);
+        if (status === 'Accepted') {
             try {
-                await req.result.save();
-                console.log("submitCode: User problemSolved updated");
-            } catch (userSaveErr) {
-                console.error("submitCode: Error saving user document:", userSaveErr);
-                // Log detailed error for debugging
-                console.error("Error details:", JSON.stringify(userSaveErr));
-
-                // Try to update using findByIdAndUpdate as a fallback
-                try {
-                    await User.findByIdAndUpdate(
-                        req.result._id,
-                        { $addToSet: { problemSolved: problemId } }
-                    );
-                    console.log("submitCode: User problemSolved updated using findByIdAndUpdate");
-                } catch (fallbackErr) {
-                    console.error("Fallback update also failed:", fallbackErr);
-                    // Still don't fail the submission, but log the error
+                const updatedUser = await User.findByIdAndUpdate(
+                    userId,
+                    { $addToSet: { problemSolved: problemId } },
+                    { new: true }
+                );
+                if (updatedUser) {
+                    console.log("submitCode: User problemSolved array updated successfully.");
+                } else {
+                    console.log("submitCode: User not found for update.");
                 }
+            } catch (userUpdateError) {
+                console.error("submitCode: Error updating user's solved problems:", userUpdateError);
+                // Decide if this should be a critical error. For now, we'll just log it
+                // and allow the submission to be considered successful.
             }
         }
 
@@ -187,12 +191,20 @@ const runCode = async (req, res) => {
     if (!languageId)
         return res.status(404).send(" Invalid Language Id");
 
+    const referenceSolution = problem.referenceSolution.find(rs => rs.language.toLowerCase() === language.toLowerCase());
+    const startCode = problem.startCode.find(sc => sc.language.toLowerCase() === language.toLowerCase());
+
+    let finalCode = code;
+    if (referenceSolution && startCode) {
+        finalCode = referenceSolution.completeCode.replace(startCode.initialCode, code);
+    }
+
     const submission = problem.visibleTestCases.map((testcase) => ({
-        source_code: code,
+        source_code: finalCode,
         language_id: languageId,
         stdin: testcase.input,
         expected_output: testcase.output,
-    }))
+    }));
 
     const submitResult = await SubmitBatch(submission);
 

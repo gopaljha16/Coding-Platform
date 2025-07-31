@@ -1,11 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Trophy, Clock, Medal, Award, Zap, User, ArrowUp, ArrowDown, Minus, Shield, Star, Info, CheckCircle, Share2, Home } from 'lucide-react'; // Added Home icon
-import axiosClient from '../../utils/axiosClient';
-import { getSocket, initializeSocket } from '../../utils/socket';
-import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../hooks/useToast';
-import { useNavigate } from 'react-router-dom'; // Added useNavigate
+import React, { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import {
+  Trophy,
+  Clock,
+  Medal,
+  Award,
+  Zap,
+  User,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  Shield,
+  Star,
+  Info,
+  CheckCircle,
+  Share2,
+  Home,
+} from "lucide-react"; // Added Home icon
+import axiosClient from "../../utils/axiosClient";
+import { getSocket, initializeSocket } from "../../utils/socket";
+import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../hooks/useToast";
+import { useNavigate } from "react-router-dom"; // Added useNavigate
 
 const ContestLeaderboard = ({ contestId, isContestActive }) => {
   const { user: currentUser } = useAuth();
@@ -18,7 +34,7 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
   const navigate = useNavigate(); // Moved useNavigate to the top level
 
   React.useEffect(() => {
-    const token = localStorage.getItem('token'); // or get token from context/auth
+    const token = localStorage.getItem("token"); // or get token from context/auth
     const sock = initializeSocket(token);
     setSocket(sock);
 
@@ -33,50 +49,37 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
   const fetchLeaderboard = async () => {
     try {
       setLoading(true);
-      const response = await axiosClient.get(`/contest/${contestId}/leaderboard`);
+      const response = await axiosClient.get(
+        `/contest/${contestId}/leaderboard`
+      );
       setLeaderboard(response.data.leaderboard);
       setError(null);
     } catch (err) {
-      console.error('Error fetching leaderboard:', err);
-      setError('Failed to load leaderboard data');
+      console.error("Error fetching leaderboard:", err);
+      setError("Failed to load leaderboard data");
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial fetch and setup refresh interval if contest is active
+  // Initial fetch and setup socket listener
   useEffect(() => {
     fetchLeaderboard();
 
-    // If contest is active, refresh leaderboard every 30 seconds
-    if (isContestActive) {
-      const interval = setInterval(fetchLeaderboard, 30000);
-      setRefreshInterval(interval);
+    if (socket) {
+      const handleLeaderboardUpdate = (data) => {
+        if (data.contestId === contestId) {
+          setLeaderboard(data.leaderboard);
+        }
+      };
+
+      socket.on('leaderboardUpdate', handleLeaderboardUpdate);
+
+      return () => {
+        socket.off('leaderboardUpdate', handleLeaderboardUpdate);
+      };
     }
-
-    return () => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
-    };
-  }, [contestId, isContestActive]);
-
-  // Setup socket listener for real-time leaderboard updates
-  React.useEffect(() => {
-    if (!socket) return;
-
-    const handleLeaderboardUpdate = (updatedLeaderboard) => {
-      if (updatedLeaderboard.contestId === contestId) {
-        setLeaderboard(updatedLeaderboard.leaderboard);
-      }
-    };
-
-    socket.on('leaderboardUpdate', handleLeaderboardUpdate);
-
-    return () => {
-      socket.off('leaderboardUpdate', handleLeaderboardUpdate);
-    };
-  }, [socket, contestId]);
+  }, [contestId, socket]);
 
   // Get medal for top 3 ranks
   const getMedal = (rank) => {
@@ -130,13 +133,20 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
     );
   }
 
-  if (!leaderboard || !leaderboard.rankings || leaderboard.rankings.length === 0) {
+  if (
+    !leaderboard ||
+    !leaderboard.rankings ||
+    leaderboard.rankings.length === 0
+  ) {
     return (
       <div className="p-8 text-center">
         <Trophy className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-300 mb-2">No Participants Yet</h3>
+        <h3 className="text-xl font-semibold text-gray-300 mb-2">
+          No Participants Yet
+        </h3>
         <p className="text-gray-400">
-          Be the first to submit a solution and claim your spot on the leaderboard!
+          Be the first to submit a solution and claim your spot on the
+          leaderboard!
         </p>
       </div>
     );
@@ -149,12 +159,19 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
       transition={{ duration: 0.5 }}
       className="bg-gray-900/50 rounded-xl border border-gray-800/50 overflow-hidden"
     >
-    
       <div className="p-4 border-b border-gray-800/50 flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-white flex items-center">
-          <Trophy className="w-5 h-5 text-orange-400 mr-2" />
-          Leaderboard
-        </h3>
+        <div className="flex items-center">
+          <button
+            onClick={() => navigate(`/`)}
+            className="mr-4 text-gray-400 hover:text-white flex items-center"
+          >
+            <Home className="w-4 h-4 mr-1" /> Back to Home
+          </button>
+          <h3 className="text-lg font-semibold text-white flex items-center">
+            <Trophy className="w-5 h-5 text-orange-400 mr-2" />
+            Leaderboard
+          </h3>
+        </div>
         {isContestActive && (
           <div className="flex items-center text-xs text-gray-400">
             <Clock className="w-4 h-4 mr-1" />
@@ -183,13 +200,17 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 className={`border-b border-gray-800/30 hover:bg-gray-800/20 transition-colors ${
-                  currentUser?._id === entry.userId._id ? 'bg-orange-500/10' : ''
+                  currentUser?._id === entry.userId._id
+                    ? "bg-orange-500/10"
+                    : ""
                 }`}
               >
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center">
                     {getMedal(entry.rank)}
-                    <span className="ml-2 font-semibold text-gray-300">{entry.rank}</span>
+                    <span className="ml-2 font-semibold text-gray-300">
+                      {entry.rank}
+                    </span>
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -206,21 +227,29 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
                       )}
                     </div>
                     <div>
-                      <div className="font-medium text-white">{entry.userId.name}</div>
-                      <div className="text-xs text-gray-400">{entry.userId.email}</div>
+                      <div className="font-medium text-white">
+                        {entry.userId.name}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {entry.userId.email}
+                      </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-center">
                   <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
                     <Star className="w-3.5 h-3.5 text-orange-400 mr-1" />
-                    <span className="text-orange-300 font-semibold">{entry.score}</span>
+                    <span className="text-orange-300 font-semibold">
+                      {entry.score}
+                    </span>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-center">
                   <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
                     <Zap className="w-3.5 h-3.5 text-blue-400 mr-1" />
-                    <span className="text-blue-300 font-semibold">{entry.problemsSolved}</span>
+                    <span className="text-blue-300 font-semibold">
+                      {entry.problemsSolved}
+                    </span>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-center">
@@ -253,7 +282,8 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
         <div className="p-3 bg-blue-900/20 border-t border-blue-800/30 text-xs text-blue-300 flex items-center">
           <Info className="w-4 h-4 mr-2" />
           <span>
-            Rankings are updated in real-time. Final results will be available after the contest ends.
+            Rankings are updated in real-time. Final results will be available
+            after the contest ends.
           </span>
         </div>
       )}
@@ -261,7 +291,10 @@ const ContestLeaderboard = ({ contestId, isContestActive }) => {
       {leaderboard.isFinalized && (
         <div className="p-3 bg-green-900/20 border-t border-green-800/30 text-xs text-green-300 flex items-center">
           <CheckCircle className="w-4 h-4 mr-2" />
-          <span>These are the final contest results. Congratulations to all participants!</span>
+          <span>
+            These are the final contest results. Congratulations to all
+            participants!
+          </span>
         </div>
       )}
     </motion.div>

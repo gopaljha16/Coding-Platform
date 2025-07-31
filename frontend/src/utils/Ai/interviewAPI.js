@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create API client instance
 const apiClient = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ export const createInterviewSession = async (file, candidateInfo) => {
 // Update createSession API call
 createSession: async (sessionData) => {
   try {
-    const response = await fetch('http://localhost:3000/api/ai/create-session', {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/ai/create-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -147,7 +147,7 @@ export const interviewAPI = {
         };
       }
 
-      const response = await fetch('http://localhost:3000/api/ai/create-session', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/ai/create-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ export const interviewAPI = {
         };
       }
 
-      const response = await fetch('http://localhost:3000/api/ai/continue', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/ai/continue`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -240,7 +240,7 @@ export const interviewAPI = {
   // End interview session
   endInterview: async (sessionId) => {
     try {
-      const response = await apiClient.post('http://localhost:3000/api/ai/end', {
+      const response = await apiClient.post('/ai/end', {
         sessionId,
         endTime: new Date().toISOString()
       });

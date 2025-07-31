@@ -272,22 +272,22 @@ exports.getContestProblem = async (req, res) => {
     }
 
     // Fetch problem
-    const problem = await Problem.findById(problemId);
+    const problem = await Problem.findById(problemId).lean(); // Use .lean() for a plain JS object
     if (!problem) {
       return res.status(404).json({ message: "Problem not found" });
     }
 
     res.json({ problem });
   } catch (err) {
+    console.error("Error in getContestProblem:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
 exports.getAllProblems = async (req, res) => {
   try {
-    // This is a placeholder. You might want to fetch all problems from your database here.
-    // For now, it returns an empty array.
-    res.json({ success: true, problems: [] });
+    const problems = await Problem.find({}, '_id title'); // Fetch only _id and title
+    res.json({ success: true, problems });
   } catch (error) {
     console.error("Error fetching all problems:", error);
     res.status(500).json({ success: false, message: "Error fetching all problems" });

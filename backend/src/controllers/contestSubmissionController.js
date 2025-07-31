@@ -149,27 +149,36 @@ exports.submitContestCode = async (req, res) => {
         if (status === "Accepted") {
             const user = await User.findById(userId);
             if (user) {
-                const today = new Date();
-                const lastCompletion = user.lastContestCompletion ? new Date(user.lastContestCompletion) : null;
-                
-                if (lastCompletion) {
-                    const diffTime = Math.abs(today - lastCompletion);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    if (diffDays === 1) {
-                        user.streak += 1;
-                    } else if (diffDays > 1) {
-                        user.streak = 1;
-                    }
-                } else {
-                    user.streak = 1;
-                }
+                // Check if all problems in the contest are solved
+                const totalProblemsInContest = contest.problems.length;
+                const solvedProblems = await ContestSubmission.find({
+                    userId,
+                    contestId,
+                    status: "Accepted"
+                }).distinct('problemId');
 
-                user.lastContestCompletion = today;
-                
-                if (!user.contestsCompleted.some(c => c.toString() === contestId)) {
-                    user.contestsCompleted.push(contestId);
+                if (solvedProblems.length === totalProblemsInContest) {
+                    // All problems are solved, now mark the contest as completed
+                    if (!user.contestsCompleted.some(c => c.toString() === contestId)) {
+                        user.contestsCompleted.push(contestId);
+                        
+                        const today = new Date();
+                        const lastCompletion = user.lastContestCompletion ? new Date(user.lastContestCompletion) : null;
+
+                        if (lastCompletion) {
+                            const diffTime = Math.abs(today - lastCompletion);
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            if (diffDays === 1) {
+                                user.streak = (user.streak || 0) + 1;
+                            } else if (diffDays > 1) {
+                                user.streak = 1;
+                            }
+                        } else {
+                            user.streak = 1;
+                        }
+                        user.lastContestCompletion = today;
+                    }
                 }
-                
                 await user.save();
             }
         }
@@ -307,7 +316,7 @@ exports.runContestCode = async (req, res) => {
 
         // Map testResults to include passed, input, expectedOutput, actualOutput, error, runtime
         const transformedTestCases = testResults.map((test, index) => {
-            const passed = test.status_id === 3;
+            const passed = test.status.id === 3;
             if (passed) {
                 testCasesPassed++;
                 runtime += parseFloat(test.time);

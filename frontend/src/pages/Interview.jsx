@@ -53,6 +53,7 @@ const Interview = () => {
   const [sessionStats, setSessionStats] = useState(null);
   const [error, setError] = useState(null);
   const [responseStartTime, setResponseStartTime] = useState(null);
+  const [isEnding, setIsEnding] = useState(false);
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -276,6 +277,7 @@ const Interview = () => {
   const handleEndInterview = async () => {
     setIsInterviewActive(false);
     setLoading(true);
+    setIsEnding(true);
     setError(null);
 
     try {
@@ -363,6 +365,7 @@ const Interview = () => {
       setStage("result");
     } finally {
       setLoading(false);
+      setIsEnding(false);
     }
   };
 
@@ -575,6 +578,14 @@ const Interview = () => {
   if (stage === "interview") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col">
+        {isEnding && (
+          <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex flex-col items-center justify-center z-50">
+            <Loader2 className="w-12 h-12 animate-spin text-orange-500 mb-4" />
+            <p className="text-xl text-white">
+              Ending interview and generating your results...
+            </p>
+          </div>
+        )}
         {/* Enhanced Header */}
         <div className="bg-gray-800/50 backdrop-blur-lg border-b border-gray-700/50 p-4">
           <div className="max-w-6xl mx-auto">
@@ -635,10 +646,17 @@ const Interview = () => {
                 </button>
                 <button
                   onClick={handleEndInterview}
-                  className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                  disabled={loading}
+                  className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2"
+                  disabled={loading || isEnding}
                 >
-                  End Interview
+                  {isEnding ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Ending...</span>
+                    </>
+                  ) : (
+                    "End Interview"
+                  )}
                 </button>
               </div>
             </div>

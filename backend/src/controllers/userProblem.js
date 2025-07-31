@@ -151,101 +151,101 @@ const deleteProblem = async (req, res) => {
 const SolutionVideo = require("../models/SolutionVideo");
 
 const getProblemById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.result._id;
+    try {
+        const { id } = req.params;
+        const userId = req.result._id;
 
-    if (!id)
-      return res.status(403).send("Id is Missing");
+        if (!id)
+            return res.status(403).send("Id is Missing");
 
-    const getProblem = await Problem.findById(id).select(
-      "title description difficulty tags visibleTestCases startCode referenceSolution secureUrl thumbnailUrl duration"
-    );
+        const getProblem = await Problem.findById(id).select(
+            "title description difficulty tags visibleTestCases startCode referenceSolution secureUrl thumbnailUrl duration"
+        );
 
-    if (!getProblem)
-      return res.status(403).send("Problem is Missing");
+        if (!getProblem)
+            return res.status(403).send("Problem is Missing");
 
-    // Fetch video metadata for this problem and user
-    const video = await SolutionVideo.findOne({ problemId: id, userId });
+        // Fetch video metadata for this problem and user
+        const video = await SolutionVideo.findOne({ problemId: id, userId });
 
-    let videoData = null;
-    if (video) {
-      videoData = {
-        secureUrl: video.secureUrl,
-        thumbnailUrl: video.thumbnailUrl,
-        duration: video.duration,
-      };
+        let videoData = null;
+        if (video) {
+            videoData = {
+                secureUrl: video.secureUrl,
+                thumbnailUrl: video.thumbnailUrl,
+                duration: video.duration,
+            };
+        }
+
+        // Combine problem data with video metadata
+        const responseData = {
+            ...getProblem.toObject(),
+            video: videoData,
+        };
+
+        res.status(200).send(responseData);
+
+    } catch (err) {
+        console.error("Error fetching problem by ID:", err);
+        res.status(500).send("Error Occurred: " + err.message);
     }
-
-    // Combine problem data with video metadata
-    const responseData = {
-      ...getProblem.toObject(),
-      video: videoData,
-    };
-
-    res.status(200).send(responseData);
-    
-  } catch (err) {
-    console.error("Error fetching problem by ID:", err); 
-    res.status(500).send("Error Occurred: " + err.message);
-  }
 };
 
 
-const getAllProblems = async (req ,res) =>{
-    try{
-        
-        const getProblems  = await Problem.find({ }).select("_id title tags difficulty");
+const getAllProblems = async (req, res) => {
+    try {
 
-        if(!getProblems)
+        const getProblems = await Problem.find({}).select("_id title tags difficulty");
+
+        if (!getProblems)
             return res.status(403).send("Problems are Missing");
 
         res.status(200).send(getProblems)
 
-    }catch(err){
+    } catch (err) {
         res.status(500).send("Error Occured " + err);
     }
 }
 
-const problemsSolvedByUser = async (req , res) =>{
-    try{
+const problemsSolvedByUser = async (req, res) => {
+    try {
         const userId = req.result._id;
         console.log("problemsSolvedByUser: Fetching solved problems for userId:", userId);
-        
+
         console.log("problemsSolvedByUser: User ID type:", typeof userId);
         console.log("problemsSolvedByUser: User ID value:", userId);
-        
+
         // First get the user without population to check the raw problemSolved array
         const rawUser = await User.findById(userId);
         if (rawUser) {
-            console.log("problemsSolvedByUser: Raw problemSolved array:", 
+            console.log("problemsSolvedByUser: Raw problemSolved array:",
                 rawUser.problemSolved.map(id => id.toString()));
         }
-        
+
         // Now get the populated user
         const user = await User.findById(userId).populate({
-            path:"problemSolved",
-            select:"_id title difficulty tags"
+            path: "problemSolved",
+            select: "_id title difficulty tags"
         });
-        
+
         if (user && user.problemSolved) {
             console.log("problemsSolvedByUser: Populated problemSolved array length:", user.problemSolved.length);
-            console.log("problemsSolvedByUser: First few problems:", 
+            console.log("problemsSolvedByUser: First few problems:",
                 user.problemSolved.slice(0, 3).map(p => ({ id: p._id, title: p.title })));
         }
-        
+
         if (!user) {
             console.error("problemsSolvedByUser: User not found");
             return res.status(404).json({ success: false, message: "User not found" });
         }
-        
+
         console.log(`problemsSolvedByUser: Found ${user.problemSolved.length} solved problems`);
         res.status(200).json({
             success: true,
             problems: user.problemSolved
         });
 
-    }catch(err){
+    } catch (err) {
         console.error("problemsSolvedByUser: Error occurred:", err);
         res.status(500).json({
             success: false,
@@ -255,18 +255,18 @@ const problemsSolvedByUser = async (req , res) =>{
     }
 }
 
-const  submittedProblem  = async (req , res) =>{
-     try{
-         const userId  = req.result._id;
-         const problemId = req.params.pid;
+const submittedProblem = async (req, res) => {
+    try {
+        const userId = req.result._id;
+        const problemId = req.params.pid;
 
-       const ans =   await Submission.find({userId , problemId});
+        const ans = await Submission.find({ userId, problemId });
 
-         res.status(200).send(ans);
+        res.status(200).send(ans);
 
-     }catch(err){
-        res.status(403).send("Error Occured " + err );
-     }
+    } catch (err) {
+        res.status(403).send("Error Occured " + err);
+    }
 }
 
 // Add these new controller methods to your existing file
@@ -277,7 +277,7 @@ const  submittedProblem  = async (req , res) =>{
 const getProfileProblemsSolved = async (req, res) => {
     try {
         const userId = req.result._id;
-        
+
         // Get all submissions where user solved problems
         const submissions = await Submission.find({
             userId,
@@ -286,7 +286,7 @@ const getProfileProblemsSolved = async (req, res) => {
 
         // Get unique problem IDs from submissions
         const problemIds = [...new Set(submissions.map(s => s.problemId))];
-        
+
         // Get problem details
         const problems = await Problem.find({
             _id: { $in: problemIds }
@@ -317,11 +317,11 @@ const getProfileProblemsSolved = async (req, res) => {
 const getProfileAllProblems = async (req, res) => {
     try {
         const userId = req.result._id;
-        
+
         // Get all problems
         const allProblems = await Problem.find({})
             .select('_id title difficulty tags');
-        
+
         // Get problems solved by user
         const solvedSubmissions = await Submission.find({
             userId,
@@ -373,4 +373,4 @@ const getProfileAllProblems = async (req, res) => {
 };
 
 
-module.exports = { createProblem, updateProblem, deleteProblem, getAllProblems , getProblemById , problemsSolvedByUser , submittedProblem , getProfileAllProblems , getProfileProblemsSolved }
+module.exports = { createProblem, updateProblem, deleteProblem, getAllProblems, getProblemById, problemsSolvedByUser, submittedProblem, getProfileAllProblems, getProfileProblemsSolved }

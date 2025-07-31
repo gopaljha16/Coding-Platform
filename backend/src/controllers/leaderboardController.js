@@ -6,8 +6,9 @@ const User = require("../models/user");
 
 // Helper function to generate rankings from submissions
 const generateRankings = (submissions) => {
-    // Group submissions by user
     const userSubmissions = {};
+
+    // First, iterate through all submissions to find the best one for each problem for each user
     submissions.forEach(submission => {
         if (!submission.userId) return; // Skip if userId is null
         const userId = submission.userId._id.toString();
@@ -15,19 +16,20 @@ const generateRankings = (submissions) => {
             userSubmissions[userId] = {
                 user: submission.userId,
                 problems: {},
-                totalScore: 0,
-                problemsSolved: 0,
-                totalRuntime: 0
             };
         }
 
         const problemId = submission.problemId._id.toString();
-        if (!userSubmissions[userId].problems[problemId] || 
-            (submission.status === 'Accepted' && 
-             (userSubmissions[userId].problems[problemId].status !== 'Accepted' || 
-              submission.runtime < userSubmissions[userId].problems[problemId].runtime))) {
-            
-            // Update problem data with this submission
+        const existingSubmission = userSubmissions[userId].problems[problemId];
+
+        // We only update if there's no existing submission,
+        // or if the new submission is 'Accepted' and the old one wasn't,
+        // or if both are 'Accepted' and the new one has a better runtime.
+        if (!existingSubmission ||
+            (submission.status === 'Accepted' &&
+                (existingSubmission.status !== 'Accepted' ||
+                    submission.runtime < existingSubmission.runtime))) {
+
             userSubmissions[userId].problems[problemId] = {
                 problem: submission.problemId,
                 status: submission.status,
@@ -35,41 +37,40 @@ const generateRankings = (submissions) => {
                 runtime: submission.runtime,
                 submissionTime: submission.submissionTime || submission.createdAt
             };
-
-            // Update user totals
-            if (submission.status === 'Accepted') {
-                // If this is a new accepted solution or better runtime
-                if (!userSubmissions[userId].problems[problemId].counted) {
-                    userSubmissions[userId].problemsSolved++;
-                    userSubmissions[userId].problems[problemId].counted = true;
-                }
-            }
-
-            userSubmissions[userId].totalScore = Object.values(userSubmissions[userId].problems)
-                .reduce((sum, p) => sum + (p.score || 0), 0);
-            
-            userSubmissions[userId].totalRuntime = Object.values(userSubmissions[userId].problems)
-                .filter(p => p.status === 'Accepted')
-                .reduce((sum, p) => sum + (p.runtime || 0), 0);
         }
     });
 
+    // Now, calculate totals for each user based on their best submissions
+    const rankedUsers = Object.values(userSubmissions).map(userData => {
+        let totalScore = 0;
+        let problemsSolved = 0;
+        let totalRuntime = 0;
 
-    // Convert to array and sort
-    return Object.values(userSubmissions)
-        .map(data => ({
-            userId: data.user,
-            score: data.totalScore,
-            problemsSolved: data.problemsSolved,
-            totalRuntime: data.totalRuntime,
-            submissions: Object.values(data.problems).map(p => ({
+        Object.values(userData.problems).forEach(problem => {
+            if (problem.status === 'Accepted') {
+                problemsSolved++;
+                totalScore += problem.score || 0;
+                totalRuntime += problem.runtime || 0;
+            }
+        });
+
+        return {
+            userId: userData.user,
+            score: totalScore,
+            problemsSolved: problemsSolved,
+            totalRuntime: totalRuntime,
+            submissions: Object.values(userData.problems).map(p => ({
                 problemId: p.problem._id,
                 status: p.status,
                 score: p.score,
                 bestRuntime: p.runtime,
                 submissionTime: p.submissionTime
             }))
-        }))
+        };
+    });
+
+    // Sort the users to determine rank
+    return rankedUsers
         .sort((a, b) => {
             // Sort by score (descending)
             if (b.score !== a.score) return b.score - a.score;

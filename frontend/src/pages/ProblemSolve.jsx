@@ -105,14 +105,11 @@ const ProblemPage = () => {
 
         const initialCode =
           response.data.startCode.find((sc) => {
-            const lang = sc.language.toLowerCase();
-            if (lang === "c++" && selectedLanguage === "cpp")
-              return true;
-            else if (lang === "java" && selectedLanguage === "java")
-              return true;
-            else if (lang === "javascript" && selectedLanguage === "javascript")
-              return true;
-            return false;
+            const backendLang = sc.language.toLowerCase();
+            if (selectedLanguage === "cpp") {
+              return backendLang === "cpp" || backendLang === "c++";
+            }
+            return backendLang === selectedLanguage;
           })?.initialCode || "";
 
         setProblem(response.data);
@@ -129,17 +126,14 @@ const ProblemPage = () => {
 
   // Update code when language changes
   useEffect(() => {
-      if (problem) {
+    if (problem) {
       const initialCode =
         problem.startCode.find((sc) => {
-          const lang = sc.language.toLowerCase();
-          if (lang === "c++" && selectedLanguage === "cpp")
-            return true;
-          else if (lang === "java" && selectedLanguage === "java")
-            return true;
-          else if (lang === "javascript" && selectedLanguage === "javascript")
-            return true;
-          return false;
+          const backendLang = sc.language.toLowerCase();
+          if (selectedLanguage === "cpp") {
+            return backendLang === "cpp" || backendLang === "c++";
+          }
+          return backendLang === selectedLanguage;
         })?.initialCode || "";
       setCode(initialCode);
     }
@@ -277,14 +271,11 @@ const ProblemPage = () => {
     if (problem) {
       const initialCode =
         problem.startCode.find((sc) => {
-          const lang = sc.language.toLowerCase();
-          if (lang === "c++" && selectedLanguage === "cpp")
-            return true;
-          else if (lang === "java" && selectedLanguage === "java")
-            return true;
-          else if (lang === "javascript" && selectedLanguage === "javascript")
-            return true;
-          return false;
+          const backendLang = sc.language.toLowerCase();
+          if (selectedLanguage === "cpp") {
+            return backendLang === "cpp" || backendLang === "c++";
+          }
+          return backendLang === selectedLanguage;
         })?.initialCode || "";
       setCode(initialCode);
     }
