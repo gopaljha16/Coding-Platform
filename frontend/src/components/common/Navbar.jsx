@@ -141,7 +141,7 @@ const Navbar = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-amber-400/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
                 </div>
                 <div className="hidden lg:block">
-                  <h1 className="text-lg font-bold bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">
+                  <h1 className="text-lg font-bold mt-[-7px] bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">
                     Codexa
                   </h1>
                 </div>

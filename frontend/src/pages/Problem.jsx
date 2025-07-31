@@ -83,18 +83,23 @@ const Problem = () => {
   const [playlistLoading, setPlaylistLoading] = useState(false);
   const [addingToPlaylist, setAddingToPlaylist] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [allProblems, setAllProblems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   // Get unique tags from problems
   const uniqueTags = React.useMemo(() => {
     const tagSet = new Set();
-    problems.forEach(problem => {
-      const tags = Array.isArray(problem.tags) 
-        ? problem.tags 
-        : typeof problem.tags === "string" 
-        ? [problem.tags] 
-        : [];
-      tags.forEach(tag => tagSet.add(tag));
-    });
+    if (Array.isArray(problems)) {
+      problems.forEach(problem => {
+        const tags = Array.isArray(problem.tags) 
+          ? problem.tags 
+          : typeof problem.tags === "string" 
+          ? [problem.tags] 
+          : [];
+        tags.forEach(tag => tagSet.add(tag));
+      });
+    }
     return Array.from(tagSet).sort();
   }, [problems]);
 
@@ -110,7 +115,11 @@ const Problem = () => {
             : Promise.resolve({ data: [] }),
         ]);
 
-        setProblems(problemsRes.data);
+        const fetchedProblems = problemsRes.data || [];
+        setAllProblems(fetchedProblems);
+        setProblems(fetchedProblems.slice(0, 15));
+        setHasMore(fetchedProblems.length > 15);
+        setPage(1);
         if (user && initialLoad) {
           setPlaylists(playlistsRes.data?.data || playlistsRes.data || []);
           // Fetch solved problems only if they haven't been fetched yet
@@ -133,7 +142,31 @@ const Problem = () => {
     };
 
     fetchData();
-  }, [user, dispatch, solvedProblems.length, initialLoad]);
+  }, [user, dispatch, initialLoad]);
+
+  const fetchMoreProblems = () => {
+    if (!hasMore) return;
+
+    const nextPage = page + 1;
+    const newProblems = allProblems.slice(0, nextPage * 15);
+    setProblems(newProblems);
+    setPage(nextPage);
+    setHasMore(newProblems.length < allProblems.length);
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+          document.documentElement.offsetHeight - 200
+      ) {
+        fetchMoreProblems();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [hasMore, page, allProblems]);
   
   // Add error display for solved problems fetch failure
   const solvedProblemsError = useSelector(state => state.problems.error);
@@ -152,7 +185,7 @@ const Problem = () => {
     }
   }, [problems, solvedProblems, user]);
 
-  const filteredProblems = problems.filter((problem) => {
+  const filteredProblems = (problems || []).filter((problem) => {
     const difficultyMatch =
       filters.difficulty === "all" || problem.difficulty === filters.difficulty;
 
@@ -1088,8 +1121,21 @@ const Problem = () => {
             </div>
           )}
 
+          {hasMore && (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-orange-500"></div>
+              <span className="ml-4 text-slate-300">Loading more problems...</span>
+            </div>
+          )}
+
+          {!hasMore && sortedProblems.length > 0 && (
+            <div className="text-center py-10 text-slate-400">
+              You've reached the end of the list.
+            </div>
+          )}
+
           {/* Empty State */}
-          {sortedProblems.length === 0 && (
+          {sortedProblems.length === 0 && !loading && (
             <div className="text-center py-20">
               <div className="relative mb-8">
                 <div className="p-6 rounded-full bg-gradient-to-br from-slate-700/50 to-slate-600/50 border border-slate-500/30 w-fit mx-auto">

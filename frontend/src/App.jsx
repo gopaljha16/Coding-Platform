@@ -34,7 +34,6 @@ import { ContestProvider } from "./context/ContestContext";
 import { DSAVisualizer } from "./pages/DSAVisualizer";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-
 import EmailVerification from "./components/common/EmailVerification"; // Import 
 import DobutAi from "./components/common/DoubtAi";
 
@@ -214,6 +213,8 @@ const App = () => {
                 )
               }
             />
+           
+
             <Route
               path="/contest/:contestId/problem/:problemId"
               element={
@@ -297,6 +298,7 @@ const App = () => {
                   <Navigate to={"/login"} />
                 )
               }
+              
             />
           </Routes>
         </ContestProvider>

@@ -361,7 +361,7 @@ const Homepage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <Link>
+            <Link to="/problems">
             <button 
               onClick={() => setIsAuthenticated(true)}
               className="px-8 py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/30 transition-all duration-300 flex items-center gap-2 group"
@@ -509,9 +509,9 @@ const Homepage = () => {
                           ))}
                         </div>
                         
-                        <button className="w-full py-2 bg-gradient-to-r from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30 text-orange-400 hover:text-orange-300 rounded-lg transition-all duration-300 text-sm font-medium">
+                        <Link to={`/${key.toLowerCase()}`} className="w-full py-2 bg-gradient-to-r from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30 text-orange-400 hover:text-orange-300 rounded-lg transition-all duration-300 text-sm font-medium text-center">
                           Explore {feature.title}
-                        </button>
+                        </Link>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -656,21 +656,25 @@ const Homepage = () => {
                   </div>
                   
                   <div className="flex flex-col gap-3">
-                    <button className="px-8 py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/30 transition-all duration-300 flex items-center gap-2 group whitespace-nowrap">
+                    <Link to="/contests">
+                    <button className="w-full px-8 py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/30 transition-all duration-300 flex items-center gap-2 group whitespace-nowrap">
                       <Trophy className="w-5 h-5" />
                       Register Now
                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                     </button>
+                    </Link>
                     
                     <button className="px-8 py-4 bg-gray-700/80 hover:bg-gray-600/80 backdrop-blur-sm border border-gray-600 text-white font-medium rounded-xl transition-all duration-300 flex items-center gap-2 justify-center">
                       <Bell className="w-4 h-4" />
                       Set Reminder
                     </button>
 
-                    <button className="px-8 py-4 bg-purple-600/20 hover:bg-purple-600/30 backdrop-blur-sm border border-purple-600/50 text-purple-400 font-medium rounded-xl transition-all duration-300 flex items-center gap-2 justify-center">
+                    <Link to="/contests">
+                    <button className="w-full px-8 py-4 bg-purple-600/20 hover:bg-purple-600/30 backdrop-blur-sm border border-purple-600/50 text-purple-400 font-medium rounded-xl transition-all duration-300 flex items-center gap-2 justify-center">
                       <Eye className="w-4 h-4" />
                       View Past Contests
                     </button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -882,6 +886,7 @@ const Homepage = () => {
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+                <Link to="/problems">
                 <button 
                   onClick={() => setIsAuthenticated(true)}
                   className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/30 transition-all duration-300 flex items-center justify-center gap-2 group"
@@ -890,6 +895,7 @@ const Homepage = () => {
                   {isAuthenticated ? 'Continue Your Journey' : 'Start Free Today'}
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </button>
+                </Link>
                 <Link to="/premium">
                 <button className="w-full sm:w-auto px-8 py-4 bg-gray-700/80 hover:bg-gray-600/80 backdrop-blur-sm border border-gray-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2">
                   <Crown className="w-5 h-5 text-yellow-400" />
@@ -960,12 +966,19 @@ const Homepage = () => {
             <div>
               <h3 className="text-white font-bold mb-4">Platform</h3>
               <ul className="space-y-3">
-                {['Interview AI', 'DSA Visualizer', 'Doubt Assistant', 'Discussion Forum', 'Contests', 'Problems'].map((item, index) => (
+                {[
+                  { name: 'Interview AI', path: '/interview' },
+                  { name: 'DSA Visualizer', path: '/visualizer' },
+                  { name: 'Doubt Assistant', path: '/doubt-ai' },
+                  { name: 'Discussion Forum', path: '/discuss' },
+                  { name: 'Contests', path: '/contest' },
+                  { name: 'Problems', path: '/problems' }
+                ].map((item, index) => (
                   <li key={index}>
-                    <a href="#" className="text-gray-400 hover:text-orange-400 transition-colors duration-300 flex items-center gap-2">
+                    <Link to={item.path} className="text-gray-400 hover:text-orange-400 transition-colors duration-300 flex items-center gap-2">
                       <ArrowRight className="w-3 h-3" />
-                      {item}
-                    </a>
+                      {item.name}
+                    </Link>
                   </li>
                 ))}
               </ul>

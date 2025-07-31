@@ -13,8 +13,10 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { createContest, getAllProblems } from "../../../utils/apis/contestApi/contest";
+import { useNavigate } from "react-router-dom";
 
 const CreateContestForm = ({ onSuccess }) => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "",
     startTime: "",
@@ -101,20 +103,15 @@ const CreateContestForm = ({ onSuccess }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-4 mb-8"
-        >
-          <button className="text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft size={24} />
+        <div className="flex justify-between items-center mb-8">
+          
+          <h1 className="text-3xl font-bold text-white">Create New Contest</h1>
+          <button onClick={() => navigate('/admin')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+            <ArrowLeft size={20} />
+            Back to Admin
           </button>
-          <div>
-            <h1 className="text-3xl font-bold text-white">Create New Contest</h1>
-            <p className="text-slate-400">Set up challenges for your community</p>
-          </div>
-        </motion.div>
+        </div>
+        <p className="text-slate-400 mb-8 -mt-4">Set up challenges for your community</p>
 
         <motion.div
           variants={containerVariants}
@@ -316,6 +313,7 @@ const CreateContestForm = ({ onSuccess }) => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
+                  
                     <Trophy size={20} />
                     Create Contest
                   </div>

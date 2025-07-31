@@ -3,6 +3,9 @@ const redisWrapper = require("../config/redis");
 const validate = require("../utils/validator");
 const bcrypt = require('bcrypt');
 const User = require("../models/user");
+const Submission = require("../models/submission");
+const Contest = require("../models/contest");
+const Problem = require("../models/problem");
 const jwt = require("jsonwebtoken");
 
 const cloudinary = require('cloudinary').v2;
@@ -213,6 +216,39 @@ const activeUsers = async (req, res) => {
     }
 };
 
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({}, '-password -confirmPassword -__v');
+        res.status(200).json({
+            message: "All users fetched successfully",
+            users
+        });
+    } catch (err) {
+        res.status(500).json({ message: "Error while fetching users", error: err.message });
+    }
+};
+
+const getPlatformStats = async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments();
+        const totalSubmissions = await Submission.countDocuments();
+        const totalContests = await Contest.countDocuments();
+        const totalProblems = await Problem.countDocuments();
+
+        res.status(200).json({
+            message: "Platform stats fetched successfully",
+            stats: {
+                totalUsers,
+                totalSubmissions,
+                totalContests,
+                totalProblems
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ message: "Error while fetching platform stats", error: err.message });
+    }
+};
+
 const googleLogin = async (req, res) => {
     try {
         const { token } = req.body;
@@ -276,5 +312,7 @@ module.exports = {
     updateProfile,
     deleteProfile,
     activeUsers,
-    googleLogin
+    googleLogin,
+    getAllUsers,
+    getPlatformStats
 };

@@ -705,9 +705,13 @@ const testimonials = [
                   
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500 group-hover:text-gray-400 transition-colors">{feature.stats}</span>
-                    <button className="flex items-center gap-1 text-orange-400 group-hover:text-orange-300 transition-colors text-sm font-medium">
-                      Explore <ArrowRight className="w-4 h-4" />
-                    </button>
+                    {feature.status === 'LIVE' || feature.status === 'POPULAR' ? (
+                      <Link to={`/${feature.id}`} className="flex items-center gap-1 text-orange-400 group-hover:text-orange-300 transition-colors text-sm font-medium">
+                        Explore <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    ) : (
+                      <span className="text-sm text-gray-500">Coming Soon</span>
+                    )}
                   </div>
                 </div>
               </motion.div>

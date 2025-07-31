@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Trophy, 
-  Calendar, 
-  Clock, 
-  Edit3, 
-  Trash2, 
-  Plus, 
-  Eye, 
+import {
+  Trophy,
+  Calendar,
+  Clock,
+  Edit3,
+  Trash2,
+  Plus,
+  Eye,
   EyeOff,
   X,
   Save,
-  Users
+  Users,
+  ArrowLeft,
 } from "lucide-react";
 import {
   getAllContests,
@@ -19,8 +20,10 @@ import {
   updateContest,
 } from "../../../utils/apis/contestApi/contest";
 import CreateContestForm from "./CreateContestForm";
+import { useNavigate } from "react-router-dom";
 
 const AdminContest = () => {
+  const navigate = useNavigate();
   const [contests, setContests] = useState([]);
   const [refresh, setRefresh] = useState(false);
   const [editData, setEditData] = useState(null);
@@ -33,7 +36,8 @@ const AdminContest = () => {
   }, [refresh]);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this contest?")) return;
+    if (!window.confirm("Are you sure you want to delete this contest?"))
+      return;
     await deleteContest(id);
     setRefresh(!refresh);
   };
@@ -54,9 +58,9 @@ const AdminContest = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const itemVariants = {
@@ -66,16 +70,16 @@ const AdminContest = () => {
       opacity: 1,
       transition: {
         type: "spring",
-        stiffness: 100
-      }
-    }
+        stiffness: 100,
+      },
+    },
   };
 
   const modalVariants = {
-    hidden: { 
+    hidden: {
       opacity: 0,
       scale: 0.8,
-      y: 50
+      y: 50,
     },
     visible: {
       opacity: 1,
@@ -84,32 +88,32 @@ const AdminContest = () => {
       transition: {
         type: "spring",
         stiffness: 300,
-        damping: 30
-      }
+        damping: 30,
+      },
     },
     exit: {
       opacity: 0,
       scale: 0.8,
       y: 50,
       transition: {
-        duration: 0.2
-      }
-    }
+        duration: 0.2,
+      },
+    },
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[length:20px_20px]"></div>
-      
-      <motion.div 
+
+      <motion.div
         className="relative z-10 p-8"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
         {/* Header */}
-        <motion.div 
+        <motion.div
           className="flex items-center justify-between mb-8"
           variants={itemVariants}
         >
@@ -121,19 +125,32 @@ const AdminContest = () => {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                 Contest Dashboard
               </h1>
-              <p className="text-gray-400 mt-1">Manage and organize coding contests</p>
+              <p className="text-gray-400 mt-1">
+                Manage and organize coding contests
+              </p>
             </div>
           </div>
-          
-          <motion.button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Plus className="w-5 h-5" />
-            Create Contest
-          </motion.button>
+
+          <div className="flex items-center gap-4">
+            <motion.button
+              onClick={() => navigate("/admin")}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-600 text-white rounded-xl font-semibold shadow-lg hover:bg-slate-700 transition-all duration-300 hover:scale-105"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back to Admin
+            </motion.button>
+            <motion.button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Plus className="w-5 h-5" />
+              Create Contest
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Create Form */}
@@ -146,10 +163,12 @@ const AdminContest = () => {
               className="mb-8 overflow-hidden"
             >
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6">
-                <CreateContestForm onSuccess={() => {
-                  setRefresh(!refresh);
-                  setShowCreateForm(false);
-                }} />
+                <CreateContestForm
+                  onSuccess={() => {
+                    setRefresh(!refresh);
+                    setShowCreateForm(false);
+                  }}
+                />
               </div>
             </motion.div>
           )}
@@ -158,7 +177,7 @@ const AdminContest = () => {
         {/* Update Form Modal */}
         <AnimatePresence>
           {editData && (
-            <motion.div 
+            <motion.div
               className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -300,7 +319,7 @@ const AdminContest = () => {
               {contests.length} contests
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {contests.map((contest, index) => (
               <motion.div
@@ -309,10 +328,10 @@ const AdminContest = () => {
                 variants={itemVariants}
                 whileHover={{ y: -5, scale: 1.02 }}
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ 
-                  opacity: 1, 
+                animate={{
+                  opacity: 1,
                   y: 0,
-                  transition: { delay: index * 0.1 }
+                  transition: { delay: index * 0.1 },
                 }}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -326,8 +345,12 @@ const AdminContest = () => {
                       ) : (
                         <EyeOff className="w-4 h-4 text-red-400" />
                       )}
-                      <span className={`text-sm font-medium ${contest.isPublic ? 'text-green-400' : 'text-red-400'}`}>
-                        {contest.isPublic ? 'Public' : 'Private'}
+                      <span
+                        className={`text-sm font-medium ${
+                          contest.isPublic ? "text-green-400" : "text-red-400"
+                        }`}
+                      >
+                        {contest.isPublic ? "Public" : "Private"}
                       </span>
                     </div>
                   </div>
@@ -343,7 +366,8 @@ const AdminContest = () => {
                   <div className="flex items-center gap-3 text-gray-300">
                     <Clock className="w-4 h-4 text-blue-400" />
                     <span className="text-sm">
-                      {new Date(contest.startTime).toLocaleTimeString()} - {new Date(contest.endTime).toLocaleTimeString()}
+                      {new Date(contest.startTime).toLocaleTimeString()} -{" "}
+                      {new Date(contest.endTime).toLocaleTimeString()}
                     </span>
                   </div>
                 </div>
