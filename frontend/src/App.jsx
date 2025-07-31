@@ -31,8 +31,9 @@ import UserProfile from "./pages/UserProfile";
 import DiscussPage from "./pages/DiscussPage";
 import DiscussionDetail from "./pages/DiscussionDetail";
 import { ContestProvider } from "./context/ContestContext";
-import DSAVisualizerPage from "./pages/DSAVisualizerPage";
-import EmailVerification from "./components/common/EmailVerification"; // Import EmailVerification
+import { DSAVisualizer } from "./pages/DSAVisualizer";
+
+import EmailVerification from "./components/common/EmailVerification"; // Import 
 import DobutAi from "./components/common/DoubtAi";
 
 const ContestLeaderboardWrapper = () => {
@@ -274,22 +275,22 @@ const App = () => {
               }
             />
             <Route
-              path="/visualizer"
-              element={
-                isAuthenticated ? (
-                  <DSAVisualizerPage />
-                ) : (
-                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
-                )
-              }
-            />
-            <Route
               path="/doubt-ai"
               element={
                 isAuthenticated ? (
                   <DobutAi />
                 ) : (
-                  <Navigate to={isAuthenticated ? "/verify-email" : "/login"} />
+                  <Navigate to={"/login"} />
+                )
+              }
+            />
+             <Route
+              path="/visualizer"
+              element={
+                isAuthenticated ? (
+                  <DSAVisualizer />
+                ) : (
+                  <Navigate to={"/login"} />
                 )
               }
             />

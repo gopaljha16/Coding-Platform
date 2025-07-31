@@ -1,67 +1,29 @@
-import { Parser } from 'acorn';
-
-// AST-based Code Parser
 export const parseCode = (code) => {
-  const operations = [];
-  
-  try {
-    const ast = Parser.parse(code, { ecmaVersion: 2020, sourceType: 'module' });
+  const steps = [];
+  const lines = code.split('\n');
 
-    const walk = (node) => {
-      if (!node) return;
+  const arrayRegex = /const arr = \[(.*)\];/;
+  const swapRegex = /swap\((\d+),\s*(\d+)\)/;
 
-      switch (node.type) {
-        case 'Program':
-          node.body.forEach(walk);
-          break;
-
-        case 'ExpressionStatement':
-          walk(node.expression);
-          break;
-
-        case 'VariableDeclaration':
-          node.declarations.forEach(walk);
-          break;
-
-        case 'VariableDeclarator':
-          if (node.init && node.init.type === 'ArrayExpression') {
-            const args = node.init.elements.map(el => el.value);
-            operations.push({ type: 'create', args: [args] });
-          }
-          break;
-
-        case 'CallExpression':
-          const calleeName = node.callee.name;
-          const args = node.arguments.map(arg => arg.value);
-          
-          // Map function names to operation types
-          const operationMap = {
-            'insertAt': 'insert',
-            'deleteAt': 'delete',
-            'updateAt': 'update',
-            'swap': 'swap',
-            'bubbleSort': 'bubbleSort',
-            'linearSearch': 'linearSearch',
-            'binarySearch': 'binarySearch',
-            'createLinkedList': 'create',
-            'insertNode': 'insert',
-            'deleteNode': 'delete',
-            'reverse': 'reverse',
-          };
-          
-          if (operationMap[calleeName]) {
-            operations.push({ type: operationMap[calleeName], args });
-          }
-          break;
-      }
-    };
-
-    walk(ast);
-    return operations;
-    
-  } catch (error) {
-    console.error("Code parsing error:", error);
-    // Return a structured error object
-    return { error: true, message: error.message, line: error.loc?.line };
+  let initialArray = [];
+  const arrayMatch = code.match(arrayRegex);
+  if (arrayMatch) {
+    initialArray = JSON.parse(`[${arrayMatch[1]}]`);
+    steps.push({ action: 'init', value: initialArray, line: -1 });
   }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    let match;
+
+    if ((match = line.match(swapRegex))) {
+      steps.push({
+        action: 'swap',
+        indices: [parseInt(match[1], 10), parseInt(match[2], 10)],
+        line: i,
+      });
+    }
+  }
+
+  return steps;
 };
